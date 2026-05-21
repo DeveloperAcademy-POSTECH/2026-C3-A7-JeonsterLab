@@ -22,4 +22,7 @@ protocol RecordingRepositoryProtocol: AnyObject {
 
     /// 주어진 세션의 binary 파일에서 모든 샘플을 읽어 반환.
     func loadSamples(for sessionID: UUID) throws -> [MotionSample]
+
+    /// 세션에 Activity 레이블을 지정. nil 전달 시 레이블 해제.
+    func assignLabel(_ labelID: UUID?, to sessionID: UUID) throws
 }

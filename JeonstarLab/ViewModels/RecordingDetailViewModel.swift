@@ -11,16 +11,32 @@ import Foundation
 @MainActor
 final class RecordingDetailViewModel {
 
-    private(set) var samples:      [MotionSample] = []
-    private(set) var isLoading:    Bool = false
-    private(set) var errorMessage: String?
+    private(set) var samples:        [MotionSample] = []
+    private(set) var isLoading:      Bool = false
+    private(set) var errorMessage:   String?
+    private(set) var availableLabels:[ActivityLabel] = []
+    private(set) var session:        RecordingSession
 
-    private let session:    RecordingSession
-    private let repository: RecordingRepositoryProtocol
+    var showLabelPicker: Bool = false
+    var exportURL:       URL?
 
-    init(session: RecordingSession, repository: RecordingRepositoryProtocol) {
-        self.session    = session
-        self.repository = repository
+    private let repository:         RecordingRepositoryProtocol
+    private let assignLabelUseCase: AssignLabelUseCase
+    private let exportCSVUseCase:   ExportCSVUseCase
+    private let labelRepo:          ActivityLabelRepositoryProtocol
+
+    init(
+        session:            RecordingSession,
+        repository:         RecordingRepositoryProtocol,
+        assignLabelUseCase: AssignLabelUseCase,
+        exportCSVUseCase:   ExportCSVUseCase,
+        labelRepo:          ActivityLabelRepositoryProtocol
+    ) {
+        self.session            = session
+        self.repository         = repository
+        self.assignLabelUseCase = assignLabelUseCase
+        self.exportCSVUseCase   = exportCSVUseCase
+        self.labelRepo          = labelRepo
     }
 
     var title: String {
@@ -38,11 +54,43 @@ final class RecordingDetailViewModel {
         "\(session.sampleCount)개 (\(session.samplingRate)Hz)"
     }
 
+    var labelDisplayName: String {
+        guard let id = session.activityLabelID else { return "없음" }
+        return labelRepo.label(for: id)?.name ?? "없음"
+    }
+
+    var hasLabel: Bool { session.activityLabelID != nil }
+
     func loadSamples() async {
         isLoading = true
         defer { isLoading = false }
         do {
             samples = try repository.loadSamples(for: session.id)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func loadLabels() {
+        availableLabels = labelRepo.labels
+    }
+
+    func assignLabel(_ labelID: UUID?) {
+        try? assignLabelUseCase.execute(sessionID: session.id, labelID: labelID)
+        session = RecordingSession(
+            id:              session.id,
+            startedAt:       session.startedAt,
+            duration:        session.duration,
+            sampleCount:     session.sampleCount,
+            fileName:        session.fileName,
+            samplingRate:    session.samplingRate,
+            activityLabelID: labelID
+        )
+    }
+
+    func exportCSV() {
+        do {
+            exportURL = try exportCSVUseCase.execute(sessionID: session.id)
         } catch {
             errorMessage = error.localizedDescription
         }

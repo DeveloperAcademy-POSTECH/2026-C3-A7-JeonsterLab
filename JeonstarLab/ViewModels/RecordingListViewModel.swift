@@ -12,10 +12,25 @@ import Foundation
 final class RecordingListViewModel {
 
     private(set) var recordings: [RecordingSession] = []
-    let repository: RecordingRepositoryProtocol
 
-    init(repository: RecordingRepositoryProtocol) {
-        self.repository = repository
+    let repository:          RecordingRepositoryProtocol
+    let labelRepo:           ActivityLabelRepositoryProtocol
+    let manageLabelsUseCase: ManageActivityLabelsUseCase
+    private let assignLabelUseCase: AssignLabelUseCase
+    private let exportCSVUseCase:   ExportCSVUseCase
+
+    init(
+        repository:          RecordingRepositoryProtocol,
+        labelRepo:           ActivityLabelRepositoryProtocol,
+        manageLabelsUseCase: ManageActivityLabelsUseCase,
+        assignLabelUseCase:  AssignLabelUseCase,
+        exportCSVUseCase:    ExportCSVUseCase
+    ) {
+        self.repository          = repository
+        self.labelRepo           = labelRepo
+        self.manageLabelsUseCase = manageLabelsUseCase
+        self.assignLabelUseCase  = assignLabelUseCase
+        self.exportCSVUseCase    = exportCSVUseCase
     }
 
     func load() {
@@ -25,5 +40,24 @@ final class RecordingListViewModel {
     func delete(sessionID: UUID) {
         try? repository.delete(sessionID: sessionID)
         load()
+    }
+
+    func labelName(for session: RecordingSession) -> String? {
+        guard let id = session.activityLabelID else { return nil }
+        return labelRepo.label(for: id)?.name
+    }
+
+    func makeDetailViewModel(for session: RecordingSession) -> RecordingDetailViewModel {
+        RecordingDetailViewModel(
+            session:            session,
+            repository:         repository,
+            assignLabelUseCase: assignLabelUseCase,
+            exportCSVUseCase:   exportCSVUseCase,
+            labelRepo:          labelRepo
+        )
+    }
+
+    func makeManagementViewModel() -> ActivityLabelManagementViewModel {
+        ActivityLabelManagementViewModel(useCase: manageLabelsUseCase)
     }
 }

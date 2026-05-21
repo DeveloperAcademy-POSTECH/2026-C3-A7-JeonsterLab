@@ -44,9 +44,11 @@
 		D37ECF4B2FBDA5F50098CE69 /* Exceptions for "JeonstarLab Core" folder in "JeonstarLab" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Models/ActivityLabel.swift,
 				Models/MotionSample.swift,
 				Models/RecordingCommand.swift,
 				Models/RecordingSession.swift,
+				Protocols/ActivityLabelRepositoryProtocol.swift,
 				Protocols/RecordingRepositoryProtocol.swift,
 				WatchSessionManager.swift,
 			);
@@ -414,7 +416,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 36545XSWN8;
+				DEVELOPMENT_TEAM = 2QJX795Q3R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -480,7 +482,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 36545XSWN8;
+				DEVELOPMENT_TEAM = 2QJX795Q3R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = JeonstarLab;

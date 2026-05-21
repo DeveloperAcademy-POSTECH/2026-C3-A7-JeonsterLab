@@ -25,7 +25,10 @@ struct RecordingListView: View {
             } else {
                 ForEach(viewModel.recordings) { session in
                     NavigationLink(value: session) {
-                        RecordingRowView(session: session)
+                        RecordingRowView(
+                            session:   session,
+                            labelName: viewModel.labelName(for: session)
+                        )
                     }
                 }
                 .onDelete { offsets in
@@ -36,12 +39,20 @@ struct RecordingListView: View {
             }
         }
         .navigationTitle("녹화 목록")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    ActivityLabelManagementView(
+                        viewModel: viewModel.makeManagementViewModel()
+                    )
+                } label: {
+                    Image(systemName: "tag")
+                }
+            }
+        }
         .navigationDestination(for: RecordingSession.self) { session in
             RecordingDetailView(
-                viewModel: RecordingDetailViewModel(
-                    session:    session,
-                    repository: viewModel.repository
-                )
+                viewModel: viewModel.makeDetailViewModel(for: session)
             )
         }
         .onAppear {
@@ -54,7 +65,6 @@ struct RecordingListView: View {
     private var watchControlSection: some View {
         Section {
             HStack {
-                // 연결 상태 표시
                 Label(
                     watchControlVM.isReachable ? "Watch 연결됨" : "Watch 연결 안 됨",
                     systemImage: watchControlVM.isReachable ? "applewatch" : "applewatch.slash"
@@ -64,7 +74,6 @@ struct RecordingListView: View {
 
                 Spacer()
 
-                // 녹화 제어 버튼
                 switch watchControlVM.watchState {
                 case .recording:
                     Button {
@@ -100,7 +109,8 @@ struct RecordingListView: View {
 
 struct RecordingRowView: View {
 
-    let session: RecordingSession
+    let session:   RecordingSession
+    let labelName: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -109,6 +119,10 @@ struct RecordingRowView: View {
             HStack(spacing: 8) {
                 Label(durationText, systemImage: "clock")
                 Label("\(session.sampleCount)개", systemImage: "waveform")
+                if let labelName {
+                    Label(labelName, systemImage: "tag.fill")
+                        .foregroundStyle(.blue)
+                }
             }
             .font(.caption)
             .foregroundStyle(.secondary)

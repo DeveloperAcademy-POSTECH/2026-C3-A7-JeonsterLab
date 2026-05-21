@@ -20,6 +20,13 @@ struct RecordingDetailView: View {
                 LabeledContent("날짜", value: viewModel.title)
                 LabeledContent("길이", value: viewModel.durationText)
                 LabeledContent("샘플", value: viewModel.sampleCountText)
+                LabeledContent("Activity") {
+                    Button(viewModel.labelDisplayName) {
+                        viewModel.loadLabels()
+                        viewModel.showLabelPicker = true
+                    }
+                    .foregroundStyle(viewModel.hasLabel ? .blue : .teal)
+                }
             }
 
             // MARK: 그래프 섹션
@@ -85,6 +92,26 @@ struct RecordingDetailView: View {
         }
         .navigationTitle("녹화 상세")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    viewModel.exportCSV()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+            }
+        }
+        .sheet(isPresented: $viewModel.showLabelPicker) {
+            LabelPickerView(
+                labels:   viewModel.availableLabels,
+                selected: viewModel.session.activityLabelID,
+                onSelect: { labelID in viewModel.assignLabel(labelID) }
+            )
+        }
+        .sheet(item: $viewModel.exportURL) { url in
+            ActivityView(url: url)
+                .ignoresSafeArea()
+        }
         .task {
             await viewModel.loadSamples()
         }
@@ -157,4 +184,22 @@ struct RecordingDetailView: View {
             .foregroundStyle(.orange.opacity(0.45))
             .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
     }
+}
+
+// MARK: - UIActivityViewController Wrapper
+
+struct ActivityView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+// MARK: - URL + Identifiable
+
+extension URL: @retroactive Identifiable {
+    public var id: String { absoluteString }
 }

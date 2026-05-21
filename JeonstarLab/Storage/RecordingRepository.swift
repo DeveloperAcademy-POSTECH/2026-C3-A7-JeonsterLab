@@ -58,4 +58,14 @@ final class RecordingRepository: RecordingRepositoryProtocol {
         let url = try fileStore.urlForFile(named: entity.fileName)
         return try MotionSampleSerializer.read(from: url)
     }
+
+    func assignLabel(_ labelID: UUID?, to sessionID: UUID) throws {
+        let id = sessionID
+        let descriptor = FetchDescriptor<RecordingEntity>(
+            predicate: #Predicate { $0.id == id }
+        )
+        guard let entity = try modelContext.fetch(descriptor).first else { return }
+        entity.activityLabelID = labelID
+        try modelContext.save()
+    }
 }

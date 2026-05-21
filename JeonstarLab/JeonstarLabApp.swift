@@ -14,7 +14,7 @@ struct Wrist_MotionApp: App {
     // MARK: - SwiftData 컨테이너
 
     private let container: ModelContainer = {
-        let schema = Schema([RecordingEntity.self])
+        let schema = Schema([RecordingEntity.self, ActivityLabelEntity.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         return try! ModelContainer(for: schema, configurations: [config])
     }()
@@ -26,8 +26,8 @@ struct Wrist_MotionApp: App {
     private let importUseCase:   ImportRecordingUseCase
     private let fileReceiver:    FileReceiveService
 
-    @State private var listViewModel:    RecordingListViewModel
-    @State private var watchControlVM:   WatchControlViewModel
+    @State private var listViewModel:  RecordingListViewModel
+    @State private var watchControlVM: WatchControlViewModel
 
     @MainActor
     init() {
@@ -37,9 +37,20 @@ struct Wrist_MotionApp: App {
             modelContext: ModelContext(container),
             fileStore:    fileStore
         )
+        let labelRepo     = ActivityLabelRepository(modelContext: ModelContext(container))
+        let assignLabelUC = AssignLabelUseCase(repository: repo)
+        let manageLabelsUC = ManageActivityLabelsUseCase(labelRepo: labelRepo, recordingRepo: repo)
+        let exportCSVUC   = ExportCSVUseCase(recordingRepo: repo, labelRepo: labelRepo)
+
         let importUC  = ImportRecordingUseCase(repository: repo)
         let receiver  = FileReceiveService(importUseCase: importUC)
-        let listVM    = RecordingListViewModel(repository: repo)
+        let listVM    = RecordingListViewModel(
+            repository:          repo,
+            labelRepo:           labelRepo,
+            manageLabelsUseCase: manageLabelsUC,
+            assignLabelUseCase:  assignLabelUC,
+            exportCSVUseCase:    exportCSVUC
+        )
 
         // WCSession 파일 수신 → FileReceiveService 연결
         sm.onFileReceived = { file in
