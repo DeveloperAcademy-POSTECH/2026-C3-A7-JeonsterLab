@@ -12,6 +12,10 @@ struct RecordingDetailView: View {
 
     @State var viewModel: RecordingDetailViewModel
     @State private var selectedSnapEventIndex: Int = 0
+    @State private var exportURLs: [URL] = []
+    @State private var isShareSheetPresented = false
+    @State private var isExporting = false
+    @State private var exportErrorMessage: String?
 
     var body: some View {
         List {
@@ -85,8 +89,57 @@ struct RecordingDetailView: View {
         }
         .navigationTitle("녹화 상세")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    exportRecording()
+                } label: {
+                    if isExporting {
+                        ProgressView()
+                    } else {
+                        Label("Export", systemImage: "square.and.arrow.up")
+                    }
+                }
+                .disabled(isExporting)
+            }
+        }
+        .sheet(isPresented: $isShareSheetPresented) {
+            ShareSheet(activityItems: exportURLs)
+        }
+        .alert("내보내기 실패", isPresented: exportErrorBinding) {
+            Button("확인", role: .cancel) {
+                exportErrorMessage = nil
+            }
+        } message: {
+            Text(exportErrorMessage ?? "알 수 없는 오류가 발생했습니다.")
+        }
         .task {
             await viewModel.loadSamples()
+        }
+    }
+
+    private var exportErrorBinding: Binding<Bool> {
+        Binding(
+            get: { exportErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    exportErrorMessage = nil
+                }
+            }
+        )
+    }
+
+    private func exportRecording() {
+        Task { @MainActor in
+            isExporting = true
+            defer { isExporting = false }
+
+            do {
+                exportURLs = try viewModel.exportRecording()
+                isShareSheetPresented = true
+            } catch {
+                exportErrorMessage = error.localizedDescription
+            }
         }
     }
 
