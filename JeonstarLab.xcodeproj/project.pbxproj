@@ -66,17 +66,17 @@
 			path = "JeonstarLab Watch App";
 			sourceTree = "<group>";
 		};
+		D37ECF012FBE00000098CE69 /* JeonstarLab Mac */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "JeonstarLab Mac";
+			sourceTree = "<group>";
+		};
 		D37ECF4A2FBDA5E90098CE69 /* JeonstarLab Core */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				D37ECF4B2FBDA5F50098CE69 /* Exceptions for "JeonstarLab Core" folder in "JeonstarLab" target */,
 			);
 			path = "JeonstarLab Core";
-			sourceTree = "<group>";
-		};
-		D37ECF012FBE00000098CE69 /* JeonstarLab Mac */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "JeonstarLab Mac";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -472,6 +472,10 @@
 				DEVELOPMENT_TEAM = 36545XSWN8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBonjourServices = (
+					"_jeonstar-data._tcp",
+				);
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "근처 Mac 앱으로 녹화 데이터를 전송하기 위해 로컬 네트워크를 사용합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -505,6 +509,10 @@
 				DEVELOPMENT_TEAM = 2QJX795Q3R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBonjourServices = (
+					"_jeonstar-data._tcp",
+				);
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "근처 Mac 앱으로 녹화 데이터를 전송하기 위해 로컬 네트워크를 사용합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -667,6 +675,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "JeonstarLab Receiver";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSBonjourServices = (
+					"_jeonstar-data._tcp",
+				);
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "근처 iPhone 앱에서 녹화 데이터를 수신하기 위해 로컬 네트워크를 사용합니다.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -696,6 +708,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "JeonstarLab Receiver";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSBonjourServices = (
+					"_jeonstar-data._tcp",
+				);
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "근처 iPhone 앱에서 녹화 데이터를 수신하기 위해 로컬 네트워크를 사용합니다.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

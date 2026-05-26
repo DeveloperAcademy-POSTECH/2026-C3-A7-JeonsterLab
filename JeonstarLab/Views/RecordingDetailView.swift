@@ -16,6 +16,7 @@ struct RecordingDetailView: View {
     @State private var isShareSheetPresented = false
     @State private var isExporting = false
     @State private var exportErrorMessage: String?
+    @State private var macConnectionViewModel = MacConnectionViewModel()
 
     var body: some View {
         List {
@@ -24,6 +25,32 @@ struct RecordingDetailView: View {
                 LabeledContent("날짜", value: viewModel.title)
                 LabeledContent("길이", value: viewModel.durationText)
                 LabeledContent("샘플", value: viewModel.sampleCountText)
+            }
+
+            Section("Mac 전송") {
+                LabeledContent("Mac 연결 상태", value: macConnectionViewModel.connectionStatusText)
+                LabeledContent("Mac", value: macConnectionViewModel.connectedMacText)
+                LabeledContent("전송", value: macConnectionViewModel.transferStatusText)
+
+                if let errorMessage = macConnectionViewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+
+                HStack {
+                    Button("Mac 찾기") {
+                        macConnectionViewModel.startSearching()
+                    }
+
+                    Button("Mac으로 전송") {
+                        macConnectionViewModel.sendRecording(
+                            session: viewModel.currentSession,
+                            repository: viewModel.recordingRepository
+                        )
+                    }
+                    .disabled(!macConnectionViewModel.canSendToMac)
+                }
             }
 
             // MARK: 그래프 섹션

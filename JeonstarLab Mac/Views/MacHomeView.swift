@@ -46,11 +46,25 @@ struct MacHomeView: View {
                 LabeledContent("상태", value: viewModel.statusText)
                 LabeledContent("기기", value: viewModel.connectedPeerText)
 
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+
                 HStack(spacing: 12) {
                     Button("파일 열기") {}
                         .disabled(true)
-                    Button("수신 시작") {}
-                        .disabled(true)
+
+                    if viewModel.isAdvertising {
+                        Button("수신 중지") {
+                            viewModel.stopReceiver()
+                        }
+                    } else {
+                        Button("수신 시작") {
+                            viewModel.startReceiver()
+                        }
+                    }
                 }
                 .padding(.top, 4)
             }
@@ -67,7 +81,14 @@ struct MacHomeView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(viewModel.receivedItems) { item in
                         HStack {
-                            Text(item.fileName)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(item.fileName)
+                                    .font(.body)
+                                Text(item.folderPath)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
                             Spacer()
                             Text(item.receivedAt.formatted(date: .abbreviated, time: .shortened))
                                 .foregroundStyle(.secondary)
