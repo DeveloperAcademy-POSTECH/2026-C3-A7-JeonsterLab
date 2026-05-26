@@ -10,7 +10,7 @@ struct MacHomeView: View {
 
     var body: some View {
         NavigationSplitView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 Text("JeonstarLab Receiver")
                     .font(.title2)
                     .fontWeight(.semibold)
@@ -19,22 +19,41 @@ struct MacHomeView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                Spacer()
+                List(selection: $viewModel.selectedPackageID) {
+                    Section("Received Recordings") {
+                        if viewModel.receivedPackages.isEmpty {
+                            Text("아직 수신된 녹화 데이터가 없습니다.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(viewModel.receivedPackages) { package in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(package.displayTitle)
+                                        .lineLimit(1)
+                                    Text("\(package.label.displayName) · \(package.completenessText)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .tag(package.id)
+                            }
+                        }
+                    }
+                }
             }
             .padding()
-            .navigationSplitViewColumnWidth(min: 220, ideal: 260)
+            .navigationSplitViewColumnWidth(min: 260, ideal: 300)
         } detail: {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("JeonstarLab Receiver")
-                        .font(.largeTitle)
-                        .fontWeight(.semibold)
+            VStack(spacing: 0) {
+                connectionSection
+                    .padding([.top, .horizontal], 28)
 
-                    connectionSection
-                    recentFilesSection
+                if let packageBinding = viewModel.bindingForSelectedPackage() {
+                    MacRecordingDetailView(
+                        package: packageBinding,
+                        onSaveLabel: viewModel.saveLabel(for:)
+                    )
+                } else {
+                    emptyState
                 }
-                .frame(maxWidth: 720, alignment: .leading)
-                .padding(28)
             }
             .background(Color(nsColor: .windowBackgroundColor))
         }
@@ -46,6 +65,14 @@ struct MacHomeView: View {
                 LabeledContent("상태", value: viewModel.statusText)
                 LabeledContent("기기", value: viewModel.connectedPeerText)
 
+                Text(viewModel.guidanceText)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
+                Text("자동 전송은 아직 비활성화되어 있습니다.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
                         .font(.caption)
@@ -53,8 +80,13 @@ struct MacHomeView: View {
                 }
 
                 HStack(spacing: 12) {
-                    Button("파일 열기") {}
-                        .disabled(true)
+                    Button("저장 폴더 열기") {
+                        viewModel.openReceivedFolder()
+                    }
+
+                    Button("목록 새로고침") {
+                        viewModel.reloadPackages()
+                    }
 
                     if viewModel.isAdvertising {
                         Button("수신 중지") {
@@ -71,32 +103,16 @@ struct MacHomeView: View {
         }
     }
 
-    private var recentFilesSection: some View {
-        sectionCard(title: "Recent Received Files") {
-            if viewModel.receivedItems.isEmpty {
-                Text("아직 수신된 녹화 데이터가 없습니다.")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(viewModel.receivedItems) { item in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(item.fileName)
-                                    .font(.body)
-                                Text(item.folderPath)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                            }
-                            Spacer()
-                            Text(item.receivedAt.formatted(date: .abbreviated, time: .shortened))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Text("아직 수신된 녹화 데이터가 없습니다.")
+                .font(.title3)
+            Text("Mac에서 [수신 시작]을 누른 뒤 iPhone 녹화 상세 화면에서 [Mac 찾기]와 [Mac으로 전송]을 순서대로 눌러주세요.")
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
     }
 
     private func sectionCard<Content: View>(

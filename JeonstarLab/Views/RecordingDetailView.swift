@@ -32,6 +32,13 @@ struct RecordingDetailView: View {
                 LabeledContent("Mac", value: macConnectionViewModel.connectedMacText)
                 LabeledContent("전송", value: macConnectionViewModel.transferStatusText)
 
+                Text(macConnectionViewModel.guidanceText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Mac 연결 시 자동 전송", isOn: .constant(false))
+                    .disabled(true)
+
                 if let errorMessage = macConnectionViewModel.errorMessage {
                     Text(errorMessage)
                         .font(.caption)
