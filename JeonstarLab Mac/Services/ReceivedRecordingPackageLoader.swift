@@ -82,6 +82,9 @@ final class ReceivedRecordingPackageLoader {
             label: labelPayload?.label ?? .unlabeled,
             notes: labelPayload?.notes ?? "",
             snapLabels: labelPayload?.snapLabels ?? [:],
+            snapEventLabels: labelPayload?.snapEventLabels ?? [:],
+            manualSnapEvents: labelPayload?.manualSnapEvents ?? [],
+            deletedSnapEventIDs: labelPayload?.deletedSnapEventIDs ?? [],
             parseMessages: messages
         )
     }
@@ -95,6 +98,9 @@ final class ReceivedRecordingPackageLoader {
             packageLabel: package.label,
             notes: package.notes,
             snapLabels: package.snapLabels,
+            snapEventLabels: package.snapEventLabels,
+            manualSnapEvents: package.manualSnapEvents,
+            deletedSnapEventIDs: package.deletedSnapEventIDs,
             updatedAt: Date()
         )
         let encoder = JSONEncoder()

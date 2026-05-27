@@ -18,6 +18,9 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     var label: RecordingPackageLabel
     var notes: String
     var snapLabels: [Int: SnapEventLabelPayload]
+    var snapEventLabels: [String: SnapEventLabelPayload]
+    var manualSnapEvents: [WorkingSnapEvent]
+    var deletedSnapEventIDs: Set<String>
     var parseMessages: [String]
 
     var displayTitle: String {
@@ -62,14 +65,12 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     }
 
     var snapEventCountText: String {
-        if let eventCount = snapAnalysis?.eventCount {
-            return "\(eventCount)"
-        }
-        return "\(snapAnalysis?.snapEvents.count ?? 0)"
+        "\(workingSnapEvents.count)"
     }
 
     var resultSummaryText: String {
-        guard let events = snapAnalysis?.snapEvents, !events.isEmpty else {
+        let events = workingSnapEvents
+        guard !events.isEmpty else {
             return "스냅 이벤트 없음"
         }
 
@@ -87,12 +88,59 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     }
 
     var snapLabelCounts: [RecordingPackageLabel: Int] {
-        guard let events = snapAnalysis?.snapEvents else { return [:] }
-
-        return events.reduce(into: [:]) { counts, event in
-            let label = snapLabels[event.labelKey]?.label ?? .unlabeled
+        workingSnapEvents.reduce(into: [:]) { counts, event in
+            let label = snapEventLabels[event.snapID]?.label ?? event.label
             counts[label, default: 0] += 1
         }
+    }
+
+    var workingSnapEvents: [WorkingSnapEvent] {
+        let automaticEvents = (snapAnalysis?.snapEvents ?? [])
+            .map { event in
+                WorkingSnapEvent.automatic(
+                    from: event,
+                    recordingID: snapAnalysis?.recordingID ?? metadata?.recordingID,
+                    labelPayload: snapEventLabels[event.workingSnapID]
+                )
+            }
+
+        let manualEvents = manualSnapEvents.map { event in
+            var editableEvent = event
+            if let payload = snapEventLabels[event.snapID] {
+                editableEvent.label = payload.label
+                editableEvent.notes = payload.notes
+                editableEvent.updatedAt = payload.updatedAt
+            }
+            return editableEvent
+        }
+
+        return (automaticEvents + manualEvents)
+            .filter { deletedSnapEventIDs.contains($0.snapID) == false }
+            .sorted { lhs, rhs in
+                (lhs.startTime ?? lhs.peakTime ?? 0) < (rhs.startTime ?? rhs.peakTime ?? 0)
+            }
+    }
+
+    mutating func addManualSnapEvent(from draft: ManualSnapDraft) {
+        let event = WorkingSnapEvent.manual(
+            recordingID: metadata?.recordingID ?? snapAnalysis?.recordingID,
+            draft: draft
+        )
+        manualSnapEvents.append(event)
+        snapEventLabels[event.snapID] = SnapEventLabelPayload(
+            label: event.label,
+            notes: event.notes,
+            updatedAt: event.updatedAt
+        )
+    }
+
+    mutating func deleteSnapEvent(id snapID: String) {
+        if manualSnapEvents.contains(where: { $0.snapID == snapID }) {
+            manualSnapEvents.removeAll { $0.snapID == snapID }
+        } else {
+            deletedSnapEventIDs.insert(snapID)
+        }
+        snapEventLabels.removeValue(forKey: snapID)
     }
 }
 
@@ -127,6 +175,9 @@ struct RecordingPackageLabelPayload: Codable {
     let packageLabel: RecordingPackageLabel?
     let notes: String
     let snapLabels: [Int: SnapEventLabelPayload]
+    let snapEventLabels: [String: SnapEventLabelPayload]
+    let manualSnapEvents: [WorkingSnapEvent]
+    let deletedSnapEventIDs: Set<String>
     let updatedAt: Date
 
     init(
@@ -135,6 +186,9 @@ struct RecordingPackageLabelPayload: Codable {
         packageLabel: RecordingPackageLabel? = nil,
         notes: String,
         snapLabels: [Int: SnapEventLabelPayload] = [:],
+        snapEventLabels: [String: SnapEventLabelPayload] = [:],
+        manualSnapEvents: [WorkingSnapEvent] = [],
+        deletedSnapEventIDs: Set<String> = [],
         updatedAt: Date
     ) {
         self.displayName = displayName
@@ -142,6 +196,9 @@ struct RecordingPackageLabelPayload: Codable {
         self.packageLabel = packageLabel
         self.notes = notes
         self.snapLabels = snapLabels
+        self.snapEventLabels = snapEventLabels
+        self.manualSnapEvents = manualSnapEvents
+        self.deletedSnapEventIDs = deletedSnapEventIDs
         self.updatedAt = updatedAt
     }
 
@@ -151,6 +208,9 @@ struct RecordingPackageLabelPayload: Codable {
         case packageLabel
         case notes
         case snapLabels
+        case snapEventLabels
+        case manualSnapEvents
+        case deletedSnapEventIDs
         case updatedAt
     }
 
@@ -163,6 +223,18 @@ struct RecordingPackageLabelPayload: Codable {
         packageLabel = try container.decodeIfPresent(RecordingPackageLabel.self, forKey: .packageLabel)
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
         snapLabels = try container.decodeIfPresent([Int: SnapEventLabelPayload].self, forKey: .snapLabels) ?? [:]
+        let decodedSnapEventLabels = try container.decodeIfPresent(
+            [String: SnapEventLabelPayload].self,
+            forKey: .snapEventLabels
+        ) ?? [:]
+        snapEventLabels = snapLabels.reduce(into: decodedSnapEventLabels) { labels, legacyEntry in
+            let snapID = "automatic-\(legacyEntry.key)"
+            if labels[snapID] == nil {
+                labels[snapID] = legacyEntry.value
+            }
+        }
+        manualSnapEvents = try container.decodeIfPresent([WorkingSnapEvent].self, forKey: .manualSnapEvents) ?? []
+        deletedSnapEventIDs = try container.decodeIfPresent(Set<String>.self, forKey: .deletedSnapEventIDs) ?? []
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
     }
 }
