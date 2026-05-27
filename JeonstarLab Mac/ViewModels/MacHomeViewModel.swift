@@ -12,14 +12,19 @@ final class MacHomeViewModel {
     private let receiver = MacPeerReceiver()
     private let packageLoader = ReceivedRecordingPackageLoader()
     private let fileStore = MacReceivedFileStore()
+    private let folderStore: SnapFolderStore
 
     var receiverStatus: MacReceiverStatus = .idle
     var connectedPeerName: String?
     var receivedPackages: [ReceivedRecordingPackage] = []
+    var snapFolders: [SnapFolder] = []
     var selectedPackageID: ReceivedRecordingPackage.ID?
+    var selectedFolderID: SnapFolder.ID?
     var errorMessage: String?
 
     init() {
+        folderStore = SnapFolderStore(rootURL: fileStore.rootDirectory)
+        reloadFolders()
         reloadPackages()
         receiver.onStatusChanged = { [weak self] status in
             self?.receiverStatus = status
@@ -34,6 +39,7 @@ final class MacHomeViewModel {
                 if let package = packageLoader.loadPackage(folderURL: folder) {
                     upsert(package)
                     selectedPackageID = package.id
+                    selectedFolderID = nil
                 }
             }
         }
@@ -68,8 +74,15 @@ final class MacHomeViewModel {
     }
 
     var selectedPackage: ReceivedRecordingPackage? {
-        guard let selectedPackageID else { return receivedPackages.first }
+        guard let selectedPackageID else {
+            return selectedFolderID == nil ? receivedPackages.first : nil
+        }
         return receivedPackages.first { $0.id == selectedPackageID }
+    }
+
+    var selectedFolder: SnapFolder? {
+        guard let selectedFolderID else { return nil }
+        return snapFolders.first { $0.id == selectedFolderID }
     }
 
     var rootReceivedFolderURL: URL {
@@ -94,8 +107,18 @@ final class MacHomeViewModel {
 
     func reloadPackages() {
         receivedPackages = packageLoader.loadPackages(rootURL: rootReceivedFolderURL)
-        if selectedPackageID == nil {
+        if selectedPackageID == nil && selectedFolderID == nil {
             selectedPackageID = receivedPackages.first?.id
+        }
+        updateAllFolderItemSnapshots()
+    }
+
+    func reloadFolders() {
+        let loadedFolders = folderStore.loadFolders()
+        let normalizedFolders = normalizedFolderMemberships(loadedFolders)
+        snapFolders = normalizedFolders
+        if normalizedFolders != loadedFolders {
+            saveFolders()
         }
     }
 
@@ -119,13 +142,203 @@ final class MacHomeViewModel {
         )
     }
 
+    func bindingForSelectedFolder() -> Binding<SnapFolder>? {
+        guard let selectedFolderID,
+              let index = snapFolders.firstIndex(where: { $0.id == selectedFolderID }) else {
+            return nil
+        }
+
+        return Binding(
+            get: { self.snapFolders[index] },
+            set: {
+                self.snapFolders[index] = $0
+                self.saveFolders()
+            }
+        )
+    }
+
+    func packageSelectionBinding() -> Binding<ReceivedRecordingPackage.ID?> {
+        Binding(
+            get: { self.selectedPackageID },
+            set: { newValue in
+                self.selectedPackageID = newValue
+                if newValue != nil {
+                    self.selectedFolderID = nil
+                }
+            }
+        )
+    }
+
+    func selectFolder(_ folder: SnapFolder) {
+        selectedFolderID = folder.id
+        selectedPackageID = nil
+    }
+
+    func selectPackage(id: ReceivedRecordingPackage.ID?) {
+        selectedPackageID = id
+        if id != nil {
+            selectedFolderID = nil
+        }
+    }
+
+    func addFolder() {
+        let baseName = "새 폴더"
+        let existingNames = Set(snapFolders.map(\.name))
+        var folderName = baseName
+        var suffix = 1
+        while existingNames.contains(folderName) {
+            folderName = "\(baseName) \(suffix)"
+            suffix += 1
+        }
+
+        let folder = SnapFolder(name: folderName)
+        snapFolders.append(folder)
+        selectedFolderID = folder.id
+        selectedPackageID = nil
+        saveFolders()
+    }
+
+    func deleteFolder(_ folder: SnapFolder) {
+        snapFolders.removeAll { $0.id == folder.id }
+        if selectedFolderID == folder.id {
+            selectedFolderID = nil
+            selectedPackageID = receivedPackages.first?.id
+        }
+        saveFolders()
+    }
+
+    func renameFolder(_ folder: SnapFolder) {
+        guard let index = snapFolders.firstIndex(where: { $0.id == folder.id }) else { return }
+        snapFolders[index] = folder
+        saveFolders()
+    }
+
     func saveLabel(for package: ReceivedRecordingPackage) {
         do {
             try packageLoader.saveLabel(package: package)
             upsert(package)
+            updateFolderItems(for: package)
         } catch {
             errorMessage = "라벨 저장 실패: \(error.localizedDescription)"
         }
+    }
+
+    func folderContainingSnap(package: ReceivedRecordingPackage, event: WorkingSnapEvent) -> SnapFolder? {
+        snapFolders.first { folder in
+            folder.items.contains { item in
+                isSameSnap(item, package: package, event: event)
+            }
+        }
+    }
+
+    func addSnap(_ event: WorkingSnapEvent, from package: ReceivedRecordingPackage, to folder: SnapFolder) {
+        let currentLabel = package.snapEventLabels[event.snapID]?.label ?? event.label
+        guard currentLabel != .unlabeled,
+              folderContainingSnap(package: package, event: event) == nil,
+              let folderIndex = snapFolders.firstIndex(where: { $0.id == folder.id }) else {
+            return
+        }
+
+        var labeledEvent = event
+        labeledEvent.label = currentLabel
+        snapFolders[folderIndex].items.append(folderItem(from: package, event: labeledEvent))
+        snapFolders[folderIndex].updatedAt = Date()
+        saveFolders()
+    }
+
+    func removeSnap(_ event: WorkingSnapEvent, from package: ReceivedRecordingPackage, folder _: SnapFolder) {
+        var didChange = false
+        for folderIndex in snapFolders.indices {
+            let originalCount = snapFolders[folderIndex].items.count
+            snapFolders[folderIndex].items.removeAll { item in
+                isSameSnap(item, package: package, event: event)
+            }
+            if snapFolders[folderIndex].items.count != originalCount {
+                snapFolders[folderIndex].updatedAt = Date()
+                didChange = true
+            }
+        }
+
+        if didChange {
+            saveFolders()
+        }
+    }
+
+    func removeFolderItem(_ item: SnapFolderItem, from folder: SnapFolder) {
+        guard let folderIndex = snapFolders.firstIndex(where: { $0.id == folder.id }) else { return }
+        snapFolders[folderIndex].items.removeAll { $0.id == item.id }
+        snapFolders[folderIndex].updatedAt = Date()
+        saveFolders()
+    }
+
+    func openSource(for item: SnapFolderItem) {
+        if let package = receivedPackages.first(where: { $0.folderURL.lastPathComponent == item.packageFolderName }) {
+            selectedPackageID = package.id
+            selectedFolderID = nil
+        } else {
+            reloadPackages()
+            selectedPackageID = receivedPackages.first {
+                $0.folderURL.lastPathComponent == item.packageFolderName
+            }?.id
+            selectedFolderID = nil
+        }
+    }
+
+    func generateSegments(for folder: SnapFolder) -> String {
+        guard let folderIndex = snapFolders.firstIndex(where: { $0.id == folder.id }) else {
+            return "세그먼트 생성 실패: 폴더를 찾을 수 없습니다."
+        }
+
+        var samplesByPackageName: [String: [MotionCSVSample]] = [:]
+        var generatedCount = 0
+        var skippedCount = 0
+
+        for item in snapFolders[folderIndex].items {
+            guard let package = receivedPackages.first(where: { $0.folderURL.lastPathComponent == item.packageFolderName }),
+                  let event = package.workingSnapEvents.first(where: { $0.snapID == item.snapID }) else {
+                skippedCount += 1
+                continue
+            }
+
+            do {
+                let samples: [MotionCSVSample]
+                if let cachedSamples = samplesByPackageName[item.packageFolderName] {
+                    samples = cachedSamples
+                } else if let csvURL = package.csvURL {
+                    let parsedSamples = try MotionCSVParser.parse(url: csvURL)
+                    samplesByPackageName[item.packageFolderName] = parsedSamples
+                    samples = parsedSamples
+                } else {
+                    skippedCount += 1
+                    continue
+                }
+
+                _ = try SnapSegmentExporter.export(
+                    package: package,
+                    event: event,
+                    samples: samples
+                )
+
+                if let itemIndex = snapFolders[folderIndex].items.firstIndex(where: { $0.id == item.id }) {
+                    snapFolders[folderIndex].items[itemIndex] = folderItem(
+                        from: package,
+                        event: event,
+                        preserving: item
+                    )
+                }
+                generatedCount += 1
+            } catch {
+                skippedCount += 1
+            }
+        }
+
+        snapFolders[folderIndex].updatedAt = Date()
+        saveFolders()
+
+        if skippedCount > 0 {
+            return "세그먼트 \(generatedCount)개 생성, \(skippedCount)개 건너뜀"
+        }
+        return "세그먼트 \(generatedCount)개를 생성했습니다."
     }
 
     private func upsert(_ package: ReceivedRecordingPackage) {
@@ -135,6 +348,124 @@ final class MacHomeViewModel {
             receivedPackages.insert(package, at: 0)
         }
         receivedPackages.sort { $0.receivedAt > $1.receivedAt }
+    }
+
+    private func updateAllFolderItemSnapshots() {
+        guard !snapFolders.isEmpty else { return }
+        for package in receivedPackages {
+            updateFolderItems(for: package, shouldSave: false)
+        }
+        snapFolders = normalizedFolderMemberships(snapFolders)
+        saveFolders()
+    }
+
+    private func updateFolderItems(for package: ReceivedRecordingPackage, shouldSave: Bool = true) {
+        let eventsByID = Dictionary(uniqueKeysWithValues: package.workingSnapEvents.map { ($0.snapID, $0) })
+        var didChange = false
+
+        for folderIndex in snapFolders.indices {
+            for itemIndex in snapFolders[folderIndex].items.indices {
+                let item = snapFolders[folderIndex].items[itemIndex]
+                guard item.packageFolderName == package.folderURL.lastPathComponent,
+                      let event = eventsByID[item.snapID] else {
+                    continue
+                }
+
+                snapFolders[folderIndex].items[itemIndex] = folderItem(
+                    from: package,
+                    event: event,
+                    preserving: item
+                )
+                didChange = true
+            }
+            if didChange {
+                snapFolders[folderIndex].updatedAt = Date()
+            }
+        }
+
+        if didChange && shouldSave {
+            saveFolders()
+        }
+    }
+
+    private func folderItem(
+        from package: ReceivedRecordingPackage,
+        event: WorkingSnapEvent,
+        preserving existingItem: SnapFolderItem? = nil
+    ) -> SnapFolderItem {
+        let segmentFolderURL = SnapSegmentExporter.segmentFolderURL(
+            package: package,
+            snapID: event.snapID
+        )
+        let hasSegment = SnapSegmentExporter.segmentExists(package: package, snapID: event.snapID)
+        let segmentFolderName = segmentFolderURL.lastPathComponent
+
+        return SnapFolderItem(
+            itemID: existingItem?.itemID ?? UUID(),
+            snapID: event.snapID,
+            recordingID: event.recordingID ?? package.metadata?.recordingID ?? package.snapAnalysis?.recordingID,
+            packageFolderName: package.folderURL.lastPathComponent,
+            packageFolderURLString: package.folderURL.path,
+            packageDisplayName: package.displayTitle,
+            recordingStartedAt: package.metadata?.startedAt,
+            sourceType: event.sourceType,
+            label: event.label,
+            notes: event.notes,
+            startTime: event.startTime,
+            peakTime: event.peakTime,
+            endTime: event.endTime,
+            segmentCSVRelativePath: hasSegment ? "segments/\(segmentFolderName)/segment.csv" : nil,
+            segmentMetadataRelativePath: hasSegment ? "segments/\(segmentFolderName)/segment_metadata.json" : nil,
+            addedAt: existingItem?.addedAt ?? Date()
+        )
+    }
+
+    private func normalizedFolderMemberships(_ folders: [SnapFolder]) -> [SnapFolder] {
+        var seenSnapKeys = Set<String>()
+        return folders.map { folder in
+            var normalizedFolder = folder
+            normalizedFolder.items = folder.items.filter { item in
+                let key = snapIdentityKey(
+                    packageFolderName: item.packageFolderName,
+                    recordingID: item.recordingID,
+                    snapID: item.snapID
+                )
+                return seenSnapKeys.insert(key).inserted
+            }
+            return normalizedFolder
+        }
+    }
+
+    private func isSameSnap(
+        _ item: SnapFolderItem,
+        package: ReceivedRecordingPackage,
+        event: WorkingSnapEvent
+    ) -> Bool {
+        snapIdentityKey(
+            packageFolderName: item.packageFolderName,
+            recordingID: item.recordingID,
+            snapID: item.snapID
+        ) == snapIdentityKey(
+            packageFolderName: package.folderURL.lastPathComponent,
+            recordingID: event.recordingID ?? package.metadata?.recordingID ?? package.snapAnalysis?.recordingID,
+            snapID: event.snapID
+        )
+    }
+
+    private func snapIdentityKey(
+        packageFolderName: String,
+        recordingID: UUID?,
+        snapID: String
+    ) -> String {
+        "\(packageFolderName)|\(recordingID?.uuidString ?? "no-recording-id")|\(snapID)"
+    }
+
+    private func saveFolders() {
+        do {
+            try folderStore.saveFolders(snapFolders)
+        } catch {
+            errorMessage = "폴더 저장 실패: \(error.localizedDescription)"
+        }
     }
 }
 

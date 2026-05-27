@@ -7,10 +7,26 @@ import SwiftUI
 
 struct MacRecordingDetailView: View {
     @Binding var package: ReceivedRecordingPackage
+    let folders: [SnapFolder]
+    let folderForEvent: (ReceivedRecordingPackage, WorkingSnapEvent) -> SnapFolder?
+    let onAddSnapToFolder: (WorkingSnapEvent, ReceivedRecordingPackage, SnapFolder) -> Void
+    let onRemoveSnapFromFolder: (WorkingSnapEvent, ReceivedRecordingPackage, SnapFolder) -> Void
     let onSaveLabel: (ReceivedRecordingPackage) -> Void
 
     @State private var samples: [MotionCSVSample] = []
     @State private var csvErrorMessage: String?
+    @State private var chartSelection: ChartTimeSelection?
+    @State private var showsSavedSnapPreviews = true
+
+    private var manualSnapDraft: ManualSnapDraft? {
+        guard let chartSelection else { return nil }
+        return SnapSelectionAnalyzer.analyze(selection: chartSelection, samples: samples)
+    }
+
+    private var hasSelectionConflict: Bool {
+        guard let chartSelection, chartSelection.isUsable else { return false }
+        return overlapsExistingSnap(selection: chartSelection)
+    }
 
     var body: some View {
         ScrollView {
@@ -58,12 +74,26 @@ struct MacRecordingDetailView: View {
                 }
 
                 sectionCard(title: "스냅 이벤트") {
-                    MacSnapEventListView(
-                        events: package.snapAnalysis?.snapEvents ?? [],
-                        snapLabels: $package.snapLabels
-                    )
-                    .onChange(of: package.snapLabels) {
-                        onSaveLabel(package)
+                    VStack(alignment: .leading, spacing: 12) {
+                        MacSnapEventListView(
+                            events: package.workingSnapEvents,
+                            snapEventLabels: $package.snapEventLabels,
+                            folders: folders,
+                            folderForEvent: { event in
+                                folderForEvent(package, event)
+                            },
+                            hasSegment: hasSegment(for:),
+                            onAddToFolder: { event, folder in
+                                onAddSnapToFolder(event, package, folder)
+                            },
+                            onRemoveFromFolder: { event, folder in
+                                onRemoveSnapFromFolder(event, package, folder)
+                            },
+                            onDelete: deleteSnapEvent(_:)
+                        )
+                        .onChange(of: package.snapEventLabels) {
+                            onSaveLabel(package)
+                        }
                     }
                 }
 
@@ -76,7 +106,18 @@ struct MacRecordingDetailView: View {
                         ProgressView("CSV 로딩 중")
                             .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
                     } else {
-                        MacMotionChartsView(samples: samples)
+                        VStack(alignment: .leading, spacing: 16) {
+                            Toggle("저장된 스냅 미리보기", isOn: $showsSavedSnapPreviews)
+                                .toggleStyle(.switch)
+                            selectionPanel
+                            MacMotionChartsView(
+                                samples: samples,
+                                savedSnapEvents: package.workingSnapEvents,
+                                showSavedSnapPreviews: showsSavedSnapPreviews,
+                                hasSelectionConflict: hasSelectionConflict,
+                                selection: $chartSelection
+                            )
+                        }
                     }
                 }
             }
@@ -86,6 +127,65 @@ struct MacRecordingDetailView: View {
         .task(id: package.folderURL) {
             loadCSV()
         }
+    }
+
+    private var selectionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("선택 구간")
+                .font(.headline)
+
+            if let chartSelection {
+                let normalized = chartSelection.normalized
+                let draft = manualSnapDraft
+
+                Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 6) {
+                    GridRow {
+                        selectionMetric("시작", formattedSeconds(normalized.startTime))
+                        selectionMetric("끝", formattedSeconds(normalized.endTime))
+                        selectionMetric("길이", formattedSeconds(normalized.duration))
+                    }
+                    GridRow {
+                        selectionMetric("샘플", "\(draft?.sampleCount ?? 0)개")
+                        selectionMetric("최대 가속도", formatted(draft?.peakAcceleration, suffix: "g"))
+                        selectionMetric("최대 각속도", formatted(draft?.peakGyro, suffix: "rad/s"))
+                    }
+                    GridRow {
+                        selectionMetric("피크", formatted(draft?.peakTime, suffix: "s"))
+                        selectionMetric("주 회전축", draft?.dominantAxis ?? "-")
+                        selectionMetric("저장 가능", draft?.canSave == true && !hasSelectionConflict ? "가능" : "불가")
+                    }
+                }
+
+                if hasSelectionConflict {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("스냅이 충돌되는 부분이 있습니다.")
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                        Text("기존 스냅과 겹치지 않도록 범위를 조정해주세요.")
+                            .font(.caption)
+                    }
+                    .foregroundStyle(.red)
+                }
+
+                HStack {
+                    Button("스냅 저장하기") {
+                        saveManualSnap()
+                    }
+                    .disabled(draft?.canSave != true || hasSelectionConflict)
+
+                    Button("선택 지우기") {
+                        self.chartSelection = nil
+                    }
+                }
+            } else {
+                Text("그래프 위에서 드래그해 수동 스냅 구간을 선택하세요.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private func loadCSV() {
@@ -102,6 +202,63 @@ struct MacRecordingDetailView: View {
             samples = []
             csvErrorMessage = error.localizedDescription
         }
+    }
+
+    private func saveManualSnap() {
+        guard let manualSnapDraft, manualSnapDraft.canSave, !hasSelectionConflict else { return }
+        package.addManualSnapEvent(from: manualSnapDraft)
+        chartSelection = nil
+        onSaveLabel(package)
+    }
+
+    private func deleteSnapEvent(_ event: WorkingSnapEvent) {
+        package.deleteSnapEvent(id: event.snapID)
+        onSaveLabel(package)
+    }
+
+    private func hasSegment(for event: WorkingSnapEvent) -> Bool {
+        SnapSegmentExporter.segmentExists(
+            package: package,
+            snapID: event.snapID
+        )
+    }
+
+    private func overlapsExistingSnap(selection: ChartTimeSelection) -> Bool {
+        let selected = selection.normalized
+        return package.workingSnapEvents.contains { event in
+            guard let eventStart = event.startTime,
+                  let eventEnd = event.endTime else {
+                return false
+            }
+
+            let existing = ChartTimeSelection(
+                startTime: eventStart,
+                endTime: eventEnd
+            ).normalized
+            guard existing.duration > 0 else { return false }
+            return selected.startTime < existing.endTime
+                && selected.endTime > existing.startTime
+        }
+    }
+
+    private func selectionMetric(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.callout)
+        }
+        .frame(minWidth: 120, alignment: .leading)
+    }
+
+    private func formattedSeconds(_ value: Double) -> String {
+        formatted(value, suffix: "s")
+    }
+
+    private func formatted(_ value: Double?, suffix: String) -> String {
+        guard let value else { return "-" }
+        return String(format: "%.2f%@", locale: Locale(identifier: "en_US_POSIX"), value, suffix)
     }
 
     private func sectionCard<Content: View>(
