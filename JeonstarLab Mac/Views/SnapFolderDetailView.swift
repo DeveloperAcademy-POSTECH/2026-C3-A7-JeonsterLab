@@ -236,17 +236,17 @@ private enum SnapFolderSortOption: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .dateAscending:
-            return "오래된 녹화 먼저"
+            return "오래된 녹화"
         case .dateDescending:
-            return "최신 녹화 먼저"
+            return "최신 녹화"
         case .snapDurationAscending:
-            return "짧은 스냅 먼저"
+            return "짧은 스냅"
         case .snapDurationDescending:
-            return "긴 스냅 먼저"
+            return "긴 스냅"
         case .segmentSavedFirst:
-            return "세그먼트 저장됨 먼저"
+            return "세그먼트 저장됨"
         case .segmentMissingFirst:
-            return "세그먼트 없음 먼저"
+            return "세그먼트 없음"
         }
     }
 }
