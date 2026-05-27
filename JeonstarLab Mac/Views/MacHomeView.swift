@@ -10,113 +10,107 @@ struct MacHomeView: View {
     @State private var pendingDeletePackage: ReceivedRecordingPackage?
 
     var body: some View {
-        VStack(spacing: 0) {
-            connectionSection
-                .padding([.top, .horizontal], 20)
-                .padding(.bottom, 12)
+        NavigationSplitView {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("JeonstarLab Receiver")
+                    .font(.title2)
+                    .fontWeight(.semibold)
 
-            Divider()
+                Text("MacBook 데이터 수신 준비")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
 
-            NavigationSplitView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("JeonstarLab Receiver")
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                List(selection: viewModel.packageSelectionBinding()) {
+                    Section("Folders") {
+                        Button {
+                            viewModel.addFolder()
+                        } label: {
+                            Label("폴더 추가", systemImage: "folder.badge.plus")
+                        }
 
-                    Text("MacBook 데이터 수신 준비")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    List(selection: viewModel.packageSelectionBinding()) {
-                        Section("Folders") {
-                            Button {
-                                viewModel.addFolder()
-                            } label: {
-                                Label("폴더 추가", systemImage: "folder.badge.plus")
-                            }
-
-                            if viewModel.snapFolders.isEmpty {
-                                Text("아직 분류 폴더가 없습니다.")
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                ForEach(viewModel.snapFolders) { folder in
-                                    Button {
-                                        viewModel.selectFolder(folder)
-                                    } label: {
-                                        HStack {
-                                            Image(systemName: "folder")
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(folder.name)
-                                                    .lineLimit(1)
-                                                Text("\(folder.items.count)개 스냅")
-                                                    .font(.caption)
-                                                    .foregroundStyle(.secondary)
-                                            }
+                        if viewModel.snapFolders.isEmpty {
+                            Text("아직 분류 폴더가 없습니다.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(viewModel.snapFolders) { folder in
+                                Button {
+                                    viewModel.selectFolder(folder)
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "folder")
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(folder.name)
+                                                .lineLimit(1)
+                                            Text("\(folder.items.count)개 스냅")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
                                         }
                                     }
-                                    .buttonStyle(.plain)
+                                }
+                                .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button("삭제", role: .destructive) {
+                                        viewModel.deleteFolder(folder)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Section("Received Recordings") {
+                        if viewModel.receivedPackages.isEmpty {
+                            Text("아직 수신된 녹화 데이터가 없습니다.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(viewModel.receivedPackages) { package in
+                                receivedPackageRow(package)
+                                    .tag(package.id)
                                     .contextMenu {
                                         Button("삭제", role: .destructive) {
-                                            viewModel.deleteFolder(folder)
+                                            pendingDeletePackage = package
                                         }
                                     }
-                                }
-                            }
-                        }
-
-                        Section("Received Recordings") {
-                            if viewModel.receivedPackages.isEmpty {
-                                Text("아직 수신된 녹화 데이터가 없습니다.")
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                ForEach(viewModel.receivedPackages) { package in
-                                    receivedPackageRow(package)
-                                        .tag(package.id)
-                                        .contextMenu {
-                                            Button("삭제", role: .destructive) {
-                                                pendingDeletePackage = package
-                                            }
-                                        }
-                                }
                             }
                         }
                     }
                 }
-                .padding()
-                .navigationSplitViewColumnWidth(min: 260, ideal: 300)
-            } detail: {
-                VStack(spacing: 0) {
-                    if let folderBinding = viewModel.bindingForSelectedFolder() {
-                        SnapFolderDetailView(
-                            folder: folderBinding,
-                            onRename: viewModel.renameFolder(_:),
-                            onDeleteItem: { item in
-                                if let folder = viewModel.selectedFolder {
-                                    viewModel.removeFolderItem(item, from: folder)
-                                }
-                            },
-                            onOpenSource: viewModel.openSource(for:),
-                            hasSourcePackage: viewModel.hasSourcePackage(for:),
-                            onGenerateSegments: viewModel.generateSegments(for:),
-                            onExportDataset: viewModel.exportDataset(for:)
-                        )
-                    } else if let packageBinding = viewModel.bindingForSelectedPackage() {
-                        MacRecordingDetailView(
-                            package: packageBinding,
-                            folders: viewModel.snapFolders,
-                            folderForEvent: viewModel.folderContainingSnap(package:event:),
-                            onAddSnapToFolder: viewModel.addSnap(_:from:to:),
-                            onRemoveSnapFromFolder: viewModel.removeSnap(_:from:folder:),
-                            onSaveLabel: viewModel.saveLabel(for:)
-                        )
-                    } else {
-                        emptyState
-                    }
-                }
-                .background(Color(nsColor: .windowBackgroundColor))
             }
+            .padding()
+            .navigationSplitViewColumnWidth(min: 260, ideal: 300)
+        } detail: {
+            VStack(spacing: 0) {
+                connectionSection
+                    .padding([.top, .horizontal], 28)
+
+                if let folderBinding = viewModel.bindingForSelectedFolder() {
+                    SnapFolderDetailView(
+                        folder: folderBinding,
+                        onRename: viewModel.renameFolder(_:),
+                        onDeleteItem: { item in
+                            if let folder = viewModel.selectedFolder {
+                                viewModel.removeFolderItem(item, from: folder)
+                            }
+                        },
+                        onOpenSource: viewModel.openSource(for:),
+                        hasSourcePackage: viewModel.hasSourcePackage(for:),
+                        onGenerateSegments: viewModel.generateSegments(for:),
+                        onExportDataset: viewModel.exportDataset(for:)
+                    )
+                } else if let packageBinding = viewModel.bindingForSelectedPackage() {
+                    MacRecordingDetailView(
+                        package: packageBinding,
+                        folders: viewModel.snapFolders,
+                        folderForEvent: viewModel.folderContainingSnap(package:event:),
+                        onAddSnapToFolder: viewModel.addSnap(_:from:to:),
+                        onRemoveSnapFromFolder: viewModel.removeSnap(_:from:folder:),
+                        onSaveLabel: viewModel.saveLabel(for:)
+                    )
+                } else {
+                    emptyState
+                }
+            }
+            .background(Color(nsColor: .windowBackgroundColor))
         }
-        .background(Color(nsColor: .windowBackgroundColor))
         .alert(
             "이 녹화 기록을 삭제할까요?",
             isPresented: Binding(
