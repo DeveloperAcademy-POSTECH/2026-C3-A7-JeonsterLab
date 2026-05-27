@@ -13,7 +13,7 @@ struct MacSnapEventListView: View {
     let hasSegment: (WorkingSnapEvent) -> Bool
     let onAddToFolder: (WorkingSnapEvent, SnapFolder) -> Void
     let onRemoveFromFolder: (WorkingSnapEvent, SnapFolder) -> Void
-    let onEdit: (WorkingSnapEvent) -> Void
+    let onSelect: (WorkingSnapEvent) -> Void
     let onDelete: (WorkingSnapEvent) -> Void
 
     var body: some View {
@@ -27,22 +27,32 @@ struct MacSnapEventListView: View {
 
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(alignment: .top, spacing: 14) {
-                            Text(title(for: event))
-                                .font(.headline)
-                                .frame(width: 46, alignment: .leading)
-                            sourceBadge(event.sourceType)
-                            metric("시작", event.startTime, suffix: "s")
-                            metric("끝", event.endTime, suffix: "s")
-                            metric("피크", event.peakTime, suffix: "s")
-                            metric("피크 시간차", event.peakDelay, suffix: "s")
-                            metric("지속시간", event.snapDuration, suffix: "s")
-                            metric("가속도", event.peakAcceleration, suffix: "g")
-                            metric("회전", event.peakGyro, suffix: "rad/s")
-                            Text(event.confidence ?? "-")
-                                .foregroundStyle(.secondary)
-                                .frame(minWidth: 56, alignment: .leading)
-                            Spacer()
-                            segmentStatusDot(for: event)
+                            Button {
+                                onSelect(event)
+                            } label: {
+                                HStack(alignment: .top, spacing: 14) {
+                                    Text(title(for: event))
+                                        .font(.headline)
+                                        .frame(width: 46, alignment: .leading)
+                                    sourceBadge(event.sourceType)
+                                    metric("시작", event.startTime, suffix: "s")
+                                    metric("끝", event.endTime, suffix: "s")
+                                    metric("피크", event.peakTime, suffix: "s")
+                                    metric("피크 시간차", event.peakDelay, suffix: "s")
+                                    metric("지속시간", event.snapDuration, suffix: "s")
+                                    metric("가속도", event.peakAcceleration, suffix: "g")
+                                    metric("회전", event.peakGyro, suffix: "rad/s")
+                                    Text(event.confidence ?? "-")
+                                        .foregroundStyle(.secondary)
+                                        .frame(minWidth: 56, alignment: .leading)
+                                    Spacer()
+                                    segmentStatusDot(for: event)
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .help("그래프에서 이 스냅 구간 보기")
+
                             Button(role: .destructive) {
                                 onDelete(event)
                             } label: {
@@ -63,16 +73,6 @@ struct MacSnapEventListView: View {
 
                             TextField("스냅 노트", text: notesBinding(for: key), axis: .vertical)
                                 .textFieldStyle(.roundedBorder)
-                        }
-
-                        HStack {
-                            Button("수정하기") {
-                                onEdit(event)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-
-                            Spacer()
                         }
 
                         VStack(alignment: .leading, spacing: 6) {

@@ -34,6 +34,19 @@ struct MacRecordingDetailView: View {
         return overlapsExistingSnap(selection: chartSelection, excludingSnapID: editDraft?.snapID)
     }
 
+    private var hasFocusedSnapRangeChange: Bool {
+        guard let editDraft,
+              let originalSelection = editDraft.originalSelection,
+              let chartSelection else {
+            return false
+        }
+
+        let candidate = chartSelection.normalized
+        let original = originalSelection.normalized
+        return abs(candidate.startTime - original.startTime) > Self.selectionChangeTolerance
+            || abs(candidate.endTime - original.endTime) > Self.selectionChangeTolerance
+    }
+
     var body: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
@@ -96,8 +109,8 @@ struct MacRecordingDetailView: View {
                                 onRemoveFromFolder: { event, folder in
                                     onRemoveSnapFromFolder(event, package, folder)
                                 },
-                                onEdit: { event in
-                                    startEditing(event)
+                                onSelect: { event in
+                                    selectSnapEvent(event)
                                     withAnimation {
                                         scrollProxy.scrollTo(Self.graphSectionID, anchor: .top)
                                     }
@@ -130,6 +143,7 @@ struct MacRecordingDetailView: View {
                                     hasSelectionConflict: hasSelectionConflict,
                                     editingSnapID: editDraft?.snapID,
                                     editingOriginalSelection: editDraft?.originalSelection,
+                                    showsCandidateSelection: editDraft == nil || hasFocusedSnapRangeChange,
                                     selection: $chartSelection
                                 )
                             }
@@ -153,7 +167,7 @@ struct MacRecordingDetailView: View {
                 applySnapEdit()
             }
         } message: {
-            Text("선택한 스냅의 시작·끝 시간이 새 구간으로 변경됩니다.\n기존 라벨, 노트, 폴더 소속은 유지되며, 세그먼트 파일은 새 구간 기준으로 다시 생성됩니다.")
+            Text("선택한 스냅의 시작·끝 시간이 새 구간으로 변경됩니다.\n이 작업은 되돌릴 수 없습니다.")
         }
         .alert(
             "이 스냅 이벤트를 삭제할까요?",
@@ -173,11 +187,16 @@ struct MacRecordingDetailView: View {
     }
 
     private static let graphSectionID = "graph-section"
+    private static let selectionChangeTolerance = 0.001
 
     private var selectionPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let editDraft {
-                editSelectionPanel(editDraft)
+                if hasFocusedSnapRangeChange {
+                    editSelectionPanel(editDraft)
+                } else {
+                    focusedSnapPanel(editDraft)
+                }
             } else {
                 manualSelectionPanel
             }
@@ -232,6 +251,30 @@ struct MacRecordingDetailView: View {
         }
     }
 
+    private func focusedSnapPanel(_ editDraft: SnapEditDraft) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("선택한 스냅")
+                        .font(.headline)
+                    Text("그래프에서 구간을 움직이거나 양 끝을 조절하면 수정할 수 있습니다.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("선택 해제") {
+                    clearFocusedSnap()
+                }
+            }
+
+            editStatsColumn(
+                title: "현재 구간",
+                event: editDraft.originalEvent,
+                draft: originalDraft(for: editDraft)
+            )
+        }
+    }
+
     private func editSelectionPanel(_ editDraft: SnapEditDraft) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -244,7 +287,7 @@ struct MacRecordingDetailView: View {
                 }
                 Spacer()
                 Button("수정 취소") {
-                    cancelEditing()
+                    clearFocusedSnap()
                 }
             }
 
@@ -396,7 +439,7 @@ struct MacRecordingDetailView: View {
 
     private func deleteSnapEvent(_ event: WorkingSnapEvent) {
         if editDraft?.snapID == event.snapID {
-            cancelEditing()
+            clearFocusedSnap()
         }
         package.deleteSnapEvent(id: event.snapID)
         onSaveLabel(package)
@@ -409,7 +452,7 @@ struct MacRecordingDetailView: View {
         )
     }
 
-    private func startEditing(_ event: WorkingSnapEvent) {
+    private func selectSnapEvent(_ event: WorkingSnapEvent) {
         guard let selection = selection(for: event) else { return }
         editDraft = SnapEditDraft(originalEvent: event)
         chartSelection = selection
@@ -427,7 +470,7 @@ struct MacRecordingDetailView: View {
         editErrorMessage = nil
     }
 
-    private func cancelEditing() {
+    private func clearFocusedSnap() {
         editDraft = nil
         chartSelection = nil
         editMessage = nil

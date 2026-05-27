@@ -14,6 +14,7 @@ struct MacMotionChartsView: View {
     let hasSelectionConflict: Bool
     let editingSnapID: String?
     let editingOriginalSelection: ChartTimeSelection?
+    let showsCandidateSelection: Bool
     @Binding var selection: ChartTimeSelection?
 
     @State private var activeDragMode: ChartSelectionDragMode?
@@ -115,7 +116,7 @@ struct MacMotionChartsView: View {
                     .lineStyle(.init(lineWidth: 1.3, dash: [5, 3]))
             }
 
-            if let selection {
+            if let selection, showsCandidateSelection {
                 let normalized = selection.normalized
                 let selectionColor = hasSelectionConflict ? Color.red : Color.blue
                 RectangleMark(
