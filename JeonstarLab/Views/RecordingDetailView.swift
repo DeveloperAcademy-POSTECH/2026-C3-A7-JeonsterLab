@@ -12,6 +12,11 @@ struct RecordingDetailView: View {
 
     @State var viewModel: RecordingDetailViewModel
     @State private var selectedSnapEventIndex: Int = 0
+    @State private var exportURLs: [URL] = []
+    @State private var isShareSheetPresented = false
+    @State private var isExporting = false
+    @State private var exportErrorMessage: String?
+    @State private var macConnectionViewModel = MacConnectionViewModel.shared
 
     var body: some View {
         List {
@@ -20,6 +25,45 @@ struct RecordingDetailView: View {
                 LabeledContent("날짜", value: viewModel.title)
                 LabeledContent("길이", value: viewModel.durationText)
                 LabeledContent("샘플", value: viewModel.sampleCountText)
+            }
+
+            Section("Mac 전송") {
+                LabeledContent("Mac 연결 상태", value: macConnectionViewModel.connectionStatusText)
+                LabeledContent("Mac", value: macConnectionViewModel.connectedMacText)
+                LabeledContent("전송", value: macConnectionViewModel.transferStatusText)
+
+                Text(macConnectionViewModel.guidanceText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Mac 연결 시 자동 전송", isOn: Binding(
+                    get: { macConnectionViewModel.isAutomaticTransferEnabled },
+                    set: { macConnectionViewModel.isAutomaticTransferEnabled = $0 }
+                ))
+
+                Text(macConnectionViewModel.automaticTransferGuidanceText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                if let errorMessage = macConnectionViewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+
+                HStack {
+                    Button("Mac 찾기") {
+                        macConnectionViewModel.startSearching()
+                    }
+
+                    Button("Mac으로 전송") {
+                        macConnectionViewModel.sendRecording(
+                            session: viewModel.currentSession,
+                            repository: viewModel.recordingRepository
+                        )
+                    }
+                    .disabled(!macConnectionViewModel.canSendToMac)
+                }
             }
 
             // MARK: 그래프 섹션
@@ -85,8 +129,57 @@ struct RecordingDetailView: View {
         }
         .navigationTitle("녹화 상세")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    exportRecording()
+                } label: {
+                    if isExporting {
+                        ProgressView()
+                    } else {
+                        Label("Export", systemImage: "square.and.arrow.up")
+                    }
+                }
+                .disabled(isExporting)
+            }
+        }
+        .sheet(isPresented: $isShareSheetPresented) {
+            ShareSheet(activityItems: exportURLs)
+        }
+        .alert("내보내기 실패", isPresented: exportErrorBinding) {
+            Button("확인", role: .cancel) {
+                exportErrorMessage = nil
+            }
+        } message: {
+            Text(exportErrorMessage ?? "알 수 없는 오류가 발생했습니다.")
+        }
         .task {
             await viewModel.loadSamples()
+        }
+    }
+
+    private var exportErrorBinding: Binding<Bool> {
+        Binding(
+            get: { exportErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    exportErrorMessage = nil
+                }
+            }
+        )
+    }
+
+    private func exportRecording() {
+        Task { @MainActor in
+            isExporting = true
+            defer { isExporting = false }
+
+            do {
+                exportURLs = try viewModel.exportRecording()
+                isShareSheetPresented = true
+            } catch {
+                exportErrorMessage = error.localizedDescription
+            }
         }
     }
 

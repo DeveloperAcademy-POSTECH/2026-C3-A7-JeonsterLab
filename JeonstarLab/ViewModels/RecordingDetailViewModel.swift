@@ -38,6 +38,19 @@ final class RecordingDetailViewModel {
         "\(session.sampleCount)개 (\(session.samplingRate)Hz)"
     }
 
+    var currentSession: RecordingSession {
+        session
+    }
+
+    var recordingRepository: RecordingRepositoryProtocol {
+        repository
+    }
+
+    func exportRecording() throws -> [URL] {
+        try RecordingExportService(repository: repository)
+            .export(session: session)
+    }
+
     func loadSamples() async {
         isLoading = true
         defer { isLoading = false }

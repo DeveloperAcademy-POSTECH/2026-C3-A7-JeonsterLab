@@ -38,9 +38,24 @@
 		D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JeonstarLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Watch App Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D37ECEE52FBD9F2C0098CE69 /* JeonstarLab Core.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Core.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Mac.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D37ECF122FBE10000098CE69 /* Exceptions for "JeonstarLab" folder in "JeonstarLab" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D37ECEBF2FBD9E350098CE69 /* JeonstarLab */;
+		};
+		D37ECF132FBE10000098CE69 /* Exceptions for "JeonstarLab Mac" folder in "JeonstarLab Mac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D37ECF052FBE00000098CE69 /* JeonstarLab Mac */;
+		};
 		D37ECF4B2FBDA5F50098CE69 /* Exceptions for "JeonstarLab Core" folder in "JeonstarLab" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -57,12 +72,23 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D37ECEC22FBD9E350098CE69 /* JeonstarLab */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D37ECF122FBE10000098CE69 /* Exceptions for "JeonstarLab" folder in "JeonstarLab" target */,
+			);
 			path = JeonstarLab;
 			sourceTree = "<group>";
 		};
 		D37ECED32FBD9EB70098CE69 /* JeonstarLab Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "JeonstarLab Watch App";
+			sourceTree = "<group>";
+		};
+		D37ECF012FBE00000098CE69 /* JeonstarLab Mac */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D37ECF132FBE10000098CE69 /* Exceptions for "JeonstarLab Mac" folder in "JeonstarLab Mac" target */,
+			);
+			path = "JeonstarLab Mac";
 			sourceTree = "<group>";
 		};
 		D37ECF4A2FBDA5E90098CE69 /* JeonstarLab Core */ = {
@@ -97,6 +123,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D37ECF032FBE00000098CE69 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -106,6 +139,7 @@
 				D37ECF4A2FBDA5E90098CE69 /* JeonstarLab Core */,
 				D37ECEC22FBD9E350098CE69 /* JeonstarLab */,
 				D37ECED32FBD9EB70098CE69 /* JeonstarLab Watch App */,
+				D37ECF012FBE00000098CE69 /* JeonstarLab Mac */,
 				D37ECEC12FBD9E350098CE69 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -116,6 +150,7 @@
 				D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */,
 				D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */,
 				D37ECEE52FBD9F2C0098CE69 /* JeonstarLab Core.app */,
+				D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -189,6 +224,28 @@
 			productReference = D37ECEE52FBD9F2C0098CE69 /* JeonstarLab Core.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D37ECF052FBE00000098CE69 /* JeonstarLab Mac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D37ECF082FBE00000098CE69 /* Build configuration list for PBXNativeTarget "JeonstarLab Mac" */;
+			buildPhases = (
+				D37ECF022FBE00000098CE69 /* Sources */,
+				D37ECF032FBE00000098CE69 /* Frameworks */,
+				D37ECF042FBE00000098CE69 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D37ECF012FBE00000098CE69 /* JeonstarLab Mac */,
+			);
+			name = "JeonstarLab Mac";
+			packageProductDependencies = (
+			);
+			productName = "JeonstarLab Mac";
+			productReference = D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -206,6 +263,9 @@
 						CreatedOnToolsVersion = 26.5;
 					};
 					D37ECEE42FBD9F2C0098CE69 = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					D37ECF052FBE00000098CE69 = {
 						CreatedOnToolsVersion = 26.5;
 					};
 				};
@@ -227,6 +287,7 @@
 				D37ECEBF2FBD9E350098CE69 /* JeonstarLab */,
 				D37ECED12FBD9EB70098CE69 /* JeonstarLab Watch App Watch App */,
 				D37ECEE42FBD9F2C0098CE69 /* JeonstarLab Core */,
+				D37ECF052FBE00000098CE69 /* JeonstarLab Mac */,
 			);
 		};
 /* End PBXProject section */
@@ -253,6 +314,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D37ECF042FBE00000098CE69 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -271,6 +339,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		D37ECEE12FBD9F2C0098CE69 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D37ECF022FBE00000098CE69 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -416,12 +491,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 36545XSWN8;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = JeonstarLab/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -449,12 +520,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2QJX795Q3R;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = JeonstarLab/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -601,6 +668,62 @@
 			};
 			name = Release;
 		};
+		D37ECF062FBE00000098CE69 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 36545XSWN8;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "JeonstarLab Mac/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Tom.JeonstarLab.mac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D37ECF072FBE00000098CE69 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2QJX795Q3R;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "JeonstarLab Mac/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Tom.JeonstarLab.mac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -636,6 +759,15 @@
 			buildConfigurations = (
 				D37ECEEE2FBD9F2E0098CE69 /* Debug */,
 				D37ECEEF2FBD9F2E0098CE69 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D37ECF082FBE00000098CE69 /* Build configuration list for PBXNativeTarget "JeonstarLab Mac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D37ECF062FBE00000098CE69 /* Debug */,
+				D37ECF072FBE00000098CE69 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
