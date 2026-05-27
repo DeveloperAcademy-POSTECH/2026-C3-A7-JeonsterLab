@@ -97,7 +97,8 @@ struct MacHomeView: View {
                                 viewModel.removeFolderItem(item, from: folder)
                             }
                         },
-                        onOpenSource: viewModel.openSource(for:)
+                        onOpenSource: viewModel.openSource(for:),
+                        onGenerateSegments: viewModel.generateSegments(for:)
                     )
                 } else if let packageBinding = viewModel.bindingForSelectedPackage() {
                     MacRecordingDetailView(

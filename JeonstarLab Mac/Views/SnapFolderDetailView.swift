@@ -10,6 +10,9 @@ struct SnapFolderDetailView: View {
     let onRename: (SnapFolder) -> Void
     let onDeleteItem: (SnapFolderItem) -> Void
     let onOpenSource: (SnapFolderItem) -> Void
+    let onGenerateSegments: (SnapFolder) -> String
+
+    @State private var segmentMessage: String?
 
     var body: some View {
         ScrollView {
@@ -25,6 +28,19 @@ struct SnapFolderDetailView: View {
                 Text("\(folder.items.count)개 스냅")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+
+                HStack(spacing: 10) {
+                    Button("이 폴더 세그먼트 생성") {
+                        segmentMessage = onGenerateSegments(folder)
+                    }
+                    .disabled(folder.items.isEmpty)
+
+                    if let segmentMessage {
+                        Text(segmentMessage)
+                            .font(.caption)
+                            .foregroundStyle(segmentMessage.contains("실패") ? .red : .secondary)
+                    }
+                }
 
                 if folder.items.isEmpty {
                     Text("아직 이 폴더에 추가된 스냅이 없습니다.")
@@ -71,7 +87,7 @@ struct SnapFolderDetailView: View {
                 metric("시작", formatted(item.startTime, suffix: "s"))
                 metric("피크", formatted(item.peakTime, suffix: "s"))
                 metric("끝", formatted(item.endTime, suffix: "s"))
-                metric("세그먼트", item.segmentCSVRelativePath == nil ? "없음" : "있음")
+                segmentStatusDot(hasSegment: item.segmentCSVRelativePath != nil)
             }
 
             if !item.notes.isEmpty {
@@ -102,6 +118,18 @@ struct SnapFolderDetailView: View {
                 .foregroundStyle(.secondary)
             Text(value)
                 .font(.callout)
+        }
+    }
+
+    private func segmentStatusDot(hasSegment: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("세그먼트")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Circle()
+                .fill(hasSegment ? Color.green : Color.red)
+                .frame(width: 9, height: 9)
+                .help(hasSegment ? "세그먼트 생성됨" : "세그먼트 없음")
         }
     }
 

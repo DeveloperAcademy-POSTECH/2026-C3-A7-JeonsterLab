@@ -270,6 +270,63 @@ final class MacHomeViewModel {
         }
     }
 
+    func generateSegments(for folder: SnapFolder) -> String {
+        guard let folderIndex = snapFolders.firstIndex(where: { $0.id == folder.id }) else {
+            return "세그먼트 생성 실패: 폴더를 찾을 수 없습니다."
+        }
+
+        var samplesByPackageName: [String: [MotionCSVSample]] = [:]
+        var generatedCount = 0
+        var skippedCount = 0
+
+        for item in snapFolders[folderIndex].items {
+            guard let package = receivedPackages.first(where: { $0.folderURL.lastPathComponent == item.packageFolderName }),
+                  let event = package.workingSnapEvents.first(where: { $0.snapID == item.snapID }) else {
+                skippedCount += 1
+                continue
+            }
+
+            do {
+                let samples: [MotionCSVSample]
+                if let cachedSamples = samplesByPackageName[item.packageFolderName] {
+                    samples = cachedSamples
+                } else if let csvURL = package.csvURL {
+                    let parsedSamples = try MotionCSVParser.parse(url: csvURL)
+                    samplesByPackageName[item.packageFolderName] = parsedSamples
+                    samples = parsedSamples
+                } else {
+                    skippedCount += 1
+                    continue
+                }
+
+                _ = try SnapSegmentExporter.export(
+                    package: package,
+                    event: event,
+                    samples: samples
+                )
+
+                if let itemIndex = snapFolders[folderIndex].items.firstIndex(where: { $0.id == item.id }) {
+                    snapFolders[folderIndex].items[itemIndex] = folderItem(
+                        from: package,
+                        event: event,
+                        preserving: item
+                    )
+                }
+                generatedCount += 1
+            } catch {
+                skippedCount += 1
+            }
+        }
+
+        snapFolders[folderIndex].updatedAt = Date()
+        saveFolders()
+
+        if skippedCount > 0 {
+            return "세그먼트 \(generatedCount)개 생성, \(skippedCount)개 건너뜀"
+        }
+        return "세그먼트 \(generatedCount)개를 생성했습니다."
+    }
+
     private func upsert(_ package: ReceivedRecordingPackage) {
         if let index = receivedPackages.firstIndex(where: { $0.id == package.id }) {
             receivedPackages[index] = package

@@ -10,10 +10,9 @@ struct MacSnapEventListView: View {
     @Binding var snapEventLabels: [String: SnapEventLabelPayload]
     let folders: [SnapFolder]
     let folderNamesForEvent: (WorkingSnapEvent) -> [String]
-    let segmentStatusText: (WorkingSnapEvent) -> String
+    let hasSegment: (WorkingSnapEvent) -> Bool
     let onAddToFolder: (WorkingSnapEvent, SnapFolder) -> Void
     let onRemoveFromFolder: (WorkingSnapEvent, SnapFolder) -> Void
-    let onExportSegment: (WorkingSnapEvent) -> Void
     let onDelete: (WorkingSnapEvent) -> Void
 
     var body: some View {
@@ -42,16 +41,7 @@ struct MacSnapEventListView: View {
                                 .foregroundStyle(.secondary)
                                 .frame(minWidth: 56, alignment: .leading)
                             Spacer()
-                            VStack(alignment: .trailing, spacing: 6) {
-                                Text(segmentStatusText(event))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Button("세그먼트 저장") {
-                                    onExportSegment(event)
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                            }
+                            segmentStatusDot(for: event)
                             Button(role: .destructive) {
                                 onDelete(event)
                             } label: {
@@ -159,6 +149,14 @@ struct MacSnapEventListView: View {
             .foregroundStyle(sourceType == .manual ? .green : .blue)
             .clipShape(Capsule())
             .frame(minWidth: 72, alignment: .leading)
+    }
+
+    private func segmentStatusDot(for event: WorkingSnapEvent) -> some View {
+        let exists = hasSegment(event)
+        return Circle()
+            .fill(exists ? Color.green : Color.red)
+            .frame(width: 9, height: 9)
+            .help(exists ? "세그먼트 생성됨" : "세그먼트 없음")
     }
 
     private func metric(_ title: String, _ value: Double?, suffix: String) -> some View {
