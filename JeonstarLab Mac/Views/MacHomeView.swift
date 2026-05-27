@@ -19,7 +19,43 @@ struct MacHomeView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                List(selection: $viewModel.selectedPackageID) {
+                List(selection: viewModel.packageSelectionBinding()) {
+                    Section("Folders") {
+                        Button {
+                            viewModel.addFolder()
+                        } label: {
+                            Label("폴더 추가", systemImage: "folder.badge.plus")
+                        }
+
+                        if viewModel.snapFolders.isEmpty {
+                            Text("아직 분류 폴더가 없습니다.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(viewModel.snapFolders) { folder in
+                                Button {
+                                    viewModel.selectFolder(folder)
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "folder")
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(folder.name)
+                                                .lineLimit(1)
+                                            Text("\(folder.items.count)개 스냅")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button("삭제", role: .destructive) {
+                                        viewModel.deleteFolder(folder)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     Section("Received Recordings") {
                         if viewModel.receivedPackages.isEmpty {
                             Text("아직 수신된 녹화 데이터가 없습니다.")
@@ -52,9 +88,24 @@ struct MacHomeView: View {
                 connectionSection
                     .padding([.top, .horizontal], 28)
 
-                if let packageBinding = viewModel.bindingForSelectedPackage() {
+                if let folderBinding = viewModel.bindingForSelectedFolder() {
+                    SnapFolderDetailView(
+                        folder: folderBinding,
+                        onRename: viewModel.renameFolder(_:),
+                        onDeleteItem: { item in
+                            if let folder = viewModel.selectedFolder {
+                                viewModel.removeFolderItem(item, from: folder)
+                            }
+                        },
+                        onOpenSource: viewModel.openSource(for:)
+                    )
+                } else if let packageBinding = viewModel.bindingForSelectedPackage() {
                     MacRecordingDetailView(
                         package: packageBinding,
+                        folders: viewModel.snapFolders,
+                        folderNamesForEvent: viewModel.folderNames(for:event:),
+                        onAddSnapToFolder: viewModel.addSnap(_:from:to:),
+                        onRemoveSnapFromFolder: viewModel.removeSnap(_:from:folder:),
                         onSaveLabel: viewModel.saveLabel(for:)
                     )
                 } else {

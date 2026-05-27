@@ -8,7 +8,11 @@ import SwiftUI
 struct MacSnapEventListView: View {
     let events: [WorkingSnapEvent]
     @Binding var snapEventLabels: [String: SnapEventLabelPayload]
+    let folders: [SnapFolder]
+    let folderNamesForEvent: (WorkingSnapEvent) -> [String]
     let segmentStatusText: (WorkingSnapEvent) -> String
+    let onAddToFolder: (WorkingSnapEvent, SnapFolder) -> Void
+    let onRemoveFromFolder: (WorkingSnapEvent, SnapFolder) -> Void
     let onExportSegment: (WorkingSnapEvent) -> Void
     let onDelete: (WorkingSnapEvent) -> Void
 
@@ -68,6 +72,41 @@ struct MacSnapEventListView: View {
 
                             TextField("스냅 노트", text: notesBinding(for: key), axis: .vertical)
                                 .textFieldStyle(.roundedBorder)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("폴더")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            HStack(alignment: .center, spacing: 10) {
+                                let folderNames = folderNamesForEvent(event)
+                                Text(folderNames.isEmpty ? "아직 폴더에 추가되지 않았습니다." : folderNames.joined(separator: ", "))
+                                    .font(.callout)
+                                    .foregroundStyle(folderNames.isEmpty ? .secondary : .primary)
+
+                                Menu("폴더에 추가") {
+                                    if folders.isEmpty {
+                                        Text("생성된 폴더가 없습니다.")
+                                    } else {
+                                        ForEach(folders) { folder in
+                                            Button(folder.name) {
+                                                onAddToFolder(event, folder)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if !folderNames.isEmpty {
+                                    Menu("폴더에서 제거") {
+                                        ForEach(folders.filter { folderNames.contains($0.name) }) { folder in
+                                            Button(folder.name, role: .destructive) {
+                                                onRemoveFromFolder(event, folder)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     .padding(.vertical, 6)

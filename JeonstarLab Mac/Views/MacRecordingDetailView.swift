@@ -7,6 +7,10 @@ import SwiftUI
 
 struct MacRecordingDetailView: View {
     @Binding var package: ReceivedRecordingPackage
+    let folders: [SnapFolder]
+    let folderNamesForEvent: (ReceivedRecordingPackage, WorkingSnapEvent) -> [String]
+    let onAddSnapToFolder: (WorkingSnapEvent, ReceivedRecordingPackage, SnapFolder) -> Void
+    let onRemoveSnapFromFolder: (WorkingSnapEvent, ReceivedRecordingPackage, SnapFolder) -> Void
     let onSaveLabel: (ReceivedRecordingPackage) -> Void
 
     @State private var samples: [MotionCSVSample] = []
@@ -83,7 +87,17 @@ struct MacRecordingDetailView: View {
                         MacSnapEventListView(
                             events: package.workingSnapEvents,
                             snapEventLabels: $package.snapEventLabels,
+                            folders: folders,
+                            folderNamesForEvent: { event in
+                                folderNamesForEvent(package, event)
+                            },
                             segmentStatusText: segmentStatusText(for:),
+                            onAddToFolder: { event, folder in
+                                onAddSnapToFolder(event, package, folder)
+                            },
+                            onRemoveFromFolder: { event, folder in
+                                onRemoveSnapFromFolder(event, package, folder)
+                            },
                             onExportSegment: exportSegment(_:),
                             onDelete: deleteSnapEvent(_:)
                         )
