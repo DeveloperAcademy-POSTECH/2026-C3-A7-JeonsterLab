@@ -266,6 +266,14 @@ final class MacHomeViewModel {
         saveLabel(for: receivedPackages[index])
     }
 
+    func pinPackage(_ package: ReceivedRecordingPackage) {
+        setPinState(true, for: package)
+    }
+
+    func unpinPackage(_ package: ReceivedRecordingPackage) {
+        setPinState(false, for: package)
+    }
+
     func folderContainingSnap(package: ReceivedRecordingPackage, event: WorkingSnapEvent) -> SnapFolder? {
         snapFolders.first { folder in
             folder.items.contains { item in
@@ -427,6 +435,15 @@ final class MacHomeViewModel {
             receivedPackages.insert(package, at: 0)
         }
         receivedPackages.sort { $0.receivedAt > $1.receivedAt }
+    }
+
+    private func setPinState(_ isPinned: Bool, for package: ReceivedRecordingPackage) {
+        guard let index = receivedPackages.firstIndex(where: { $0.id == package.id }),
+              receivedPackages[index].isPinned != isPinned else {
+            return
+        }
+        receivedPackages[index].isPinned = isPinned
+        saveLabel(for: receivedPackages[index])
     }
 
     private func filteredPackages(_ packages: [ReceivedRecordingPackage]) -> [ReceivedRecordingPackage] {

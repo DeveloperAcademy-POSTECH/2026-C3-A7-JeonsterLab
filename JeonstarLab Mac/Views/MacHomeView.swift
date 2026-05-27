@@ -7,6 +7,7 @@ import SwiftUI
 
 struct MacHomeView: View {
     @Bindable var viewModel: MacHomeViewModel
+    @Environment(\.openWindow) private var openWindow
     @State private var pendingDeletePackage: ReceivedRecordingPackage?
 
     var body: some View {
@@ -66,6 +67,9 @@ struct MacHomeView: View {
                             ForEach(viewModel.filteredPinnedPackages) { package in
                                 receivedPackageRow(package)
                                     .tag(package.id)
+                                    .contextMenu {
+                                        receivedPackageContextMenu(for: package)
+                                    }
                             }
                         }
                     }
@@ -79,9 +83,7 @@ struct MacHomeView: View {
                                 receivedPackageRow(package)
                                     .tag(package.id)
                                     .contextMenu {
-                                        Button("삭제", role: .destructive) {
-                                            pendingDeletePackage = package
-                                        }
+                                        receivedPackageContextMenu(for: package)
                                     }
                             }
                         }
@@ -174,23 +176,37 @@ struct MacHomeView: View {
             }
 
             Spacer(minLength: 8)
+        }
+    }
 
-            Button {
-                viewModel.togglePinPackage(package)
-            } label: {
-                Image(systemName: package.isPinned ? "pin.fill" : "pin")
-            }
-            .buttonStyle(.borderless)
-            .help(package.isPinned ? "고정 해제" : "고정")
+    @ViewBuilder
+    private func receivedPackageContextMenu(for package: ReceivedRecordingPackage) -> some View {
+        Button {
+            openWindow(value: package.folderURL.path)
+        } label: {
+            Label("새로운 윈도우에서 열기", systemImage: "rectangle.on.rectangle")
+        }
 
+        if package.isPinned {
             Button {
-                pendingDeletePackage = package
+                viewModel.unpinPackage(package)
             } label: {
-                Image(systemName: "trash")
+                Label("고정 해제", systemImage: "pin.slash")
             }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.red)
-            .help("수신 기록 삭제")
+        } else {
+            Button {
+                viewModel.pinPackage(package)
+            } label: {
+                Label("기록 고정", systemImage: "pin")
+            }
+        }
+
+        Divider()
+
+        Button(role: .destructive) {
+            pendingDeletePackage = package
+        } label: {
+            Label("삭제하기", systemImage: "trash")
         }
     }
 
