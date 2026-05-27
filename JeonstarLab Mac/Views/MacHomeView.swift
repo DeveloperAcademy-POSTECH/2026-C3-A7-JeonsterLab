@@ -98,7 +98,8 @@ struct MacHomeView: View {
                             }
                         },
                         onOpenSource: viewModel.openSource(for:),
-                        onGenerateSegments: viewModel.generateSegments(for:)
+                        onGenerateSegments: viewModel.generateSegments(for:),
+                        onExportDataset: viewModel.exportDataset(for:)
                     )
                 } else if let packageBinding = viewModel.bindingForSelectedPackage() {
                     MacRecordingDetailView(

@@ -6,6 +6,7 @@
 import AppKit
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 @Observable
 final class MacHomeViewModel {
@@ -339,6 +340,42 @@ final class MacHomeViewModel {
             return "세그먼트 \(generatedCount)개 생성, \(skippedCount)개 건너뜀"
         }
         return "세그먼트 \(generatedCount)개를 생성했습니다."
+    }
+
+    func exportDataset(for folder: SnapFolder) -> String {
+        guard folder.items.isEmpty == false else {
+            return "내보낼 스냅이 없습니다."
+        }
+
+        let savePanel = NSSavePanel()
+        savePanel.title = "데이터셋 CSV 내보내기"
+        savePanel.nameFieldStringValue = FolderDatasetExportService.defaultFileName(folderName: folder.name)
+        savePanel.canCreateDirectories = true
+        savePanel.allowedContentTypes = [.commaSeparatedText]
+
+        guard savePanel.runModal() == .OK,
+              let outputURL = savePanel.url else {
+            return "내보내기가 취소되었습니다."
+        }
+
+        do {
+            let report = try FolderDatasetExportService.export(
+                folder: folder,
+                packages: receivedPackages,
+                outputURL: outputURL
+            )
+
+            var message = "\(report.summaryText) · \(report.outputURL.lastPathComponent)"
+            if report.skippedItemCount > 0 {
+                let reasons = report.skippedReasons.prefix(2).joined(separator: " / ")
+                if !reasons.isEmpty {
+                    message += "\n제외 사유: \(reasons)"
+                }
+            }
+            return message
+        } catch {
+            return "CSV 내보내기 실패: \(error.localizedDescription)"
+        }
     }
 
     private func upsert(_ package: ReceivedRecordingPackage) {

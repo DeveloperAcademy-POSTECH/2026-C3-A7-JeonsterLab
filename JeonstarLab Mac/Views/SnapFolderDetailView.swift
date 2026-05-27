@@ -11,8 +11,10 @@ struct SnapFolderDetailView: View {
     let onDeleteItem: (SnapFolderItem) -> Void
     let onOpenSource: (SnapFolderItem) -> Void
     let onGenerateSegments: (SnapFolder) -> String
+    let onExportDataset: (SnapFolder) -> String
 
     @State private var segmentMessage: String?
+    @State private var exportMessage: String?
 
     var body: some View {
         ScrollView {
@@ -35,11 +37,23 @@ struct SnapFolderDetailView: View {
                     }
                     .disabled(folder.items.isEmpty)
 
+                    Button("데이터셋 CSV 내보내기") {
+                        exportMessage = onExportDataset(folder)
+                    }
+                    .disabled(folder.items.isEmpty)
+
                     if let segmentMessage {
                         Text(segmentMessage)
                             .font(.caption)
                             .foregroundStyle(segmentMessage.contains("실패") ? .red : .secondary)
                     }
+                }
+
+                if let exportMessage {
+                    Text(exportMessage)
+                        .font(.caption)
+                        .foregroundStyle(exportMessage.contains("실패") ? .red : .secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if folder.items.isEmpty {
