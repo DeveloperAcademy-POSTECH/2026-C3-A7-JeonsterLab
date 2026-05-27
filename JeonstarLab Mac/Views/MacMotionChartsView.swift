@@ -16,7 +16,7 @@ struct MacMotionChartsView: View {
 
     @State private var activeDragMode: ChartSelectionDragMode?
 
-    private let boundaryHandleThreshold: CGFloat = 24
+    private let boundaryHandleThreshold: CGFloat = 10
 
     private var timeRange: ClosedRange<Double> {
         let times = samples.map(\.relativeTime)
@@ -132,8 +132,8 @@ struct MacMotionChartsView: View {
                         DragGesture(minimumDistance: 2)
                             .onChanged { value in
                                 updateSelection(
-                                    startX: value.startLocation.x,
-                                    currentX: value.location.x,
+                                    startLocation: value.startLocation,
+                                    currentLocation: value.location,
                                     proxy: proxy,
                                     geometry: geometry
                                 )
@@ -177,18 +177,20 @@ struct MacMotionChartsView: View {
     }
 
     private func updateSelection(
-        startX: CGFloat,
-        currentX: CGFloat,
+        startLocation: CGPoint,
+        currentLocation: CGPoint,
         proxy: ChartProxy,
         geometry: GeometryProxy
     ) {
         guard let plotFrame = proxy.plotFrame else { return }
 
         let plotRect = geometry[plotFrame]
-        let startTime = timeValue(for: startX, plotRect: plotRect)
-        let currentTime = timeValue(for: currentX, plotRect: plotRect)
+        guard plotRect.contains(startLocation) else { return }
+
+        let startTime = timeValue(for: startLocation.x, plotRect: plotRect)
+        let currentTime = timeValue(for: currentLocation.x, plotRect: plotRect)
         let mode = activeDragMode ?? dragMode(
-            mouseDownX: startX,
+            mouseDownX: startLocation.x,
             mouseDownTime: startTime,
             plotRect: plotRect
         )
@@ -209,6 +211,26 @@ struct MacMotionChartsView: View {
             selection = ChartTimeSelection(
                 startTime: fixedStartTime,
                 endTime: currentTime
+            ).normalized
+        case .moving(let originalStartTime, let originalEndTime, let anchorTime):
+            let delta = currentTime - anchorTime
+            let originalDuration = originalEndTime - originalStartTime
+            var movedStartTime = originalStartTime + delta
+            var movedEndTime = originalEndTime + delta
+
+            if movedStartTime < timeRange.lowerBound {
+                movedStartTime = timeRange.lowerBound
+                movedEndTime = movedStartTime + originalDuration
+            }
+
+            if movedEndTime > timeRange.upperBound {
+                movedEndTime = timeRange.upperBound
+                movedStartTime = movedEndTime - originalDuration
+            }
+
+            selection = ChartTimeSelection(
+                startTime: movedStartTime,
+                endTime: movedEndTime
             ).normalized
         }
     }
@@ -231,6 +253,13 @@ struct MacMotionChartsView: View {
         }
         if abs(mouseDownX - endX) <= boundaryHandleThreshold {
             return .resizingEnd(fixedStartTime: normalized.startTime)
+        }
+        if mouseDownX > min(startX, endX) && mouseDownX < max(startX, endX) {
+            return .moving(
+                originalStartTime: normalized.startTime,
+                originalEndTime: normalized.endTime,
+                anchorTime: mouseDownTime
+            )
         }
         return .creating(anchorTime: mouseDownTime)
     }
@@ -271,7 +300,6 @@ struct MacMotionChartsView: View {
             || abs(location.x - endX) <= boundaryHandleThreshold {
             return .resizeLeftRight
         }
-
         if location.x > min(startX, endX) && location.x < max(startX, endX) {
             return .openHand
         }
@@ -302,6 +330,7 @@ private enum ChartSelectionDragMode {
     case creating(anchorTime: Double)
     case resizingStart(fixedEndTime: Double)
     case resizingEnd(fixedStartTime: Double)
+    case moving(originalStartTime: Double, originalEndTime: Double, anchorTime: Double)
 }
 
 private struct SnapPreviewRange: Identifiable {
