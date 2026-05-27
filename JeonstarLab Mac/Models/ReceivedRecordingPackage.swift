@@ -17,6 +17,7 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     var displayName: String
     var label: RecordingPackageLabel
     var notes: String
+    var participantInfo: RecordingParticipantInfo
     var snapLabels: [Int: SnapEventLabelPayload]
     var snapEventLabels: [String: SnapEventLabelPayload]
     var manualSnapEvents: [WorkingSnapEvent]
@@ -272,6 +273,7 @@ struct RecordingPackageLabelPayload: Codable {
     let label: RecordingPackageLabel
     let packageLabel: RecordingPackageLabel?
     let notes: String
+    let participantInfo: RecordingParticipantInfo
     let snapLabels: [Int: SnapEventLabelPayload]
     let snapEventLabels: [String: SnapEventLabelPayload]
     let manualSnapEvents: [WorkingSnapEvent]
@@ -284,6 +286,7 @@ struct RecordingPackageLabelPayload: Codable {
         label: RecordingPackageLabel,
         packageLabel: RecordingPackageLabel? = nil,
         notes: String,
+        participantInfo: RecordingParticipantInfo = .empty,
         snapLabels: [Int: SnapEventLabelPayload] = [:],
         snapEventLabels: [String: SnapEventLabelPayload] = [:],
         manualSnapEvents: [WorkingSnapEvent] = [],
@@ -295,6 +298,7 @@ struct RecordingPackageLabelPayload: Codable {
         self.label = label
         self.packageLabel = packageLabel
         self.notes = notes
+        self.participantInfo = participantInfo
         self.snapLabels = snapLabels
         self.snapEventLabels = snapEventLabels
         self.manualSnapEvents = manualSnapEvents
@@ -308,6 +312,7 @@ struct RecordingPackageLabelPayload: Codable {
         case label
         case packageLabel
         case notes
+        case participantInfo
         case snapLabels
         case snapEventLabels
         case manualSnapEvents
@@ -324,6 +329,10 @@ struct RecordingPackageLabelPayload: Codable {
             ?? .unlabeled
         packageLabel = try container.decodeIfPresent(RecordingPackageLabel.self, forKey: .packageLabel)
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
+        participantInfo = try container.decodeIfPresent(
+            RecordingParticipantInfo.self,
+            forKey: .participantInfo
+        ) ?? .empty
         snapLabels = try container.decodeIfPresent([Int: SnapEventLabelPayload].self, forKey: .snapLabels) ?? [:]
         let decodedSnapEventLabels = try container.decodeIfPresent(
             [String: SnapEventLabelPayload].self,
