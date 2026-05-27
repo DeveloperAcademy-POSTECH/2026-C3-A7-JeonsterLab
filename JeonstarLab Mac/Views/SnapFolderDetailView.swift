@@ -95,10 +95,10 @@ struct SnapFolderDetailView: View {
                 return compareOptional(snapDuration(lhs), snapDuration(rhs), ascending: true)
             case .snapDurationDescending:
                 return compareOptional(snapDuration(lhs), snapDuration(rhs), ascending: false)
-            case .segmentLengthAscending:
-                return compareOptional(segmentLength(lhs), segmentLength(rhs), ascending: true)
-            case .segmentLengthDescending:
-                return compareOptional(segmentLength(lhs), segmentLength(rhs), ascending: false)
+            case .segmentSavedFirst:
+                return compareSegmentPresence(lhs, rhs, savedFirst: true)
+            case .segmentMissingFirst:
+                return compareSegmentPresence(lhs, rhs, savedFirst: false)
             }
         }
     }
@@ -193,11 +193,6 @@ struct SnapFolderDetailView: View {
         return max(0, endTime - startTime)
     }
 
-    private func segmentLength(_ item: SnapFolderItem) -> Double? {
-        guard item.segmentCSVRelativePath != nil else { return nil }
-        return snapDuration(item)
-    }
-
     private func compareOptional<T: Comparable>(_ lhs: T?, _ rhs: T?, ascending: Bool) -> Bool {
         switch (lhs, rhs) {
         case let (lhs?, rhs?):
@@ -211,6 +206,17 @@ struct SnapFolderDetailView: View {
         }
     }
 
+    private func compareSegmentPresence(_ lhs: SnapFolderItem, _ rhs: SnapFolderItem, savedFirst: Bool) -> Bool {
+        let lhsHasSegment = lhs.segmentCSVRelativePath != nil
+        let rhsHasSegment = rhs.segmentCSVRelativePath != nil
+
+        if lhsHasSegment != rhsHasSegment {
+            return savedFirst ? lhsHasSegment : !lhsHasSegment
+        }
+
+        return compareOptional(lhs.recordingStartedAt, rhs.recordingStartedAt, ascending: false)
+    }
+
     private func formatted(_ value: Double?, suffix: String) -> String {
         guard let value else { return "-" }
         return String(format: "%.2f%@", locale: Locale(identifier: "en_US_POSIX"), value, suffix)
@@ -222,25 +228,25 @@ private enum SnapFolderSortOption: String, CaseIterable, Identifiable {
     case dateDescending
     case snapDurationAscending
     case snapDurationDescending
-    case segmentLengthAscending
-    case segmentLengthDescending
+    case segmentSavedFirst
+    case segmentMissingFirst
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
         case .dateAscending:
-            return "날짜 오름차순"
+            return "오래된 녹화 먼저"
         case .dateDescending:
-            return "날짜 내림차순"
+            return "최신 녹화 먼저"
         case .snapDurationAscending:
-            return "데이터 길이 오름차순"
+            return "짧은 스냅 먼저"
         case .snapDurationDescending:
-            return "데이터 길이 내림차순"
-        case .segmentLengthAscending:
-            return "세그먼트 길이 오름차순"
-        case .segmentLengthDescending:
-            return "세그먼트 길이 내림차순"
+            return "긴 스냅 먼저"
+        case .segmentSavedFirst:
+            return "세그먼트 저장됨 먼저"
+        case .segmentMissingFirst:
+            return "세그먼트 없음 먼저"
         }
     }
 }
