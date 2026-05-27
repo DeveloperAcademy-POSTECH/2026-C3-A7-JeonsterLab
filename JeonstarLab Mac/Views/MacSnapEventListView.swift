@@ -9,7 +9,7 @@ struct MacSnapEventListView: View {
     let events: [WorkingSnapEvent]
     @Binding var snapEventLabels: [String: SnapEventLabelPayload]
     let folders: [SnapFolder]
-    let folderNamesForEvent: (WorkingSnapEvent) -> [String]
+    let folderForEvent: (WorkingSnapEvent) -> SnapFolder?
     let hasSegment: (WorkingSnapEvent) -> Bool
     let onAddToFolder: (WorkingSnapEvent, SnapFolder) -> Void
     let onRemoveFromFolder: (WorkingSnapEvent, SnapFolder) -> Void
@@ -69,34 +69,7 @@ struct MacSnapEventListView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
-                            HStack(alignment: .center, spacing: 10) {
-                                let folderNames = folderNamesForEvent(event)
-                                Text(folderNames.isEmpty ? "아직 폴더에 추가되지 않았습니다." : folderNames.joined(separator: ", "))
-                                    .font(.callout)
-                                    .foregroundStyle(folderNames.isEmpty ? .secondary : .primary)
-
-                                Menu("폴더에 추가") {
-                                    if folders.isEmpty {
-                                        Text("생성된 폴더가 없습니다.")
-                                    } else {
-                                        ForEach(folders) { folder in
-                                            Button(folder.name) {
-                                                onAddToFolder(event, folder)
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if !folderNames.isEmpty {
-                                    Menu("폴더에서 제거") {
-                                        ForEach(folders.filter { folderNames.contains($0.name) }) { folder in
-                                            Button(folder.name, role: .destructive) {
-                                                onRemoveFromFolder(event, folder)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            folderMembershipControls(for: event)
                         }
                     }
                     .padding(.vertical, 6)
@@ -131,6 +104,64 @@ struct MacSnapEventListView: View {
             payload.updatedAt = Date()
             snapEventLabels[key] = payload
         }
+    }
+
+    @ViewBuilder
+    private func folderMembershipControls(for event: WorkingSnapEvent) -> some View {
+        let assignedFolder = folderForEvent(event)
+        let label = currentLabel(for: event)
+        let isAssigned = assignedFolder != nil
+
+        HStack(alignment: .center, spacing: 10) {
+            datasetBadge(isIncluded: isAssigned)
+
+            if let assignedFolder {
+                Text("\(assignedFolder.name) 폴더에 포함됨")
+                    .font(.callout)
+
+                Button("폴더에서 제거", role: .destructive) {
+                    onRemoveFromFolder(event, assignedFolder)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            } else {
+                Text("아직 폴더에 추가되지 않았습니다.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
+                if label == .unlabeled {
+                    Text("라벨을 먼저 선택해야 폴더에 추가할 수 있습니다.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Menu("폴더에 추가") {
+                        if folders.isEmpty {
+                            Text("생성된 폴더가 없습니다.")
+                        } else {
+                            ForEach(folders) { folder in
+                                Button(folder.name) {
+                                    onAddToFolder(event, folder)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func currentLabel(for event: WorkingSnapEvent) -> RecordingPackageLabel {
+        snapEventLabels[event.snapID]?.label ?? event.label
+    }
+
+    private func datasetBadge(isIncluded: Bool) -> some View {
+        Text(isIncluded ? "데이터셋 포함" : "데이터셋 미포함")
+            .font(.caption)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(isIncluded ? Color.green.opacity(0.15) : Color.gray.opacity(0.15))
+            .foregroundStyle(isIncluded ? .green : .secondary)
+            .clipShape(Capsule())
     }
 
     private func title(for event: WorkingSnapEvent) -> String {

@@ -8,7 +8,7 @@ import SwiftUI
 struct MacRecordingDetailView: View {
     @Binding var package: ReceivedRecordingPackage
     let folders: [SnapFolder]
-    let folderNamesForEvent: (ReceivedRecordingPackage, WorkingSnapEvent) -> [String]
+    let folderForEvent: (ReceivedRecordingPackage, WorkingSnapEvent) -> SnapFolder?
     let onAddSnapToFolder: (WorkingSnapEvent, ReceivedRecordingPackage, SnapFolder) -> Void
     let onRemoveSnapFromFolder: (WorkingSnapEvent, ReceivedRecordingPackage, SnapFolder) -> Void
     let onSaveLabel: (ReceivedRecordingPackage) -> Void
@@ -73,8 +73,8 @@ struct MacRecordingDetailView: View {
                             events: package.workingSnapEvents,
                             snapEventLabels: $package.snapEventLabels,
                             folders: folders,
-                            folderNamesForEvent: { event in
-                                folderNamesForEvent(package, event)
+                            folderForEvent: { event in
+                                folderForEvent(package, event)
                             },
                             hasSegment: hasSegment(for:),
                             onAddToFolder: { event, folder in

@@ -104,7 +104,7 @@ struct MacHomeView: View {
                     MacRecordingDetailView(
                         package: packageBinding,
                         folders: viewModel.snapFolders,
-                        folderNamesForEvent: viewModel.folderNames(for:event:),
+                        folderForEvent: viewModel.folderContainingSnap(package:event:),
                         onAddSnapToFolder: viewModel.addSnap(_:from:to:),
                         onRemoveSnapFromFolder: viewModel.removeSnap(_:from:folder:),
                         onSaveLabel: viewModel.saveLabel(for:)

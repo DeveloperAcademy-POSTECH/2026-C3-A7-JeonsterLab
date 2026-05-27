@@ -114,7 +114,12 @@ final class MacHomeViewModel {
     }
 
     func reloadFolders() {
-        snapFolders = folderStore.loadFolders()
+        let loadedFolders = folderStore.loadFolders()
+        let normalizedFolders = normalizedFolderMemberships(loadedFolders)
+        snapFolders = normalizedFolders
+        if normalizedFolders != loadedFolders {
+            saveFolders()
+        }
     }
 
     func openReceivedFolder() {
@@ -218,36 +223,45 @@ final class MacHomeViewModel {
         }
     }
 
-    func folderNames(for package: ReceivedRecordingPackage, event: WorkingSnapEvent) -> [String] {
-        snapFolders
-            .filter { folder in
-                folder.items.contains {
-                    $0.packageFolderName == package.folderURL.lastPathComponent
-                    && $0.snapID == event.snapID
-                }
+    func folderContainingSnap(package: ReceivedRecordingPackage, event: WorkingSnapEvent) -> SnapFolder? {
+        snapFolders.first { folder in
+            folder.items.contains { item in
+                isSameSnap(item, package: package, event: event)
             }
-            .map(\.name)
+        }
     }
 
     func addSnap(_ event: WorkingSnapEvent, from package: ReceivedRecordingPackage, to folder: SnapFolder) {
-        guard let folderIndex = snapFolders.firstIndex(where: { $0.id == folder.id }) else { return }
-        let alreadyExists = snapFolders[folderIndex].items.contains {
-            $0.packageFolderName == package.folderURL.lastPathComponent && $0.snapID == event.snapID
+        let currentLabel = package.snapEventLabels[event.snapID]?.label ?? event.label
+        guard currentLabel != .unlabeled,
+              folderContainingSnap(package: package, event: event) == nil,
+              let folderIndex = snapFolders.firstIndex(where: { $0.id == folder.id }) else {
+            return
         }
-        guard !alreadyExists else { return }
 
-        snapFolders[folderIndex].items.append(folderItem(from: package, event: event))
+        var labeledEvent = event
+        labeledEvent.label = currentLabel
+        snapFolders[folderIndex].items.append(folderItem(from: package, event: labeledEvent))
         snapFolders[folderIndex].updatedAt = Date()
         saveFolders()
     }
 
-    func removeSnap(_ event: WorkingSnapEvent, from package: ReceivedRecordingPackage, folder: SnapFolder) {
-        guard let folderIndex = snapFolders.firstIndex(where: { $0.id == folder.id }) else { return }
-        snapFolders[folderIndex].items.removeAll {
-            $0.packageFolderName == package.folderURL.lastPathComponent && $0.snapID == event.snapID
+    func removeSnap(_ event: WorkingSnapEvent, from package: ReceivedRecordingPackage, folder _: SnapFolder) {
+        var didChange = false
+        for folderIndex in snapFolders.indices {
+            let originalCount = snapFolders[folderIndex].items.count
+            snapFolders[folderIndex].items.removeAll { item in
+                isSameSnap(item, package: package, event: event)
+            }
+            if snapFolders[folderIndex].items.count != originalCount {
+                snapFolders[folderIndex].updatedAt = Date()
+                didChange = true
+            }
         }
-        snapFolders[folderIndex].updatedAt = Date()
-        saveFolders()
+
+        if didChange {
+            saveFolders()
+        }
     }
 
     func removeFolderItem(_ item: SnapFolderItem, from folder: SnapFolder) {
@@ -341,6 +355,7 @@ final class MacHomeViewModel {
         for package in receivedPackages {
             updateFolderItems(for: package, shouldSave: false)
         }
+        snapFolders = normalizedFolderMemberships(snapFolders)
         saveFolders()
     }
 
@@ -403,6 +418,46 @@ final class MacHomeViewModel {
             segmentMetadataRelativePath: hasSegment ? "segments/\(segmentFolderName)/segment_metadata.json" : nil,
             addedAt: existingItem?.addedAt ?? Date()
         )
+    }
+
+    private func normalizedFolderMemberships(_ folders: [SnapFolder]) -> [SnapFolder] {
+        var seenSnapKeys = Set<String>()
+        return folders.map { folder in
+            var normalizedFolder = folder
+            normalizedFolder.items = folder.items.filter { item in
+                let key = snapIdentityKey(
+                    packageFolderName: item.packageFolderName,
+                    recordingID: item.recordingID,
+                    snapID: item.snapID
+                )
+                return seenSnapKeys.insert(key).inserted
+            }
+            return normalizedFolder
+        }
+    }
+
+    private func isSameSnap(
+        _ item: SnapFolderItem,
+        package: ReceivedRecordingPackage,
+        event: WorkingSnapEvent
+    ) -> Bool {
+        snapIdentityKey(
+            packageFolderName: item.packageFolderName,
+            recordingID: item.recordingID,
+            snapID: item.snapID
+        ) == snapIdentityKey(
+            packageFolderName: package.folderURL.lastPathComponent,
+            recordingID: event.recordingID ?? package.metadata?.recordingID ?? package.snapAnalysis?.recordingID,
+            snapID: event.snapID
+        )
+    }
+
+    private func snapIdentityKey(
+        packageFolderName: String,
+        recordingID: UUID?,
+        snapID: String
+    ) -> String {
+        "\(packageFolderName)|\(recordingID?.uuidString ?? "no-recording-id")|\(snapID)"
     }
 
     private func saveFolders() {
