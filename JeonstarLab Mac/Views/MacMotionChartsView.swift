@@ -8,7 +8,12 @@ import SwiftUI
 
 struct MacMotionChartsView: View {
     let samples: [MotionCSVSample]
+    let savedSnapEvents: [WorkingSnapEvent]
+    let showSavedSnapPreviews: Bool
+    let hasSelectionConflict: Bool
     @Binding var selection: ChartTimeSelection?
+
+    @State private var activeDragMode: ChartSelectionDragMode?
 
     private var timeRange: ClosedRange<Double> {
         let times = samples.map(\.relativeTime)
@@ -70,20 +75,39 @@ struct MacMotionChartsView: View {
                 }
             }
 
+            if showSavedSnapPreviews {
+                ForEach(savedSnapRanges) { range in
+                    RectangleMark(
+                        xStart: .value("Saved Snap Start", range.startTime),
+                        xEnd: .value("Saved Snap End", range.endTime)
+                    )
+                    .foregroundStyle(.gray.opacity(0.10))
+
+                    RuleMark(x: .value("Saved Snap Start", range.startTime))
+                        .foregroundStyle(.gray.opacity(0.55))
+                        .lineStyle(.init(lineWidth: 0.8, dash: [2, 3]))
+
+                    RuleMark(x: .value("Saved Snap End", range.endTime))
+                        .foregroundStyle(.gray.opacity(0.55))
+                        .lineStyle(.init(lineWidth: 0.8, dash: [2, 3]))
+                }
+            }
+
             if let selection {
                 let normalized = selection.normalized
+                let selectionColor = hasSelectionConflict ? Color.red : Color.blue
                 RectangleMark(
                     xStart: .value("Selection Start", normalized.startTime),
                     xEnd: .value("Selection End", normalized.endTime)
                 )
-                .foregroundStyle(.blue.opacity(0.12))
+                .foregroundStyle(selectionColor.opacity(0.14))
 
                 RuleMark(x: .value("Selection Start", normalized.startTime))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(selectionColor)
                     .lineStyle(.init(lineWidth: 1.2, dash: [4, 3]))
 
                 RuleMark(x: .value("Selection End", normalized.endTime))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(selectionColor)
                     .lineStyle(.init(lineWidth: 1.2, dash: [4, 3]))
             }
         }
@@ -111,8 +135,34 @@ struct MacMotionChartsView: View {
                                     geometry: geometry
                                 )
                             }
+                            .onEnded { _ in
+                                activeDragMode = nil
+                            }
                     )
             }
+        }
+    }
+
+    private var savedSnapRanges: [SnapPreviewRange] {
+        var seenIDs = Set<String>()
+        return savedSnapEvents.compactMap { event in
+            guard seenIDs.insert(event.snapID).inserted,
+                  let startTime = event.startTime,
+                  let endTime = event.endTime else {
+                return nil
+            }
+
+            let normalized = ChartTimeSelection(
+                startTime: startTime,
+                endTime: endTime
+            ).normalized
+            guard normalized.duration > 0 else { return nil }
+
+            return SnapPreviewRange(
+                id: event.snapID,
+                startTime: normalized.startTime,
+                endTime: normalized.endTime
+            )
         }
     }
 
@@ -126,12 +176,54 @@ struct MacMotionChartsView: View {
 
         let plotRect = geometry[plotFrame]
         let startTime = timeValue(for: startX, plotRect: plotRect)
-        let endTime = timeValue(for: currentX, plotRect: plotRect)
+        let currentTime = timeValue(for: currentX, plotRect: plotRect)
+        let mode = activeDragMode ?? dragMode(
+            mouseDownX: startX,
+            mouseDownTime: startTime,
+            plotRect: plotRect
+        )
+        activeDragMode = mode
 
-        selection = ChartTimeSelection(
-            startTime: startTime,
-            endTime: endTime
-        ).normalized
+        switch mode {
+        case .creating(let anchorTime):
+            selection = ChartTimeSelection(
+                startTime: anchorTime,
+                endTime: currentTime
+            ).normalized
+        case .resizingStart(let fixedEndTime):
+            selection = ChartTimeSelection(
+                startTime: currentTime,
+                endTime: fixedEndTime
+            ).normalized
+        case .resizingEnd(let fixedStartTime):
+            selection = ChartTimeSelection(
+                startTime: fixedStartTime,
+                endTime: currentTime
+            ).normalized
+        }
+    }
+
+    private func dragMode(
+        mouseDownX: CGFloat,
+        mouseDownTime: Double,
+        plotRect: CGRect
+    ) -> ChartSelectionDragMode {
+        guard let selection else {
+            return .creating(anchorTime: mouseDownTime)
+        }
+
+        let normalized = selection.normalized
+        let startX = xPosition(for: normalized.startTime, plotRect: plotRect)
+        let endX = xPosition(for: normalized.endTime, plotRect: plotRect)
+        let handleThreshold: CGFloat = 10
+
+        if abs(mouseDownX - startX) <= handleThreshold {
+            return .resizingStart(fixedEndTime: normalized.endTime)
+        }
+        if abs(mouseDownX - endX) <= handleThreshold {
+            return .resizingEnd(fixedStartTime: normalized.startTime)
+        }
+        return .creating(anchorTime: mouseDownTime)
     }
 
     private func timeValue(for xPosition: CGFloat, plotRect: CGRect) -> Double {
@@ -142,4 +234,25 @@ struct MacMotionChartsView: View {
         let duration = timeRange.upperBound - timeRange.lowerBound
         return timeRange.lowerBound + Double(progress) * duration
     }
+
+    private func xPosition(for time: Double, plotRect: CGRect) -> CGFloat {
+        let duration = timeRange.upperBound - timeRange.lowerBound
+        guard duration > 0 else { return plotRect.minX }
+
+        let clampedTime = min(max(time, timeRange.lowerBound), timeRange.upperBound)
+        let progress = (clampedTime - timeRange.lowerBound) / duration
+        return plotRect.minX + CGFloat(progress) * plotRect.width
+    }
+}
+
+private enum ChartSelectionDragMode {
+    case creating(anchorTime: Double)
+    case resizingStart(fixedEndTime: Double)
+    case resizingEnd(fixedStartTime: Double)
+}
+
+private struct SnapPreviewRange: Identifiable {
+    let id: String
+    let startTime: Double
+    let endTime: Double
 }

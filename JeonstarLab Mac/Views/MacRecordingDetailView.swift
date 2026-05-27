@@ -16,10 +16,16 @@ struct MacRecordingDetailView: View {
     @State private var samples: [MotionCSVSample] = []
     @State private var csvErrorMessage: String?
     @State private var chartSelection: ChartTimeSelection?
+    @State private var showsSavedSnapPreviews = true
 
     private var manualSnapDraft: ManualSnapDraft? {
         guard let chartSelection else { return nil }
         return SnapSelectionAnalyzer.analyze(selection: chartSelection, samples: samples)
+    }
+
+    private var hasSelectionConflict: Bool {
+        guard let chartSelection, chartSelection.isUsable else { return false }
+        return overlapsExistingSnap(selection: chartSelection)
     }
 
     var body: some View {
@@ -101,9 +107,14 @@ struct MacRecordingDetailView: View {
                             .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
                     } else {
                         VStack(alignment: .leading, spacing: 16) {
+                            Toggle("저장된 스냅 미리보기", isOn: $showsSavedSnapPreviews)
+                                .toggleStyle(.switch)
                             selectionPanel
                             MacMotionChartsView(
                                 samples: samples,
+                                savedSnapEvents: package.workingSnapEvents,
+                                showSavedSnapPreviews: showsSavedSnapPreviews,
+                                hasSelectionConflict: hasSelectionConflict,
                                 selection: $chartSelection
                             )
                         }
@@ -141,15 +152,26 @@ struct MacRecordingDetailView: View {
                     GridRow {
                         selectionMetric("피크", formatted(draft?.peakTime, suffix: "s"))
                         selectionMetric("주 회전축", draft?.dominantAxis ?? "-")
-                        selectionMetric("저장 가능", draft?.canSave == true ? "가능" : "불가")
+                        selectionMetric("저장 가능", draft?.canSave == true && !hasSelectionConflict ? "가능" : "불가")
                     }
+                }
+
+                if hasSelectionConflict {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("스냅이 충돌되는 부분이 있습니다.")
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                        Text("기존 스냅과 겹치지 않도록 범위를 조정해주세요.")
+                            .font(.caption)
+                    }
+                    .foregroundStyle(.red)
                 }
 
                 HStack {
                     Button("스냅 저장하기") {
                         saveManualSnap()
                     }
-                    .disabled(draft?.canSave != true)
+                    .disabled(draft?.canSave != true || hasSelectionConflict)
 
                     Button("선택 지우기") {
                         self.chartSelection = nil
@@ -183,7 +205,7 @@ struct MacRecordingDetailView: View {
     }
 
     private func saveManualSnap() {
-        guard let manualSnapDraft, manualSnapDraft.canSave else { return }
+        guard let manualSnapDraft, manualSnapDraft.canSave, !hasSelectionConflict else { return }
         package.addManualSnapEvent(from: manualSnapDraft)
         chartSelection = nil
         onSaveLabel(package)
@@ -199,6 +221,24 @@ struct MacRecordingDetailView: View {
             package: package,
             snapID: event.snapID
         )
+    }
+
+    private func overlapsExistingSnap(selection: ChartTimeSelection) -> Bool {
+        let selected = selection.normalized
+        return package.workingSnapEvents.contains { event in
+            guard let eventStart = event.startTime,
+                  let eventEnd = event.endTime else {
+                return false
+            }
+
+            let existing = ChartTimeSelection(
+                startTime: eventStart,
+                endTime: eventEnd
+            ).normalized
+            guard existing.duration > 0 else { return false }
+            return selected.startTime < existing.endTime
+                && selected.endTime > existing.startTime
+        }
     }
 
     private func selectionMetric(_ title: String, _ value: String) -> some View {
