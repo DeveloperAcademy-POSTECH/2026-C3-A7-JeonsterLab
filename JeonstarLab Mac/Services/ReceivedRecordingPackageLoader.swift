@@ -79,6 +79,7 @@ final class ReceivedRecordingPackageLoader {
             metadata: metadata,
             snapAnalysis: snapAnalysis,
             displayName: labelPayload?.displayName ?? "",
+            isPinned: labelPayload?.isPinned ?? false,
             label: labelPayload?.label ?? .unlabeled,
             notes: labelPayload?.notes ?? "",
             participantInfo: labelPayload?.participantInfo ?? .empty,
@@ -96,6 +97,7 @@ final class ReceivedRecordingPackageLoader {
             displayName: package.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? nil
                 : package.displayName,
+            isPinned: package.isPinned,
             label: package.label,
             packageLabel: package.label,
             notes: package.notes,

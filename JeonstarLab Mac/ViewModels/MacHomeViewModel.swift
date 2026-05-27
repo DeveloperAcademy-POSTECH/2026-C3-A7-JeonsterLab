@@ -22,6 +22,7 @@ final class MacHomeViewModel {
     var selectedPackageID: ReceivedRecordingPackage.ID?
     var selectedFolderID: SnapFolder.ID?
     var errorMessage: String?
+    var searchQuery = ""
 
     init() {
         folderStore = SnapFolderStore(rootURL: fileStore.rootDirectory)
@@ -84,6 +85,14 @@ final class MacHomeViewModel {
     var selectedFolder: SnapFolder? {
         guard let selectedFolderID else { return nil }
         return snapFolders.first { $0.id == selectedFolderID }
+    }
+
+    var filteredReceivedPackages: [ReceivedRecordingPackage] {
+        filteredPackages(receivedPackages)
+    }
+
+    var filteredPinnedPackages: [ReceivedRecordingPackage] {
+        filteredPackages(receivedPackages.filter(\.isPinned))
     }
 
     var rootReceivedFolderURL: URL {
@@ -251,6 +260,12 @@ final class MacHomeViewModel {
         }
     }
 
+    func togglePinPackage(_ package: ReceivedRecordingPackage) {
+        guard let index = receivedPackages.firstIndex(where: { $0.id == package.id }) else { return }
+        receivedPackages[index].isPinned.toggle()
+        saveLabel(for: receivedPackages[index])
+    }
+
     func folderContainingSnap(package: ReceivedRecordingPackage, event: WorkingSnapEvent) -> SnapFolder? {
         snapFolders.first { folder in
             folder.items.contains { item in
@@ -412,6 +427,28 @@ final class MacHomeViewModel {
             receivedPackages.insert(package, at: 0)
         }
         receivedPackages.sort { $0.receivedAt > $1.receivedAt }
+    }
+
+    private func filteredPackages(_ packages: [ReceivedRecordingPackage]) -> [ReceivedRecordingPackage] {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return packages }
+
+        return packages.filter { package in
+            searchableText(for: package).localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    private func searchableText(for package: ReceivedRecordingPackage) -> String {
+        [
+            package.displayTitle,
+            package.participantInfo.nameOrNickname,
+            package.participantInfo.gender.displayName,
+            package.participantInfo.ageGroup.displayName,
+            package.participantInfo.heightCM,
+            package.participantInfo.skillLevel.displayName,
+            package.participantInfo.memo
+        ]
+        .joined(separator: " ")
     }
 
     private func updateAllFolderItemSnapshots() {

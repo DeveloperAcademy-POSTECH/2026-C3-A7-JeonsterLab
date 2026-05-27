@@ -57,12 +57,25 @@ struct MacHomeView: View {
                         }
                     }
 
+                    Section("Pinned Recordings") {
+                        if viewModel.filteredPinnedPackages.isEmpty {
+                            Text("고정된 녹화가 없습니다.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(viewModel.filteredPinnedPackages) { package in
+                                receivedPackageRow(package)
+                                    .tag(package.id)
+                            }
+                        }
+                    }
+
                     Section("Received Recordings") {
-                        if viewModel.receivedPackages.isEmpty {
+                        if viewModel.filteredReceivedPackages.isEmpty {
                             Text("아직 수신된 녹화 데이터가 없습니다.")
                                 .foregroundStyle(.secondary)
                         } else {
-                            ForEach(viewModel.receivedPackages) { package in
+                            ForEach(viewModel.filteredReceivedPackages) { package in
                                 receivedPackageRow(package)
                                     .tag(package.id)
                                     .contextMenu {
@@ -131,6 +144,11 @@ struct MacHomeView: View {
         } message: { _ in
             Text("삭제하면 Mac에 저장된 이 녹화 패키지가 사라집니다.\n이 작업은 되돌릴 수 없습니다.")
         }
+        .searchable(
+            text: $viewModel.searchQuery,
+            placement: .toolbar,
+            prompt: "수신 기록 검색"
+        )
     }
 
     private func receivedPackageRow(_ package: ReceivedRecordingPackage) -> some View {
@@ -138,6 +156,12 @@ struct MacHomeView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(package.displayTitle)
                     .lineLimit(1)
+                if package.isPinned {
+                    Label("고정됨", systemImage: "pin.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .labelStyle(.titleAndIcon)
+                }
                 Text(package.recordingDateText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -150,6 +174,14 @@ struct MacHomeView: View {
             }
 
             Spacer(minLength: 8)
+
+            Button {
+                viewModel.togglePinPackage(package)
+            } label: {
+                Image(systemName: package.isPinned ? "pin.fill" : "pin")
+            }
+            .buttonStyle(.borderless)
+            .help(package.isPinned ? "고정 해제" : "고정")
 
             Button {
                 pendingDeletePackage = package

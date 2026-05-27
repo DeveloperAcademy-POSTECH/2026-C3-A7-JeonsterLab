@@ -16,6 +16,7 @@ struct SnapFolderDetailView: View {
 
     @State private var segmentMessage: String?
     @State private var exportMessage: String?
+    @State private var sortOption: SnapFolderSortOption = .dateDescending
 
     var body: some View {
         ScrollView {
@@ -33,6 +34,14 @@ struct SnapFolderDetailView: View {
                     .foregroundStyle(.secondary)
 
                 HStack(spacing: 10) {
+                    Picker("정렬", selection: $sortOption) {
+                        ForEach(SnapFolderSortOption.allCases) { option in
+                            Text(option.displayName).tag(option)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: 220)
+
                     Button("이 폴더 세그먼트 생성") {
                         segmentMessage = onGenerateSegments(folder)
                     }
@@ -63,7 +72,7 @@ struct SnapFolderDetailView: View {
                         .frame(maxWidth: .infinity, minHeight: 180, alignment: .center)
                 } else {
                     VStack(alignment: .leading, spacing: 12) {
-                        ForEach(folder.items) { item in
+                        ForEach(sortedItems) { item in
                             folderItemRow(item)
                             Divider()
                         }
@@ -72,6 +81,25 @@ struct SnapFolderDetailView: View {
             }
             .frame(maxWidth: 920, alignment: .leading)
             .padding(28)
+        }
+    }
+
+    private var sortedItems: [SnapFolderItem] {
+        folder.items.sorted { lhs, rhs in
+            switch sortOption {
+            case .dateAscending:
+                return compareOptional(lhs.recordingStartedAt, rhs.recordingStartedAt, ascending: true)
+            case .dateDescending:
+                return compareOptional(lhs.recordingStartedAt, rhs.recordingStartedAt, ascending: false)
+            case .snapDurationAscending:
+                return compareOptional(snapDuration(lhs), snapDuration(rhs), ascending: true)
+            case .snapDurationDescending:
+                return compareOptional(snapDuration(lhs), snapDuration(rhs), ascending: false)
+            case .segmentLengthAscending:
+                return compareOptional(segmentLength(lhs), segmentLength(rhs), ascending: true)
+            case .segmentLengthDescending:
+                return compareOptional(segmentLength(lhs), segmentLength(rhs), ascending: false)
+            }
         }
     }
 
@@ -157,8 +185,62 @@ struct SnapFolderDetailView: View {
         }
     }
 
+    private func snapDuration(_ item: SnapFolderItem) -> Double? {
+        guard let startTime = item.startTime,
+              let endTime = item.endTime else {
+            return nil
+        }
+        return max(0, endTime - startTime)
+    }
+
+    private func segmentLength(_ item: SnapFolderItem) -> Double? {
+        guard item.segmentCSVRelativePath != nil else { return nil }
+        return snapDuration(item)
+    }
+
+    private func compareOptional<T: Comparable>(_ lhs: T?, _ rhs: T?, ascending: Bool) -> Bool {
+        switch (lhs, rhs) {
+        case let (lhs?, rhs?):
+            return ascending ? lhs < rhs : lhs > rhs
+        case (_?, nil):
+            return true
+        case (nil, _?):
+            return false
+        case (nil, nil):
+            return false
+        }
+    }
+
     private func formatted(_ value: Double?, suffix: String) -> String {
         guard let value else { return "-" }
         return String(format: "%.2f%@", locale: Locale(identifier: "en_US_POSIX"), value, suffix)
+    }
+}
+
+private enum SnapFolderSortOption: String, CaseIterable, Identifiable {
+    case dateAscending
+    case dateDescending
+    case snapDurationAscending
+    case snapDurationDescending
+    case segmentLengthAscending
+    case segmentLengthDescending
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .dateAscending:
+            return "날짜 오름차순"
+        case .dateDescending:
+            return "날짜 내림차순"
+        case .snapDurationAscending:
+            return "데이터 길이 오름차순"
+        case .snapDurationDescending:
+            return "데이터 길이 내림차순"
+        case .segmentLengthAscending:
+            return "세그먼트 길이 오름차순"
+        case .segmentLengthDescending:
+            return "세그먼트 길이 내림차순"
+        }
     }
 }

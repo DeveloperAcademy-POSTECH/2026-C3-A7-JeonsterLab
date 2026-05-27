@@ -15,6 +15,7 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     let metadata: RecordingExportMetadata?
     let snapAnalysis: SnapAnalysisExport?
     var displayName: String
+    var isPinned: Bool
     var label: RecordingPackageLabel
     var notes: String
     var participantInfo: RecordingParticipantInfo
@@ -270,6 +271,7 @@ enum RecordingPackageLabel: String, CaseIterable, Codable, Identifiable {
 
 struct RecordingPackageLabelPayload: Codable {
     let displayName: String?
+    let isPinned: Bool
     let label: RecordingPackageLabel
     let packageLabel: RecordingPackageLabel?
     let notes: String
@@ -283,6 +285,7 @@ struct RecordingPackageLabelPayload: Codable {
 
     init(
         displayName: String?,
+        isPinned: Bool = false,
         label: RecordingPackageLabel,
         packageLabel: RecordingPackageLabel? = nil,
         notes: String,
@@ -295,6 +298,7 @@ struct RecordingPackageLabelPayload: Codable {
         updatedAt: Date
     ) {
         self.displayName = displayName
+        self.isPinned = isPinned
         self.label = label
         self.packageLabel = packageLabel
         self.notes = notes
@@ -309,6 +313,7 @@ struct RecordingPackageLabelPayload: Codable {
 
     enum CodingKeys: String, CodingKey {
         case displayName
+        case isPinned
         case label
         case packageLabel
         case notes
@@ -324,6 +329,7 @@ struct RecordingPackageLabelPayload: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
+        isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
         label = try container.decodeIfPresent(RecordingPackageLabel.self, forKey: .label)
             ?? container.decodeIfPresent(RecordingPackageLabel.self, forKey: .packageLabel)
             ?? .unlabeled
