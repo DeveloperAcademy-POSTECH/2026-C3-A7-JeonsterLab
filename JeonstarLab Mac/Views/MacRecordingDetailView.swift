@@ -16,6 +16,7 @@ struct MacRecordingDetailView: View {
     @State private var samples: [MotionCSVSample] = []
     @State private var csvErrorMessage: String?
     @State private var chartSelection: ChartTimeSelection?
+    @State private var visibleTimeRange = ChartVisibleTimeRange.full(0...1)
     @State private var showsSavedSnapPreviews = true
     @State private var editDraft: SnapEditDraft?
     @State private var showsEditConfirmation = false
@@ -45,6 +46,11 @@ struct MacRecordingDetailView: View {
         let original = originalSelection.normalized
         return abs(candidate.startTime - original.startTime) > Self.selectionChangeTolerance
             || abs(candidate.endTime - original.endTime) > Self.selectionChangeTolerance
+    }
+
+    private var fullTimeRange: ClosedRange<Double> {
+        let times = samples.map(\.relativeTime)
+        return (times.min() ?? 0)...(times.max() ?? 1)
     }
 
     var body: some View {
@@ -133,8 +139,29 @@ struct MacRecordingDetailView: View {
                                 .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
                         } else {
                             VStack(alignment: .leading, spacing: 16) {
-                                Toggle("저장된 스냅 미리보기", isOn: $showsSavedSnapPreviews)
-                                    .toggleStyle(.switch)
+                                HStack(spacing: 12) {
+                                    Toggle("저장된 스냅 미리보기", isOn: $showsSavedSnapPreviews)
+                                        .toggleStyle(.switch)
+
+                                    Spacer()
+
+                                    Button("전체 보기") {
+                                        resetVisibleRangeToFull()
+                                    }
+
+                                    Button("선택 구간 보기") {
+                                        focusVisibleRange(on: chartSelection)
+                                    }
+                                    .disabled(chartSelection == nil)
+
+                                    Button("축소") {
+                                        zoomVisibleRange(scale: 0.8)
+                                    }
+
+                                    Button("확대") {
+                                        zoomVisibleRange(scale: 1.25)
+                                    }
+                                }
                                 selectionPanel
                                 MacMotionChartsView(
                                     samples: samples,
@@ -144,7 +171,9 @@ struct MacRecordingDetailView: View {
                                     editingSnapID: editDraft?.snapID,
                                     editingOriginalSelection: editDraft?.originalSelection,
                                     showsCandidateSelection: editDraft == nil || hasFocusedSnapRangeChange,
-                                    selection: $chartSelection
+                                    fullTimeRange: fullTimeRange,
+                                    selection: $chartSelection,
+                                    visibleTimeRange: $visibleTimeRange
                                 )
                             }
                         }
@@ -411,15 +440,18 @@ struct MacRecordingDetailView: View {
         guard let csvURL = package.csvURL else {
             samples = []
             csvErrorMessage = "recording.csv 파일이 없습니다."
+            resetVisibleRangeToFull()
             return
         }
 
         do {
             samples = try MotionCSVParser.parse(url: csvURL)
             csvErrorMessage = nil
+            resetVisibleRangeToFull()
         } catch {
             samples = []
             csvErrorMessage = error.localizedDescription
+            resetVisibleRangeToFull()
         }
     }
 
@@ -456,6 +488,7 @@ struct MacRecordingDetailView: View {
         guard let selection = selection(for: event) else { return }
         editDraft = SnapEditDraft(originalEvent: event)
         chartSelection = selection
+        focusVisibleRange(on: selection)
         editMessage = nil
         editErrorMessage = nil
     }
@@ -466,6 +499,7 @@ struct MacRecordingDetailView: View {
         showsEditConfirmation = false
         pendingDeleteEvent = nil
         showsDeleteConfirmation = false
+        resetVisibleRangeToFull()
         editMessage = nil
         editErrorMessage = nil
     }
@@ -473,6 +507,7 @@ struct MacRecordingDetailView: View {
     private func clearFocusedSnap() {
         editDraft = nil
         chartSelection = nil
+        resetVisibleRangeToFull()
         editMessage = nil
         editErrorMessage = nil
     }
@@ -500,11 +535,44 @@ struct MacRecordingDetailView: View {
             onSaveLabel(package)
             self.editDraft = nil
             self.chartSelection = nil
+            focusVisibleRange(on: selection(for: updatedEvent))
             editErrorMessage = nil
             editMessage = "스냅 구간이 변경되었습니다."
         } catch {
             editErrorMessage = "세그먼트 갱신 실패: \(error.localizedDescription)"
         }
+    }
+
+    private func resetVisibleRangeToFull() {
+        visibleTimeRange = .full(fullTimeRange)
+    }
+
+    private func focusVisibleRange(on selection: ChartTimeSelection?) {
+        guard let selection else { return }
+
+        let normalized = selection.normalized
+        let padded = ChartVisibleTimeRange(
+            lowerBound: normalized.startTime - 1,
+            upperBound: normalized.endTime + 1
+        )
+        visibleTimeRange = padded.clamped(
+            to: fullTimeRange,
+            minimumDuration: minimumVisibleDuration
+        )
+    }
+
+    private func zoomVisibleRange(scale: Double) {
+        visibleTimeRange = visibleTimeRange.zoomed(
+            scale: scale,
+            anchorTime: (visibleTimeRange.lowerBound + visibleTimeRange.upperBound) / 2,
+            fullRange: fullTimeRange,
+            minimumDuration: minimumVisibleDuration
+        )
+    }
+
+    private var minimumVisibleDuration: Double {
+        let fullDuration = fullTimeRange.upperBound - fullTimeRange.lowerBound
+        return min(0.5, max(0, fullDuration))
     }
 
     private func editedEvent(

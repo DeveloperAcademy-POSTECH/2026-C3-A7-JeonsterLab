@@ -15,16 +15,16 @@ struct MacMotionChartsView: View {
     let editingSnapID: String?
     let editingOriginalSelection: ChartTimeSelection?
     let showsCandidateSelection: Bool
+    let fullTimeRange: ClosedRange<Double>
     @Binding var selection: ChartTimeSelection?
+    @Binding var visibleTimeRange: ChartVisibleTimeRange
 
     @State private var activeDragMode: ChartSelectionDragMode?
+    @State private var isSpacePressed = false
+    @State private var hoverLocation: CGPoint?
 
     private let boundaryHandleThreshold: CGFloat = 24
-
-    private var timeRange: ClosedRange<Double> {
-        let times = samples.map(\.relativeTime)
-        return (times.min() ?? 0)...(times.max() ?? 1)
-    }
+    private let minimumZoomDuration = 0.5
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -33,7 +33,7 @@ struct MacMotionChartsView: View {
                     ("X", .blue, \.userAccX),
                     ("Y", .green, \.userAccY),
                     ("Z", .orange, \.userAccZ)
-                ])
+                ], yDomain: yDomain(for: [\.userAccX, \.userAccY, \.userAccZ]))
             }
 
             chartCard(title: "자이로스코프") {
@@ -41,7 +41,7 @@ struct MacMotionChartsView: View {
                     ("X", .blue, \.rotationRateX),
                     ("Y", .green, \.rotationRateY),
                     ("Z", .orange, \.rotationRateZ)
-                ])
+                ], yDomain: yDomain(for: [\.rotationRateX, \.rotationRateY, \.rotationRateZ]))
             }
 
             chartCard(title: "자세") {
@@ -49,7 +49,7 @@ struct MacMotionChartsView: View {
                     ("Roll", .blue, \.attitudeRoll),
                     ("Pitch", .green, \.attitudePitch),
                     ("Yaw", .orange, \.attitudeYaw)
-                ])
+                ], yDomain: yDomain(for: [\.attitudeRoll, \.attitudePitch, \.attitudeYaw]))
             }
         }
     }
@@ -67,7 +67,8 @@ struct MacMotionChartsView: View {
     }
 
     private func axisChart(
-        values: [(name: String, color: Color, keyPath: KeyPath<MotionCSVSample, Double>)]
+        values: [(name: String, color: Color, keyPath: KeyPath<MotionCSVSample, Double>)],
+        yDomain: ClosedRange<Double>
     ) -> some View {
         Chart {
             ForEach(values, id: \.name) { axis in
@@ -142,35 +143,146 @@ struct MacMotionChartsView: View {
             "Pitch": .green,
             "Yaw": .orange
         ])
+        .chartXScale(domain: visibleTimeRange.range)
+        .chartYScale(domain: yDomain)
         .chartXAxisLabel("relativeTime")
         .chartOverlay { proxy in
             GeometryReader { geometry in
-                Rectangle()
-                    .fill(.clear)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 2)
-                            .onChanged { value in
-                                updateSelection(
-                                    startLocation: value.startLocation,
-                                    currentLocation: value.location,
-                                    proxy: proxy,
-                                    geometry: geometry
-                                )
-                            }
-                            .onEnded { _ in
-                                activeDragMode = nil
-                            }
-                    )
-                    .onContinuousHover { phase in
-                        updateCursor(
-                            hoverPhase: phase,
+                ChartInteractionOverlay(
+                    onMagnify: { magnification, location in
+                        updateZoom(
+                            magnification: magnification,
+                            location: location ?? hoverLocation,
                             proxy: proxy,
                             geometry: geometry
                         )
+                    },
+                    onSpacePan: { deltaX in
+                        panVisibleRange(
+                            deltaX: deltaX,
+                            proxy: proxy,
+                            geometry: geometry
+                        )
+                    },
+                    onSpaceChanged: { isPressed in
+                        isSpacePressed = isPressed
+                        if isPressed {
+                            activeDragMode = nil
+                            NSCursor.openHand.set()
+                        }
+                    },
+                    onMouseMoved: { location in
+                        hoverLocation = location
+                        updateCursor(
+                            location: location,
+                            proxy: proxy,
+                            geometry: geometry
+                        )
+                    },
+                    onDragChanged: { startLocation, currentLocation in
+                        updateSelection(
+                            startLocation: startLocation,
+                            currentLocation: currentLocation,
+                            proxy: proxy,
+                            geometry: geometry
+                        )
+                    },
+                    onDragEnded: {
+                        activeDragMode = nil
                     }
+                )
+                .contentShape(Rectangle())
+                .onDisappear {
+                    activeDragMode = nil
+                    isSpacePressed = false
+                    hoverLocation = nil
+                }
             }
         }
+    }
+
+    private func yDomain(
+        for keyPaths: [KeyPath<MotionCSVSample, Double>]
+    ) -> ClosedRange<Double> {
+        let values = samples.flatMap { sample in
+            keyPaths.map { sample[keyPath: $0] }
+        }
+
+        guard let minValue = values.min(),
+              let maxValue = values.max() else {
+            return -1...1
+        }
+
+        if minValue == maxValue {
+            let padding = max(abs(minValue) * 0.1, 1)
+            return (minValue - padding)...(maxValue + padding)
+        }
+
+        let padding = max((maxValue - minValue) * 0.08, 0.05)
+        return (minValue - padding)...(maxValue + padding)
+    }
+
+    private func updateZoom(
+        magnification: CGFloat,
+        location: CGPoint?,
+        proxy: ChartProxy,
+        geometry: GeometryProxy
+    ) {
+        guard abs(magnification) > 0.0001 else { return }
+
+        let anchorTime = anchorTime(
+            for: location,
+            proxy: proxy,
+            geometry: geometry
+        )
+        let scale = max(0.2, 1 + Double(magnification))
+        visibleTimeRange = visibleTimeRange.zoomed(
+            scale: scale,
+            anchorTime: anchorTime,
+            fullRange: fullTimeRange,
+            minimumDuration: minimumVisibleDuration
+        )
+    }
+
+    private func panVisibleRange(
+        deltaX: CGFloat,
+        proxy: ChartProxy,
+        geometry: GeometryProxy
+    ) {
+        guard let plotFrame = proxy.plotFrame else { return }
+
+        let plotRect = geometry[plotFrame]
+        guard plotRect.width > 0 else { return }
+
+        let secondsPerPoint = visibleTimeRange.duration / Double(plotRect.width)
+        visibleTimeRange = visibleTimeRange.panned(
+            by: -Double(deltaX) * secondsPerPoint,
+            fullRange: fullTimeRange,
+            minimumDuration: minimumVisibleDuration
+        )
+    }
+
+    private func anchorTime(
+        for location: CGPoint?,
+        proxy: ChartProxy,
+        geometry: GeometryProxy
+    ) -> Double? {
+        guard let location,
+              let plotFrame = proxy.plotFrame else {
+            return nil
+        }
+
+        let plotRect = geometry[plotFrame]
+        guard plotRect.contains(location) else {
+            return nil
+        }
+
+        return timeValue(for: location.x, plotRect: plotRect)
+    }
+
+    private var minimumVisibleDuration: Double {
+        let fullDuration = fullTimeRange.upperBound - fullTimeRange.lowerBound
+        return min(minimumZoomDuration, max(0, fullDuration))
     }
 
     private var savedSnapRanges: [SnapPreviewRange] {
@@ -239,13 +351,13 @@ struct MacMotionChartsView: View {
             var movedStartTime = originalStartTime + delta
             var movedEndTime = originalEndTime + delta
 
-            if movedStartTime < timeRange.lowerBound {
-                movedStartTime = timeRange.lowerBound
+            if movedStartTime < fullTimeRange.lowerBound {
+                movedStartTime = fullTimeRange.lowerBound
                 movedEndTime = movedStartTime + originalDuration
             }
 
-            if movedEndTime > timeRange.upperBound {
-                movedEndTime = timeRange.upperBound
+            if movedEndTime > fullTimeRange.upperBound {
+                movedEndTime = fullTimeRange.upperBound
                 movedStartTime = movedEndTime - originalDuration
             }
 
@@ -286,7 +398,7 @@ struct MacMotionChartsView: View {
     }
 
     private func updateCursor(
-        hoverPhase: HoverPhase,
+        location: CGPoint?,
         proxy: ChartProxy,
         geometry: GeometryProxy
     ) {
@@ -295,18 +407,22 @@ struct MacMotionChartsView: View {
             return
         }
 
-        switch hoverPhase {
-        case .active(let location):
-            let plotRect = geometry[plotFrame]
-            cursor(for: location, plotRect: plotRect).set()
-        case .ended:
+        guard let location else {
             NSCursor.arrow.set()
+            return
         }
+
+        let plotRect = geometry[plotFrame]
+        cursor(for: location, plotRect: plotRect).set()
     }
 
     private func cursor(for location: CGPoint, plotRect: CGRect) -> NSCursor {
         guard plotRect.contains(location) else {
             return .arrow
+        }
+
+        if isSpacePressed {
+            return .openHand
         }
 
         guard let selection else {
@@ -329,20 +445,19 @@ struct MacMotionChartsView: View {
     }
 
     private func timeValue(for xPosition: CGFloat, plotRect: CGRect) -> Double {
-        guard plotRect.width > 0 else { return timeRange.lowerBound }
+        guard plotRect.width > 0 else { return visibleTimeRange.lowerBound }
 
         let clampedX = min(max(xPosition, plotRect.minX), plotRect.maxX)
         let progress = (clampedX - plotRect.minX) / plotRect.width
-        let duration = timeRange.upperBound - timeRange.lowerBound
-        return timeRange.lowerBound + Double(progress) * duration
+        return visibleTimeRange.lowerBound + Double(progress) * visibleTimeRange.duration
     }
 
     private func xPosition(for time: Double, plotRect: CGRect) -> CGFloat {
-        let duration = timeRange.upperBound - timeRange.lowerBound
+        let duration = visibleTimeRange.duration
         guard duration > 0 else { return plotRect.minX }
 
-        let clampedTime = min(max(time, timeRange.lowerBound), timeRange.upperBound)
-        let progress = (clampedTime - timeRange.lowerBound) / duration
+        let clampedTime = min(max(time, visibleTimeRange.lowerBound), visibleTimeRange.upperBound)
+        let progress = (clampedTime - visibleTimeRange.lowerBound) / duration
         return plotRect.minX + CGFloat(progress) * plotRect.width
     }
 }
