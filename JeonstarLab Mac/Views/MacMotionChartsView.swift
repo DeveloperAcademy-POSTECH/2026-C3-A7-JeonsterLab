@@ -12,11 +12,13 @@ struct MacMotionChartsView: View {
     let savedSnapEvents: [WorkingSnapEvent]
     let showSavedSnapPreviews: Bool
     let hasSelectionConflict: Bool
+    let editingSnapID: String?
+    let editingOriginalSelection: ChartTimeSelection?
     @Binding var selection: ChartTimeSelection?
 
     @State private var activeDragMode: ChartSelectionDragMode?
 
-    private let boundaryHandleThreshold: CGFloat = 10
+    private let boundaryHandleThreshold: CGFloat = 24
 
     private var timeRange: ClosedRange<Double> {
         let times = samples.map(\.relativeTime)
@@ -96,6 +98,23 @@ struct MacMotionChartsView: View {
                 }
             }
 
+            if let editingOriginalSelection {
+                let normalized = editingOriginalSelection.normalized
+                RectangleMark(
+                    xStart: .value("Original Snap Start", normalized.startTime),
+                    xEnd: .value("Original Snap End", normalized.endTime)
+                )
+                .foregroundStyle(.green.opacity(0.14))
+
+                RuleMark(x: .value("Original Snap Start", normalized.startTime))
+                    .foregroundStyle(.green)
+                    .lineStyle(.init(lineWidth: 1.3, dash: [5, 3]))
+
+                RuleMark(x: .value("Original Snap End", normalized.endTime))
+                    .foregroundStyle(.green)
+                    .lineStyle(.init(lineWidth: 1.3, dash: [5, 3]))
+            }
+
             if let selection {
                 let normalized = selection.normalized
                 let selectionColor = hasSelectionConflict ? Color.red : Color.blue
@@ -156,7 +175,8 @@ struct MacMotionChartsView: View {
     private var savedSnapRanges: [SnapPreviewRange] {
         var seenIDs = Set<String>()
         return savedSnapEvents.compactMap { event in
-            guard seenIDs.insert(event.snapID).inserted,
+            guard event.snapID != editingSnapID,
+                  seenIDs.insert(event.snapID).inserted,
                   let startTime = event.startTime,
                   let endTime = event.endTime else {
                 return nil

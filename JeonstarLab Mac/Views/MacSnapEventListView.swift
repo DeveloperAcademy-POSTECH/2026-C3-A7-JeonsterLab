@@ -13,6 +13,7 @@ struct MacSnapEventListView: View {
     let hasSegment: (WorkingSnapEvent) -> Bool
     let onAddToFolder: (WorkingSnapEvent, SnapFolder) -> Void
     let onRemoveFromFolder: (WorkingSnapEvent, SnapFolder) -> Void
+    let onEdit: (WorkingSnapEvent) -> Void
     let onDelete: (WorkingSnapEvent) -> Void
 
     var body: some View {
@@ -42,6 +43,11 @@ struct MacSnapEventListView: View {
                                 .frame(minWidth: 56, alignment: .leading)
                             Spacer()
                             segmentStatusDot(for: event)
+                            Button("수정하기") {
+                                onEdit(event)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
                             Button(role: .destructive) {
                                 onDelete(event)
                             } label: {
