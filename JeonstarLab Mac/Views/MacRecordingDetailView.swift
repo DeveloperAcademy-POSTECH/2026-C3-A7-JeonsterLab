@@ -19,6 +19,8 @@ struct MacRecordingDetailView: View {
     @State private var showsSavedSnapPreviews = true
     @State private var editDraft: SnapEditDraft?
     @State private var showsEditConfirmation = false
+    @State private var pendingDeleteEvent: WorkingSnapEvent?
+    @State private var showsDeleteConfirmation = false
     @State private var editMessage: String?
     @State private var editErrorMessage: String?
 
@@ -100,7 +102,7 @@ struct MacRecordingDetailView: View {
                                         scrollProxy.scrollTo(Self.graphSectionID, anchor: .top)
                                     }
                                 },
-                                onDelete: deleteSnapEvent(_:)
+                                onDelete: requestDeleteSnapEvent(_:)
                             )
                             .onChange(of: package.snapEventLabels) {
                                 onSaveLabel(package)
@@ -142,13 +144,31 @@ struct MacRecordingDetailView: View {
         .task(id: package.folderURL) {
             loadCSV()
         }
+        .onChange(of: package.folderURL) {
+            resetTransientStateForPackageSwitch()
+        }
         .alert("스냅 구간을 변경할까요?", isPresented: $showsEditConfirmation) {
             Button("취소", role: .cancel) {}
-            Button("변경하기") {
+            Button("변경하기", role: .destructive) {
                 applySnapEdit()
             }
         } message: {
-            Text("기존 스냅 구간과 세그먼트 파일이 새 구간 기준으로 갱신됩니다.")
+            Text("선택한 스냅의 시작·끝 시간이 새 구간으로 변경됩니다.\n기존 라벨, 노트, 폴더 소속은 유지되며, 세그먼트 파일은 새 구간 기준으로 다시 생성됩니다.")
+        }
+        .alert(
+            "이 스냅 이벤트를 삭제할까요?",
+            isPresented: $showsDeleteConfirmation,
+            presenting: pendingDeleteEvent
+        ) { event in
+            Button("취소", role: .cancel) {
+                pendingDeleteEvent = nil
+            }
+            Button("삭제", role: .destructive) {
+                deleteSnapEvent(event)
+                pendingDeleteEvent = nil
+            }
+        } message: { _ in
+            Text("삭제하면 현재 녹화의 스냅 목록에서 사라집니다.\n이 작업은 되돌릴 수 없습니다.")
         }
     }
 
@@ -369,6 +389,11 @@ struct MacRecordingDetailView: View {
         onSaveLabel(package)
     }
 
+    private func requestDeleteSnapEvent(_ event: WorkingSnapEvent) {
+        pendingDeleteEvent = event
+        showsDeleteConfirmation = true
+    }
+
     private func deleteSnapEvent(_ event: WorkingSnapEvent) {
         if editDraft?.snapID == event.snapID {
             cancelEditing()
@@ -388,6 +413,16 @@ struct MacRecordingDetailView: View {
         guard let selection = selection(for: event) else { return }
         editDraft = SnapEditDraft(originalEvent: event)
         chartSelection = selection
+        editMessage = nil
+        editErrorMessage = nil
+    }
+
+    private func resetTransientStateForPackageSwitch() {
+        chartSelection = nil
+        editDraft = nil
+        showsEditConfirmation = false
+        pendingDeleteEvent = nil
+        showsDeleteConfirmation = false
         editMessage = nil
         editErrorMessage = nil
     }

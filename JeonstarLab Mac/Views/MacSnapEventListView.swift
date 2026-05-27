@@ -43,11 +43,6 @@ struct MacSnapEventListView: View {
                                 .frame(minWidth: 56, alignment: .leading)
                             Spacer()
                             segmentStatusDot(for: event)
-                            Button("수정하기") {
-                                onEdit(event)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
                             Button(role: .destructive) {
                                 onDelete(event)
                             } label: {
@@ -68,6 +63,16 @@ struct MacSnapEventListView: View {
 
                             TextField("스냅 노트", text: notesBinding(for: key), axis: .vertical)
                                 .textFieldStyle(.roundedBorder)
+                        }
+
+                        HStack {
+                            Button("수정하기") {
+                                onEdit(event)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+
+                            Spacer()
                         }
 
                         VStack(alignment: .leading, spacing: 6) {
