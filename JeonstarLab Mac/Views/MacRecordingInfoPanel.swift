@@ -11,8 +11,13 @@ struct MacRecordingInfoPanel: View {
     var body: some View {
         Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 10) {
             GridRow {
+                Text("녹화 시각")
+                Text(package.recordingDateText)
+                    .foregroundStyle(.secondary)
+            }
+            GridRow {
                 Text("수신 시각")
-                Text(package.receivedAt.formatted(date: .abbreviated, time: .shortened))
+                Text(package.receivedAtText)
                     .foregroundStyle(.secondary)
             }
             GridRow {

@@ -16,7 +16,7 @@ struct RecordingDetailView: View {
     @State private var isShareSheetPresented = false
     @State private var isExporting = false
     @State private var exportErrorMessage: String?
-    @State private var macConnectionViewModel = MacConnectionViewModel()
+    @State private var macConnectionViewModel = MacConnectionViewModel.shared
 
     var body: some View {
         List {
@@ -36,8 +36,14 @@ struct RecordingDetailView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Toggle("Mac 연결 시 자동 전송", isOn: .constant(false))
-                    .disabled(true)
+                Toggle("Mac 연결 시 자동 전송", isOn: Binding(
+                    get: { macConnectionViewModel.isAutomaticTransferEnabled },
+                    set: { macConnectionViewModel.isAutomaticTransferEnabled = $0 }
+                ))
+
+                Text(macConnectionViewModel.automaticTransferGuidanceText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
 
                 if let errorMessage = macConnectionViewModel.errorMessage {
                     Text(errorMessage)

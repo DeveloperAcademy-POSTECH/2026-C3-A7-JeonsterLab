@@ -47,8 +47,14 @@ struct Wrist_MotionApp: App {
         }
 
         // 녹화 저장 완료 → 목록 자동 갱신
-        importUC.onRecordingSaved = { [listVM] in
+        importUC.onRecordingSaved = { [listVM, repo] session in
             Task { @MainActor in listVM.load() }
+            Task { @MainActor in
+                MacConnectionViewModel.shared.sendRecordingIfAutomaticTransferEnabled(
+                    session: session,
+                    repository: repo
+                )
+            }
         }
 
         sessionManager  = sm

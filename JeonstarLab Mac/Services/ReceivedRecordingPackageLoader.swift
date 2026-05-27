@@ -78,16 +78,23 @@ final class ReceivedRecordingPackageLoader {
             snapAnalysisURL: snapAnalysisURL,
             metadata: metadata,
             snapAnalysis: snapAnalysis,
+            displayName: labelPayload?.displayName ?? "",
             label: labelPayload?.label ?? .unlabeled,
             notes: labelPayload?.notes ?? "",
+            snapLabels: labelPayload?.snapLabels ?? [:],
             parseMessages: messages
         )
     }
 
     func saveLabel(package: ReceivedRecordingPackage) throws {
         let payload = RecordingPackageLabelPayload(
+            displayName: package.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? nil
+                : package.displayName,
             label: package.label,
+            packageLabel: package.label,
             notes: package.notes,
+            snapLabels: package.snapLabels,
             updatedAt: Date()
         )
         let encoder = JSONEncoder()

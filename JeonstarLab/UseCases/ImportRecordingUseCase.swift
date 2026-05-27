@@ -16,7 +16,7 @@ final class ImportRecordingUseCase {
     private let repository: RecordingRepositoryProtocol
 
     /// 저장 성공 후 호출 — List 갱신 등에 활용.
-    var onRecordingSaved: (() -> Void)?
+    var onRecordingSaved: ((RecordingSession) -> Void)?
 
     init(repository: RecordingRepositoryProtocol) {
         self.repository = repository
@@ -51,7 +51,7 @@ final class ImportRecordingUseCase {
         try repository.save(session: session, from: tempFileURL)
         logger.debug("✔ [8b] repository.save 완료")
 
-        onRecordingSaved?()
+        onRecordingSaved?(session)
     }
 }
 

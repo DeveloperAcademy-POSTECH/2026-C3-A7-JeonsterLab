@@ -8,15 +8,27 @@ import Foundation
 @Observable
 @MainActor
 final class MacConnectionViewModel {
+    static let shared = MacConnectionViewModel()
+
     private let browser = MacPeerBrowser()
     private let transferService = MacTransferService()
     private var searchTimeoutTask: Task<Void, Never>?
+    private var autoTransferAttemptedSessionIDs: Set<UUID> = []
 
     var connectionStatus: MacConnectionStatus = .idle
     var connectedMacName: String?
     var transferStatus: MacTransferStatus = .idle
     var errorMessage: String?
-    var isAutomaticTransferEnabled = false
+    var isAutomaticTransferEnabled: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: Self.autoTransferDefaultsKey)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Self.autoTransferDefaultsKey)
+        }
+    }
+
+    private static let autoTransferDefaultsKey = "macAutoTransferEnabled"
 
     init() {
         browser.onStatusChanged = { [weak self] status in
@@ -66,6 +78,10 @@ final class MacConnectionViewModel {
         }
     }
 
+    var automaticTransferGuidanceText: String {
+        "켜두면 Mac이 연결된 상태에서 새 녹화가 저장될 때 자동으로 전송됩니다."
+    }
+
     var canSendToMac: Bool {
         connectedMacName != nil && transferStatus.isTransferring == false
     }
@@ -105,6 +121,21 @@ final class MacConnectionViewModel {
                 self?.errorMessage = message
             }
         }
+    }
+
+    func sendRecordingIfAutomaticTransferEnabled(
+        session: RecordingSession,
+        repository: RecordingRepositoryProtocol
+    ) {
+        guard isAutomaticTransferEnabled else { return }
+        guard canSendToMac else {
+            errorMessage = "자동 전송 대기: 연결된 Mac이 없습니다."
+            return
+        }
+        guard !autoTransferAttemptedSessionIDs.contains(session.id) else { return }
+
+        autoTransferAttemptedSessionIDs.insert(session.id)
+        sendRecording(session: session, repository: repository)
     }
 }
 

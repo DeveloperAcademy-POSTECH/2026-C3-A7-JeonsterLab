@@ -20,21 +20,23 @@ struct MacRecordingDetailView: View {
                     .fontWeight(.semibold)
                     .lineLimit(2)
 
+                Text("\(package.recordingDateText) · 수신 \(package.receivedAtText)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
                 sectionCard(title: "녹화 정보") {
                     MacRecordingInfoPanel(package: package)
                 }
 
-                sectionCard(title: "라벨") {
+                sectionCard(title: "결과") {
                     VStack(alignment: .leading, spacing: 12) {
-                        Picker("결과", selection: $package.label) {
-                            ForEach(RecordingPackageLabel.allCases) { label in
-                                Text(label.displayName).tag(label)
+                        LabeledContent("결과 요약", value: package.resultSummaryText)
+
+                        TextField("이름", text: $package.displayName, prompt: Text(package.recordingDateTitle))
+                            .textFieldStyle(.roundedBorder)
+                            .onChange(of: package.displayName) {
+                                onSaveLabel(package)
                             }
-                        }
-                        .pickerStyle(.segmented)
-                        .onChange(of: package.label) {
-                            onSaveLabel(package)
-                        }
 
                         TextEditor(text: $package.notes)
                             .frame(minHeight: 72)
@@ -56,7 +58,13 @@ struct MacRecordingDetailView: View {
                 }
 
                 sectionCard(title: "스냅 이벤트") {
-                    MacSnapEventListView(events: package.snapAnalysis?.snapEvents ?? [])
+                    MacSnapEventListView(
+                        events: package.snapAnalysis?.snapEvents ?? [],
+                        snapLabels: $package.snapLabels
+                    )
+                    .onChange(of: package.snapLabels) {
+                        onSaveLabel(package)
+                    }
                 }
 
                 sectionCard(title: "그래프") {

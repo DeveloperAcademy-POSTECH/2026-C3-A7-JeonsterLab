@@ -29,7 +29,13 @@ struct MacHomeView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(package.displayTitle)
                                         .lineLimit(1)
-                                    Text("\(package.label.displayName) · \(package.completenessText)")
+                                    Text(package.recordingDateText)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("\(package.resultSummaryText) · 수신 \(package.receivedAtText)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("\(package.sampleCountText)샘플 · 스냅 \(package.snapEventCountText) · \(package.completenessText)")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
