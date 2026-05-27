@@ -6,6 +6,7 @@
 import AppKit
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 @Observable
 final class MacHomeViewModel {
@@ -129,6 +130,33 @@ final class MacHomeViewModel {
             withIntermediateDirectories: true
         )
         NSWorkspace.shared.open(folderURL)
+    }
+
+    func deleteReceivedRecording(_ package: ReceivedRecordingPackage) {
+        let standardizedRoot = rootReceivedFolderURL.standardizedFileURL
+        let standardizedFolder = package.folderURL.standardizedFileURL
+        guard standardizedFolder.deletingLastPathComponent() == standardizedRoot,
+              standardizedFolder != standardizedRoot else {
+            errorMessage = "삭제 실패: 수신 기록 폴더 경로를 확인할 수 없습니다."
+            return
+        }
+
+        do {
+            try FileManager.default.removeItem(at: standardizedFolder)
+            receivedPackages.removeAll { $0.id == package.id }
+            if selectedPackageID == package.id {
+                selectedPackageID = receivedPackages.first?.id
+                if selectedPackageID == nil {
+                    selectedFolderID = nil
+                }
+            }
+        } catch {
+            errorMessage = "수신 기록 삭제 실패: \(error.localizedDescription)"
+        }
+    }
+
+    func hasSourcePackage(for item: SnapFolderItem) -> Bool {
+        receivedPackages.contains { $0.folderURL.lastPathComponent == item.packageFolderName }
     }
 
     func bindingForSelectedPackage() -> Binding<ReceivedRecordingPackage>? {
@@ -339,6 +367,42 @@ final class MacHomeViewModel {
             return "세그먼트 \(generatedCount)개 생성, \(skippedCount)개 건너뜀"
         }
         return "세그먼트 \(generatedCount)개를 생성했습니다."
+    }
+
+    func exportDataset(for folder: SnapFolder) -> String {
+        guard folder.items.isEmpty == false else {
+            return "내보낼 스냅이 없습니다."
+        }
+
+        let savePanel = NSSavePanel()
+        savePanel.title = "데이터셋 CSV 내보내기"
+        savePanel.nameFieldStringValue = FolderDatasetExportService.defaultFileName(folderName: folder.name)
+        savePanel.canCreateDirectories = true
+        savePanel.allowedContentTypes = [.commaSeparatedText]
+
+        guard savePanel.runModal() == .OK,
+              let outputURL = savePanel.url else {
+            return "내보내기가 취소되었습니다."
+        }
+
+        do {
+            let report = try FolderDatasetExportService.export(
+                folder: folder,
+                packages: receivedPackages,
+                outputURL: outputURL
+            )
+
+            var message = "\(report.summaryText) · \(report.outputURL.lastPathComponent)"
+            if report.skippedItemCount > 0 {
+                let reasons = report.skippedReasons.prefix(2).joined(separator: " / ")
+                if !reasons.isEmpty {
+                    message += "\n제외 사유: \(reasons)"
+                }
+            }
+            return message
+        } catch {
+            return "CSV 내보내기 실패: \(error.localizedDescription)"
+        }
     }
 
     private func upsert(_ package: ReceivedRecordingPackage) {

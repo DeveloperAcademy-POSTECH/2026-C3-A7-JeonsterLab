@@ -7,6 +7,7 @@ import SwiftUI
 
 struct MacHomeView: View {
     @Bindable var viewModel: MacHomeViewModel
+    @State private var pendingDeletePackage: ReceivedRecordingPackage?
 
     var body: some View {
         NavigationSplitView {
@@ -62,20 +63,13 @@ struct MacHomeView: View {
                                 .foregroundStyle(.secondary)
                         } else {
                             ForEach(viewModel.receivedPackages) { package in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(package.displayTitle)
-                                        .lineLimit(1)
-                                    Text(package.recordingDateText)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    Text("\(package.resultSummaryText) · 수신 \(package.receivedAtText)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    Text("\(package.sampleCountText)샘플 · 스냅 \(package.snapEventCountText) · \(package.completenessText)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .tag(package.id)
+                                receivedPackageRow(package)
+                                    .tag(package.id)
+                                    .contextMenu {
+                                        Button("삭제", role: .destructive) {
+                                            pendingDeletePackage = package
+                                        }
+                                    }
                             }
                         }
                     }
@@ -86,7 +80,9 @@ struct MacHomeView: View {
         } detail: {
             VStack(spacing: 0) {
                 connectionSection
-                    .padding([.top, .horizontal], 28)
+                    .padding(.top, 22)
+                    .padding(.horizontal, 28)
+                    .padding(.bottom, 0)
 
                 if let folderBinding = viewModel.bindingForSelectedFolder() {
                     SnapFolderDetailView(
@@ -98,7 +94,9 @@ struct MacHomeView: View {
                             }
                         },
                         onOpenSource: viewModel.openSource(for:),
-                        onGenerateSegments: viewModel.generateSegments(for:)
+                        hasSourcePackage: viewModel.hasSourcePackage(for:),
+                        onGenerateSegments: viewModel.generateSegments(for:),
+                        onExportDataset: viewModel.exportDataset(for:)
                     )
                 } else if let packageBinding = viewModel.bindingForSelectedPackage() {
                     MacRecordingDetailView(
@@ -115,34 +113,93 @@ struct MacHomeView: View {
             }
             .background(Color(nsColor: .windowBackgroundColor))
         }
+        .alert(
+            "이 녹화 기록을 삭제할까요?",
+            isPresented: Binding(
+                get: { pendingDeletePackage != nil },
+                set: { if !$0 { pendingDeletePackage = nil } }
+            ),
+            presenting: pendingDeletePackage
+        ) { package in
+            Button("취소", role: .cancel) {
+                pendingDeletePackage = nil
+            }
+            Button("삭제", role: .destructive) {
+                viewModel.deleteReceivedRecording(package)
+                pendingDeletePackage = nil
+            }
+        } message: { _ in
+            Text("삭제하면 Mac에 저장된 이 녹화 패키지가 사라집니다.\n이 작업은 되돌릴 수 없습니다.")
+        }
+    }
+
+    private func receivedPackageRow(_ package: ReceivedRecordingPackage) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(package.displayTitle)
+                    .lineLimit(1)
+                Text(package.recordingDateText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("\(package.resultSummaryText) · 수신 \(package.receivedAtText)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("\(package.sampleCountText)샘플 · 스냅 \(package.snapEventCountText) · \(package.completenessText)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+
+            Button {
+                pendingDeletePackage = package
+            } label: {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.red)
+            .help("수신 기록 삭제")
+        }
     }
 
     private var connectionSection: some View {
-        sectionCard(title: "Connection Status") {
-            VStack(alignment: .leading, spacing: 12) {
-                LabeledContent("상태", value: viewModel.statusText)
-                LabeledContent("기기", value: viewModel.connectedPeerText)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 18) {
+                Text("Connection Status")
+                    .font(.headline)
+                    .lineLimit(1)
 
-                Text(viewModel.guidanceText)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                Divider()
+                    .frame(height: 30)
 
-                Text("자동 전송은 아직 비활성화되어 있습니다.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                connectionStatusItem(
+                    title: "상태",
+                    value: viewModel.statusText,
+                    systemImage: viewModel.isAdvertising
+                        ? "antenna.radiowaves.left.and.right"
+                        : "pause.circle"
+                )
 
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
+                connectionStatusItem(
+                    title: "기기",
+                    value: viewModel.connectedPeerText,
+                    systemImage: "iphone"
+                )
 
-                HStack(spacing: 12) {
-                    Button("저장 폴더 열기") {
+                connectionStatusItem(
+                    title: "자동 전송",
+                    value: "비활성화",
+                    systemImage: "arrow.triangle.2.circlepath"
+                )
+
+                Spacer(minLength: 12)
+
+                HStack(spacing: 8) {
+                    Button("저장 폴더") {
                         viewModel.openReceivedFolder()
                     }
 
-                    Button("목록 새로고침") {
+                    Button("새로고침") {
                         viewModel.reloadPackages()
                     }
 
@@ -154,11 +211,64 @@ struct MacHomeView: View {
                         Button("수신 시작") {
                             viewModel.startReceiver()
                         }
+                        .buttonStyle(.borderedProminent)
                     }
                 }
-                .padding(.top, 4)
+            }
+
+            Group {
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                } else {
+                    Text(viewModel.guidanceText)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .font(.caption)
+            .lineLimit(1)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color(nsColor: .controlBackgroundColor).opacity(0.56))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                }
+        }
+        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+    }
+
+    private func connectionStatusItem(
+        title: String,
+        value: String,
+        systemImage: String
+    ) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                Text(value)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
             }
         }
+        .frame(minWidth: 96, alignment: .leading)
     }
 
     private var emptyState: some View {
@@ -184,8 +294,20 @@ struct MacHomeView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color(nsColor: .controlBackgroundColor).opacity(0.72))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                }
+        }
+        .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
+        .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
     }
 }
 

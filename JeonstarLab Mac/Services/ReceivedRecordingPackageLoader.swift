@@ -84,6 +84,7 @@ final class ReceivedRecordingPackageLoader {
             snapLabels: labelPayload?.snapLabels ?? [:],
             snapEventLabels: labelPayload?.snapEventLabels ?? [:],
             manualSnapEvents: labelPayload?.manualSnapEvents ?? [],
+            editedSnapEvents: labelPayload?.editedSnapEvents ?? [:],
             deletedSnapEventIDs: labelPayload?.deletedSnapEventIDs ?? [],
             parseMessages: messages
         )
@@ -100,6 +101,7 @@ final class ReceivedRecordingPackageLoader {
             snapLabels: package.snapLabels,
             snapEventLabels: package.snapEventLabels,
             manualSnapEvents: package.manualSnapEvents,
+            editedSnapEvents: package.editedSnapEvents,
             deletedSnapEventIDs: package.deletedSnapEventIDs,
             updatedAt: Date()
         )
