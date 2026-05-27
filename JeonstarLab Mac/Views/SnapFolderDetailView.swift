@@ -10,6 +10,7 @@ struct SnapFolderDetailView: View {
     let onRename: (SnapFolder) -> Void
     let onDeleteItem: (SnapFolderItem) -> Void
     let onOpenSource: (SnapFolderItem) -> Void
+    let hasSourcePackage: (SnapFolderItem) -> Bool
     let onGenerateSegments: (SnapFolder) -> String
     let onExportDataset: (SnapFolder) -> String
 
@@ -80,9 +81,18 @@ struct SnapFolderDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.packageDisplayName ?? item.packageFolderName)
                         .font(.headline)
+                    Text("snapID: \(item.snapID)")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                     Text(item.recordingStartedAt?.formatted(date: .abbreviated, time: .shortened) ?? "녹화 시각 확인 불가")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if !hasSourcePackage(item) {
+                        Text("원본 녹화 없음")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
                 }
 
                 Spacer()

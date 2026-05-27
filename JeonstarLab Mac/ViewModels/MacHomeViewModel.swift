@@ -132,6 +132,33 @@ final class MacHomeViewModel {
         NSWorkspace.shared.open(folderURL)
     }
 
+    func deleteReceivedRecording(_ package: ReceivedRecordingPackage) {
+        let standardizedRoot = rootReceivedFolderURL.standardizedFileURL
+        let standardizedFolder = package.folderURL.standardizedFileURL
+        guard standardizedFolder.deletingLastPathComponent() == standardizedRoot,
+              standardizedFolder != standardizedRoot else {
+            errorMessage = "삭제 실패: 수신 기록 폴더 경로를 확인할 수 없습니다."
+            return
+        }
+
+        do {
+            try FileManager.default.removeItem(at: standardizedFolder)
+            receivedPackages.removeAll { $0.id == package.id }
+            if selectedPackageID == package.id {
+                selectedPackageID = receivedPackages.first?.id
+                if selectedPackageID == nil {
+                    selectedFolderID = nil
+                }
+            }
+        } catch {
+            errorMessage = "수신 기록 삭제 실패: \(error.localizedDescription)"
+        }
+    }
+
+    func hasSourcePackage(for item: SnapFolderItem) -> Bool {
+        receivedPackages.contains { $0.folderURL.lastPathComponent == item.packageFolderName }
+    }
+
     func bindingForSelectedPackage() -> Binding<ReceivedRecordingPackage>? {
         guard let index = receivedPackages.firstIndex(where: { $0.id == selectedPackage?.id }) else {
             return nil
