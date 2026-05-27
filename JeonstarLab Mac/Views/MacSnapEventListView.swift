@@ -8,6 +8,8 @@ import SwiftUI
 struct MacSnapEventListView: View {
     let events: [WorkingSnapEvent]
     @Binding var snapEventLabels: [String: SnapEventLabelPayload]
+    let segmentStatusText: (WorkingSnapEvent) -> String
+    let onExportSegment: (WorkingSnapEvent) -> Void
     let onDelete: (WorkingSnapEvent) -> Void
 
     var body: some View {
@@ -36,6 +38,16 @@ struct MacSnapEventListView: View {
                                 .foregroundStyle(.secondary)
                                 .frame(minWidth: 56, alignment: .leading)
                             Spacer()
+                            VStack(alignment: .trailing, spacing: 6) {
+                                Text(segmentStatusText(event))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Button("세그먼트 저장") {
+                                    onExportSegment(event)
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
                             Button(role: .destructive) {
                                 onDelete(event)
                             } label: {

@@ -12,6 +12,8 @@ struct MacRecordingDetailView: View {
     @State private var samples: [MotionCSVSample] = []
     @State private var csvErrorMessage: String?
     @State private var chartSelection: ChartTimeSelection?
+    @State private var segmentMessage: String?
+    @State private var segmentStatusRefreshID = UUID()
 
     private var manualSnapDraft: ManualSnapDraft? {
         guard let chartSelection else { return nil }
@@ -64,13 +66,31 @@ struct MacRecordingDetailView: View {
                 }
 
                 sectionCard(title: "스냅 이벤트") {
-                    MacSnapEventListView(
-                        events: package.workingSnapEvents,
-                        snapEventLabels: $package.snapEventLabels,
-                        onDelete: deleteSnapEvent(_:)
-                    )
-                    .onChange(of: package.snapEventLabels) {
-                        onSaveLabel(package)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Button("모든 스냅 세그먼트 저장") {
+                                exportAllSegments()
+                            }
+                            .disabled(samples.isEmpty || package.workingSnapEvents.isEmpty)
+
+                            if let segmentMessage {
+                                Text(segmentMessage)
+                                    .font(.caption)
+                                    .foregroundStyle(segmentMessage.hasPrefix("저장 실패") ? .red : .secondary)
+                            }
+                        }
+
+                        MacSnapEventListView(
+                            events: package.workingSnapEvents,
+                            snapEventLabels: $package.snapEventLabels,
+                            segmentStatusText: segmentStatusText(for:),
+                            onExportSegment: exportSegment(_:),
+                            onDelete: deleteSnapEvent(_:)
+                        )
+                        .id(segmentStatusRefreshID)
+                        .onChange(of: package.snapEventLabels) {
+                            onSaveLabel(package)
+                        }
                     }
                 }
 
@@ -174,7 +194,49 @@ struct MacRecordingDetailView: View {
 
     private func deleteSnapEvent(_ event: WorkingSnapEvent) {
         package.deleteSnapEvent(id: event.snapID)
+        segmentMessage = nil
         onSaveLabel(package)
+    }
+
+    private func exportAllSegments() {
+        let events = package.workingSnapEvents
+        var savedCount = 0
+
+        do {
+            for event in events {
+                _ = try SnapSegmentExporter.export(
+                    package: package,
+                    event: event,
+                    samples: samples
+                )
+                savedCount += 1
+            }
+            segmentMessage = "스냅 세그먼트 \(savedCount)개를 저장했습니다."
+            segmentStatusRefreshID = UUID()
+        } catch {
+            segmentMessage = "저장 실패: \(error.localizedDescription)"
+        }
+    }
+
+    private func exportSegment(_ event: WorkingSnapEvent) {
+        do {
+            _ = try SnapSegmentExporter.export(
+                package: package,
+                event: event,
+                samples: samples
+            )
+            segmentMessage = "스냅 세그먼트를 저장했습니다."
+            segmentStatusRefreshID = UUID()
+        } catch {
+            segmentMessage = "저장 실패: \(error.localizedDescription)"
+        }
+    }
+
+    private func segmentStatusText(for event: WorkingSnapEvent) -> String {
+        SnapSegmentExporter.segmentExists(
+            package: package,
+            snapID: event.snapID
+        ) ? "세그먼트 저장됨" : "아직 세그먼트 없음"
     }
 
     private func selectionMetric(_ title: String, _ value: String) -> some View {
