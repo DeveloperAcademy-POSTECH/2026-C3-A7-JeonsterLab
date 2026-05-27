@@ -110,11 +110,7 @@ struct MacSnapEventListView: View {
     private func folderMembershipControls(for event: WorkingSnapEvent) -> some View {
         let assignedFolder = folderForEvent(event)
         let label = currentLabel(for: event)
-        let isAssigned = assignedFolder != nil
-
         HStack(alignment: .center, spacing: 10) {
-            datasetBadge(isIncluded: isAssigned)
-
             if let assignedFolder {
                 Text("\(assignedFolder.name) 폴더에 포함됨")
                     .font(.callout)
@@ -152,16 +148,6 @@ struct MacSnapEventListView: View {
 
     private func currentLabel(for event: WorkingSnapEvent) -> RecordingPackageLabel {
         snapEventLabels[event.snapID]?.label ?? event.label
-    }
-
-    private func datasetBadge(isIncluded: Bool) -> some View {
-        Text(isIncluded ? "데이터셋 포함" : "데이터셋 미포함")
-            .font(.caption)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(isIncluded ? Color.green.opacity(0.15) : Color.gray.opacity(0.15))
-            .foregroundStyle(isIncluded ? .green : .secondary)
-            .clipShape(Capsule())
     }
 
     private func title(for event: WorkingSnapEvent) -> String {
