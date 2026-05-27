@@ -4,6 +4,7 @@
 //
 
 import Charts
+import AppKit
 import SwiftUI
 
 struct MacMotionChartsView: View {
@@ -14,6 +15,8 @@ struct MacMotionChartsView: View {
     @Binding var selection: ChartTimeSelection?
 
     @State private var activeDragMode: ChartSelectionDragMode?
+
+    private let boundaryHandleThreshold: CGFloat = 24
 
     private var timeRange: ClosedRange<Double> {
         let times = samples.map(\.relativeTime)
@@ -139,6 +142,13 @@ struct MacMotionChartsView: View {
                                 activeDragMode = nil
                             }
                     )
+                    .onContinuousHover { phase in
+                        updateCursor(
+                            hoverPhase: phase,
+                            proxy: proxy,
+                            geometry: geometry
+                        )
+                    }
             }
         }
     }
@@ -215,15 +225,58 @@ struct MacMotionChartsView: View {
         let normalized = selection.normalized
         let startX = xPosition(for: normalized.startTime, plotRect: plotRect)
         let endX = xPosition(for: normalized.endTime, plotRect: plotRect)
-        let handleThreshold: CGFloat = 10
 
-        if abs(mouseDownX - startX) <= handleThreshold {
+        if abs(mouseDownX - startX) <= boundaryHandleThreshold {
             return .resizingStart(fixedEndTime: normalized.endTime)
         }
-        if abs(mouseDownX - endX) <= handleThreshold {
+        if abs(mouseDownX - endX) <= boundaryHandleThreshold {
             return .resizingEnd(fixedStartTime: normalized.startTime)
         }
         return .creating(anchorTime: mouseDownTime)
+    }
+
+    private func updateCursor(
+        hoverPhase: HoverPhase,
+        proxy: ChartProxy,
+        geometry: GeometryProxy
+    ) {
+        guard let plotFrame = proxy.plotFrame else {
+            NSCursor.arrow.set()
+            return
+        }
+
+        switch hoverPhase {
+        case .active(let location):
+            let plotRect = geometry[plotFrame]
+            cursor(for: location, plotRect: plotRect).set()
+        case .ended:
+            NSCursor.arrow.set()
+        }
+    }
+
+    private func cursor(for location: CGPoint, plotRect: CGRect) -> NSCursor {
+        guard plotRect.contains(location) else {
+            return .arrow
+        }
+
+        guard let selection else {
+            return .crosshair
+        }
+
+        let normalized = selection.normalized
+        let startX = xPosition(for: normalized.startTime, plotRect: plotRect)
+        let endX = xPosition(for: normalized.endTime, plotRect: plotRect)
+
+        if abs(location.x - startX) <= boundaryHandleThreshold
+            || abs(location.x - endX) <= boundaryHandleThreshold {
+            return .resizeLeftRight
+        }
+
+        if location.x > min(startX, endX) && location.x < max(startX, endX) {
+            return .openHand
+        }
+
+        return .crosshair
     }
 
     private func timeValue(for xPosition: CGFloat, plotRect: CGRect) -> Double {
