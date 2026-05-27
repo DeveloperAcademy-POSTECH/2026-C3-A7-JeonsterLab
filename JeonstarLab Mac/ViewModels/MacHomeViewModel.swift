@@ -14,6 +14,7 @@ final class MacHomeViewModel {
     private let packageLoader = ReceivedRecordingPackageLoader()
     private let fileStore = MacReceivedFileStore()
     private let folderStore: SnapFolderStore
+    @ObservationIgnored private var labelChangeObserver: NSObjectProtocol?
 
     var receiverStatus: MacReceiverStatus = .idle
     var connectedPeerName: String?
@@ -47,6 +48,20 @@ final class MacHomeViewModel {
         }
         receiver.onError = { [weak self] message in
             self?.errorMessage = message
+        }
+        labelChangeObserver = NotificationCenter.default.addObserver(
+            forName: .recordingPackageLabelDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let packagePath = notification.object as? String else { return }
+            self?.reloadPackage(atPath: packagePath)
+        }
+    }
+
+    deinit {
+        if let labelChangeObserver {
+            NotificationCenter.default.removeObserver(labelChangeObserver)
         }
     }
 
@@ -121,6 +136,16 @@ final class MacHomeViewModel {
             selectedPackageID = receivedPackages.first?.id
         }
         updateAllFolderItemSnapshots()
+    }
+
+    func reloadPackage(atPath packagePath: String) {
+        let folderURL = URL(fileURLWithPath: packagePath)
+        guard folderURL.deletingLastPathComponent().standardizedFileURL == rootReceivedFolderURL.standardizedFileURL,
+              let package = packageLoader.loadPackage(folderURL: folderURL) else {
+            return
+        }
+        upsert(package)
+        updateFolderItems(for: package)
     }
 
     func reloadFolders() {

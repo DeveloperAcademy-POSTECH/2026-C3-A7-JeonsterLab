@@ -117,6 +117,10 @@ final class ReceivedRecordingPackageLoader {
             to: package.folderURL.appendingPathComponent("label.json"),
             options: .atomic
         )
+        NotificationCenter.default.post(
+            name: .recordingPackageLabelDidChange,
+            object: package.folderURL.path
+        )
     }
 
     private func existingFile(named fileName: String, in folderURL: URL) -> URL? {
@@ -136,4 +140,8 @@ final class ReceivedRecordingPackageLoader {
         let values = try? folderURL.resourceValues(forKeys: [.creationDateKey])
         return values?.creationDate ?? Date()
     }
+}
+
+extension Notification.Name {
+    static let recordingPackageLabelDidChange = Notification.Name("recordingPackageLabelDidChange")
 }

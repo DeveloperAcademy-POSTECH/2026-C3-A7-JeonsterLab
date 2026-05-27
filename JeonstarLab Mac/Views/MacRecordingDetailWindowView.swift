@@ -39,6 +39,13 @@ struct MacRecordingDetailWindowView: View {
         .task(id: packagePath) {
             loadPackage()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .recordingPackageLabelDidChange)) { notification in
+            guard let changedPath = notification.object as? String,
+                  changedPath == packagePath else {
+                return
+            }
+            loadPackage()
+        }
     }
 
     private var packageBinding: Binding<ReceivedRecordingPackage>? {
