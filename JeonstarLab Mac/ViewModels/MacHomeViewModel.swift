@@ -323,7 +323,7 @@ final class MacHomeViewModel {
 
         for item in snapFolders[folderIndex].items {
             guard let package = receivedPackages.first(where: { $0.folderURL.lastPathComponent == item.packageFolderName }),
-                  let event = package.workingSnapEvents.first(where: { $0.snapID == item.snapID }) else {
+                  let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }) else {
                 skippedCount += 1
                 continue
             }
@@ -424,14 +424,13 @@ final class MacHomeViewModel {
     }
 
     private func updateFolderItems(for package: ReceivedRecordingPackage, shouldSave: Bool = true) {
-        let eventsByID = Dictionary(uniqueKeysWithValues: package.workingSnapEvents.map { ($0.snapID, $0) })
         var didChange = false
 
         for folderIndex in snapFolders.indices {
             for itemIndex in snapFolders[folderIndex].items.indices {
                 let item = snapFolders[folderIndex].items[itemIndex]
                 guard item.packageFolderName == package.folderURL.lastPathComponent,
-                      let event = eventsByID[item.snapID] else {
+                      let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }) else {
                     continue
                 }
 
@@ -505,7 +504,8 @@ final class MacHomeViewModel {
         package: ReceivedRecordingPackage,
         event: WorkingSnapEvent
     ) -> Bool {
-        snapIdentityKey(
+        guard item.packageFolderName == package.folderURL.lastPathComponent else { return false }
+        return snapIdentityKey(
             packageFolderName: item.packageFolderName,
             recordingID: item.recordingID,
             snapID: item.snapID
@@ -513,7 +513,7 @@ final class MacHomeViewModel {
             packageFolderName: package.folderURL.lastPathComponent,
             recordingID: event.recordingID ?? package.metadata?.recordingID ?? package.snapAnalysis?.recordingID,
             snapID: event.snapID
-        )
+        ) || package.isSnapID(item.snapID, matching: event)
     }
 
     private func snapIdentityKey(
