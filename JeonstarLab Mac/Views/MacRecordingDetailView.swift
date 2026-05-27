@@ -24,6 +24,8 @@ struct MacRecordingDetailView: View {
     @State private var showsDeleteConfirmation = false
     @State private var editMessage: String?
     @State private var editErrorMessage: String?
+    @State private var isEditingTitle = false
+    @State private var draftDisplayName = ""
 
     private var manualSnapDraft: ManualSnapDraft? {
         guard let chartSelection else { return nil }
@@ -57,35 +59,22 @@ struct MacRecordingDetailView: View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text(package.displayTitle)
-                        .font(.largeTitle)
-                        .fontWeight(.semibold)
-                        .lineLimit(2)
+                    titleHeader
 
                     Text("\(package.recordingDateText) · 수신 \(package.receivedAtText)")
                         .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Text("결과 요약: \(package.resultSummaryText)")
+                        .font(.callout)
                         .foregroundStyle(.secondary)
 
                     sectionCard(title: "녹화 정보") {
                         MacRecordingInfoPanel(package: package)
                     }
 
-                    sectionCard(title: "결과") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            LabeledContent("결과 요약", value: package.resultSummaryText)
-
-                            TextField("이름", text: $package.displayName, prompt: Text(package.recordingDateTitle))
-                                .textFieldStyle(.roundedBorder)
-                                .onChange(of: package.displayName) {
-                                    onSaveLabel(package)
-                                }
-
-                            TextEditor(text: $package.notes)
-                                .frame(minHeight: 72)
-                                .onChange(of: package.notes) {
-                                    onSaveLabel(package)
-                                }
-                        }
+                    sectionCard(title: "사용자 정보") {
+                        participantInfoCard
                     }
 
                     if !package.parseMessages.isEmpty {
@@ -217,6 +206,129 @@ struct MacRecordingDetailView: View {
 
     private static let graphSectionID = "graph-section"
     private static let selectionChangeTolerance = 0.001
+
+    private var titleHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if isEditingTitle {
+                HStack(spacing: 8) {
+                    TextField("녹화 이름", text: $draftDisplayName, prompt: Text(package.recordingDateTitle))
+                        .textFieldStyle(.roundedBorder)
+
+                    Button("저장") {
+                        package.displayName = draftDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        isEditingTitle = false
+                        onSaveLabel(package)
+                    }
+
+                    Button("취소") {
+                        draftDisplayName = package.displayName
+                        isEditingTitle = false
+                    }
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(package.displayTitle)
+                        .font(.largeTitle)
+                        .fontWeight(.semibold)
+                        .lineLimit(2)
+
+                    Button {
+                        draftDisplayName = package.displayName
+                        isEditingTitle = true
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("녹화 이름 편집")
+                }
+            }
+        }
+    }
+
+    private var participantInfoCard: some View {
+        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
+            GridRow {
+                Text("이름(닉네임)")
+                    .foregroundStyle(.secondary)
+                TextField("미입력", text: $package.participantInfo.nameOrNickname)
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: package.participantInfo.nameOrNickname) {
+                        onSaveLabel(package)
+                    }
+            }
+
+            GridRow {
+                Text("성별")
+                    .foregroundStyle(.secondary)
+                Picker("성별", selection: $package.participantInfo.gender) {
+                    ForEach(ParticipantGenderOption.allCases) { option in
+                        Text(option.displayName).tag(option)
+                    }
+                }
+                .labelsHidden()
+                .onChange(of: package.participantInfo.gender) {
+                    onSaveLabel(package)
+                }
+            }
+
+            GridRow {
+                Text("연령대")
+                    .foregroundStyle(.secondary)
+                Picker("연령대", selection: $package.participantInfo.ageGroup) {
+                    ForEach(ParticipantAgeGroupOption.allCases) { option in
+                        Text(option.displayName).tag(option)
+                    }
+                }
+                .labelsHidden()
+                .onChange(of: package.participantInfo.ageGroup) {
+                    onSaveLabel(package)
+                }
+            }
+
+            GridRow {
+                Text("키(cm)")
+                    .foregroundStyle(.secondary)
+                TextField("예: 174", text: heightBinding)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 180)
+            }
+
+            GridRow {
+                Text("숙련도")
+                    .foregroundStyle(.secondary)
+                Picker("숙련도", selection: $package.participantInfo.skillLevel) {
+                    ForEach(ParticipantSkillLevelOption.allCases) { option in
+                        Text(option.displayName).tag(option)
+                    }
+                }
+                .labelsHidden()
+                .onChange(of: package.participantInfo.skillLevel) {
+                    onSaveLabel(package)
+                }
+            }
+
+            GridRow(alignment: .top) {
+                Text("메모")
+                    .foregroundStyle(.secondary)
+                TextEditor(text: $package.participantInfo.memo)
+                    .frame(minHeight: 72)
+                    .onChange(of: package.participantInfo.memo) {
+                        onSaveLabel(package)
+                    }
+            }
+        }
+    }
+
+    private var heightBinding: Binding<String> {
+        Binding(
+            get: { package.participantInfo.heightCM },
+            set: { newValue in
+                let filtered = newValue.filter(\.isNumber)
+                package.participantInfo.heightCM = filtered
+                onSaveLabel(package)
+            }
+        )
+    }
 
     private var selectionPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -499,6 +611,8 @@ struct MacRecordingDetailView: View {
         showsEditConfirmation = false
         pendingDeleteEvent = nil
         showsDeleteConfirmation = false
+        isEditingTitle = false
+        draftDisplayName = package.displayName
         resetVisibleRangeToFull()
         editMessage = nil
         editErrorMessage = nil

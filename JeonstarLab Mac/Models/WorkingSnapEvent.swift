@@ -46,10 +46,15 @@ struct WorkingSnapEvent: Identifiable, Codable, Equatable {
     static func automatic(
         from event: SnapEventExport,
         recordingID: UUID?,
+        packageFolderName: String,
         labelPayload: SnapEventLabelPayload?
     ) -> WorkingSnapEvent {
         WorkingSnapEvent(
-            snapID: event.workingSnapID,
+            snapID: SnapIDGenerator.automatic(
+                recordingID: recordingID,
+                packageFolderName: packageFolderName,
+                eventKey: event.labelKey
+            ),
             recordingID: recordingID,
             eventIndex: event.eventIndex,
             sourceType: .automatic,
@@ -75,10 +80,14 @@ struct WorkingSnapEvent: Identifiable, Codable, Equatable {
     static func manual(
         recordingID: UUID?,
         draft: ManualSnapDraft,
+        packageFolderName: String,
         createdAt: Date = Date()
     ) -> WorkingSnapEvent {
         WorkingSnapEvent(
-            snapID: UUID().uuidString,
+            snapID: SnapIDGenerator.manual(
+                recordingID: recordingID,
+                packageFolderName: packageFolderName
+            ),
             recordingID: recordingID,
             eventIndex: nil,
             sourceType: .manual,

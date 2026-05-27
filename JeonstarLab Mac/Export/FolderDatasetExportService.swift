@@ -27,7 +27,7 @@ enum FolderDatasetExportService {
                 continue
             }
 
-            guard let event = package.workingSnapEvents.first(where: { $0.snapID == item.snapID }) else {
+            guard let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }) else {
                 skippedReasons.append("스냅 없음 또는 삭제됨: \(item.packageFolderName) / \(item.snapID)")
                 continue
             }
@@ -57,7 +57,7 @@ enum FolderDatasetExportService {
 
                 entries.append(
                     FolderDatasetSnapEntry(
-                        snapID: item.snapID,
+                        snapID: event.snapID,
                         label: datasetLabel,
                         samples: segmentSamples
                     )

@@ -14,6 +14,7 @@ final class MacHomeViewModel {
     private let packageLoader = ReceivedRecordingPackageLoader()
     private let fileStore = MacReceivedFileStore()
     private let folderStore: SnapFolderStore
+    @ObservationIgnored private var labelChangeObserver: NSObjectProtocol?
 
     var receiverStatus: MacReceiverStatus = .idle
     var connectedPeerName: String?
@@ -22,6 +23,7 @@ final class MacHomeViewModel {
     var selectedPackageID: ReceivedRecordingPackage.ID?
     var selectedFolderID: SnapFolder.ID?
     var errorMessage: String?
+    var searchQuery = ""
 
     init() {
         folderStore = SnapFolderStore(rootURL: fileStore.rootDirectory)
@@ -46,6 +48,20 @@ final class MacHomeViewModel {
         }
         receiver.onError = { [weak self] message in
             self?.errorMessage = message
+        }
+        labelChangeObserver = NotificationCenter.default.addObserver(
+            forName: .recordingPackageLabelDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let packagePath = notification.object as? String else { return }
+            self?.reloadPackage(atPath: packagePath)
+        }
+    }
+
+    deinit {
+        if let labelChangeObserver {
+            NotificationCenter.default.removeObserver(labelChangeObserver)
         }
     }
 
@@ -86,6 +102,14 @@ final class MacHomeViewModel {
         return snapFolders.first { $0.id == selectedFolderID }
     }
 
+    var filteredReceivedPackages: [ReceivedRecordingPackage] {
+        filteredPackages(receivedPackages)
+    }
+
+    var filteredPinnedPackages: [ReceivedRecordingPackage] {
+        filteredPackages(receivedPackages.filter(\.isPinned))
+    }
+
     var rootReceivedFolderURL: URL {
         fileStore.rootDirectory
     }
@@ -112,6 +136,16 @@ final class MacHomeViewModel {
             selectedPackageID = receivedPackages.first?.id
         }
         updateAllFolderItemSnapshots()
+    }
+
+    func reloadPackage(atPath packagePath: String) {
+        let folderURL = URL(fileURLWithPath: packagePath)
+        guard folderURL.deletingLastPathComponent().standardizedFileURL == rootReceivedFolderURL.standardizedFileURL,
+              let package = packageLoader.loadPackage(folderURL: folderURL) else {
+            return
+        }
+        upsert(package)
+        updateFolderItems(for: package)
     }
 
     func reloadFolders() {
@@ -251,6 +285,20 @@ final class MacHomeViewModel {
         }
     }
 
+    func togglePinPackage(_ package: ReceivedRecordingPackage) {
+        guard let index = receivedPackages.firstIndex(where: { $0.id == package.id }) else { return }
+        receivedPackages[index].isPinned.toggle()
+        saveLabel(for: receivedPackages[index])
+    }
+
+    func pinPackage(_ package: ReceivedRecordingPackage) {
+        setPinState(true, for: package)
+    }
+
+    func unpinPackage(_ package: ReceivedRecordingPackage) {
+        setPinState(false, for: package)
+    }
+
     func folderContainingSnap(package: ReceivedRecordingPackage, event: WorkingSnapEvent) -> SnapFolder? {
         snapFolders.first { folder in
             folder.items.contains { item in
@@ -323,7 +371,7 @@ final class MacHomeViewModel {
 
         for item in snapFolders[folderIndex].items {
             guard let package = receivedPackages.first(where: { $0.folderURL.lastPathComponent == item.packageFolderName }),
-                  let event = package.workingSnapEvents.first(where: { $0.snapID == item.snapID }) else {
+                  let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }) else {
                 skippedCount += 1
                 continue
             }
@@ -414,6 +462,37 @@ final class MacHomeViewModel {
         receivedPackages.sort { $0.receivedAt > $1.receivedAt }
     }
 
+    private func setPinState(_ isPinned: Bool, for package: ReceivedRecordingPackage) {
+        guard let index = receivedPackages.firstIndex(where: { $0.id == package.id }),
+              receivedPackages[index].isPinned != isPinned else {
+            return
+        }
+        receivedPackages[index].isPinned = isPinned
+        saveLabel(for: receivedPackages[index])
+    }
+
+    private func filteredPackages(_ packages: [ReceivedRecordingPackage]) -> [ReceivedRecordingPackage] {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return packages }
+
+        return packages.filter { package in
+            searchableText(for: package).localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    private func searchableText(for package: ReceivedRecordingPackage) -> String {
+        [
+            package.displayTitle,
+            package.participantInfo.nameOrNickname,
+            package.participantInfo.gender.displayName,
+            package.participantInfo.ageGroup.displayName,
+            package.participantInfo.heightCM,
+            package.participantInfo.skillLevel.displayName,
+            package.participantInfo.memo
+        ]
+        .joined(separator: " ")
+    }
+
     private func updateAllFolderItemSnapshots() {
         guard !snapFolders.isEmpty else { return }
         for package in receivedPackages {
@@ -424,14 +503,13 @@ final class MacHomeViewModel {
     }
 
     private func updateFolderItems(for package: ReceivedRecordingPackage, shouldSave: Bool = true) {
-        let eventsByID = Dictionary(uniqueKeysWithValues: package.workingSnapEvents.map { ($0.snapID, $0) })
         var didChange = false
 
         for folderIndex in snapFolders.indices {
             for itemIndex in snapFolders[folderIndex].items.indices {
                 let item = snapFolders[folderIndex].items[itemIndex]
                 guard item.packageFolderName == package.folderURL.lastPathComponent,
-                      let event = eventsByID[item.snapID] else {
+                      let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }) else {
                     continue
                 }
 
@@ -505,7 +583,8 @@ final class MacHomeViewModel {
         package: ReceivedRecordingPackage,
         event: WorkingSnapEvent
     ) -> Bool {
-        snapIdentityKey(
+        guard item.packageFolderName == package.folderURL.lastPathComponent else { return false }
+        return snapIdentityKey(
             packageFolderName: item.packageFolderName,
             recordingID: item.recordingID,
             snapID: item.snapID
@@ -513,7 +592,7 @@ final class MacHomeViewModel {
             packageFolderName: package.folderURL.lastPathComponent,
             recordingID: event.recordingID ?? package.metadata?.recordingID ?? package.snapAnalysis?.recordingID,
             snapID: event.snapID
-        )
+        ) || package.isSnapID(item.snapID, matching: event)
     }
 
     private func snapIdentityKey(

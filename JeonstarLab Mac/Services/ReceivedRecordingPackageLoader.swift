@@ -79,8 +79,10 @@ final class ReceivedRecordingPackageLoader {
             metadata: metadata,
             snapAnalysis: snapAnalysis,
             displayName: labelPayload?.displayName ?? "",
+            isPinned: labelPayload?.isPinned ?? false,
             label: labelPayload?.label ?? .unlabeled,
             notes: labelPayload?.notes ?? "",
+            participantInfo: labelPayload?.participantInfo ?? .empty,
             snapLabels: labelPayload?.snapLabels ?? [:],
             snapEventLabels: labelPayload?.snapEventLabels ?? [:],
             manualSnapEvents: labelPayload?.manualSnapEvents ?? [],
@@ -95,9 +97,11 @@ final class ReceivedRecordingPackageLoader {
             displayName: package.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? nil
                 : package.displayName,
+            isPinned: package.isPinned,
             label: package.label,
             packageLabel: package.label,
             notes: package.notes,
+            participantInfo: package.participantInfo,
             snapLabels: package.snapLabels,
             snapEventLabels: package.snapEventLabels,
             manualSnapEvents: package.manualSnapEvents,
@@ -112,6 +116,10 @@ final class ReceivedRecordingPackageLoader {
         try data.write(
             to: package.folderURL.appendingPathComponent("label.json"),
             options: .atomic
+        )
+        NotificationCenter.default.post(
+            name: .recordingPackageLabelDidChange,
+            object: package.folderURL.path
         )
     }
 
@@ -132,4 +140,8 @@ final class ReceivedRecordingPackageLoader {
         let values = try? folderURL.resourceValues(forKeys: [.creationDateKey])
         return values?.creationDate ?? Date()
     }
+}
+
+extension Notification.Name {
+    static let recordingPackageLabelDidChange = Notification.Name("recordingPackageLabelDidChange")
 }

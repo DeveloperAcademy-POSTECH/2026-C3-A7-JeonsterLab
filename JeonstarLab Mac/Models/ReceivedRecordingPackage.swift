@@ -15,8 +15,10 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     let metadata: RecordingExportMetadata?
     let snapAnalysis: SnapAnalysisExport?
     var displayName: String
+    var isPinned: Bool
     var label: RecordingPackageLabel
     var notes: String
+    var participantInfo: RecordingParticipantInfo
     var snapLabels: [Int: SnapEventLabelPayload]
     var snapEventLabels: [String: SnapEventLabelPayload]
     var manualSnapEvents: [WorkingSnapEvent]
@@ -98,13 +100,21 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     var workingSnapEvents: [WorkingSnapEvent] {
         let automaticEvents = (snapAnalysis?.snapEvents ?? [])
             .map { event in
+                let legacyIDs = legacySnapIDs(for: event)
                 let baseEvent = WorkingSnapEvent.automatic(
                     from: event,
                     recordingID: snapAnalysis?.recordingID ?? metadata?.recordingID,
-                    labelPayload: snapEventLabels[event.workingSnapID]
+                    packageFolderName: folderURL.lastPathComponent,
+                    labelPayload: payload(for: event)
                 )
-                var editableEvent = editedSnapEvents[baseEvent.snapID] ?? baseEvent
-                if let payload = snapEventLabels[editableEvent.snapID] {
+                var editableEvent = editedSnapEvents[baseEvent.snapID]
+                    ?? legacyIDs.compactMap { editedSnapEvents[$0] }.first
+                    ?? baseEvent
+                editableEvent.snapID = baseEvent.snapID
+                editableEvent.recordingID = baseEvent.recordingID
+                editableEvent.eventIndex = baseEvent.eventIndex
+                editableEvent.sourceType = .automatic
+                if let payload = snapEventLabels[editableEvent.snapID] ?? legacyIDs.compactMap({ snapEventLabels[$0] }).first {
                     editableEvent.label = payload.label
                     editableEvent.notes = payload.notes
                     editableEvent.updatedAt = payload.updatedAt
@@ -123,7 +133,10 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
         }
 
         return (automaticEvents + manualEvents)
-            .filter { deletedSnapEventIDs.contains($0.snapID) == false }
+            .filter { event in
+                deletedSnapEventIDs.contains(event.snapID) == false
+                    && legacySnapIDs(for: event).allSatisfy { deletedSnapEventIDs.contains($0) == false }
+            }
             .sorted { lhs, rhs in
                 (lhs.startTime ?? lhs.peakTime ?? 0) < (rhs.startTime ?? rhs.peakTime ?? 0)
             }
@@ -132,7 +145,8 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     mutating func addManualSnapEvent(from draft: ManualSnapDraft) {
         let event = WorkingSnapEvent.manual(
             recordingID: metadata?.recordingID ?? snapAnalysis?.recordingID,
-            draft: draft
+            draft: draft,
+            packageFolderName: folderURL.lastPathComponent
         )
         manualSnapEvents.append(event)
         snapEventLabels[event.snapID] = SnapEventLabelPayload(
@@ -204,6 +218,30 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
             updatedAt: updatedEvent.updatedAt
         )
     }
+
+    func isSnapID(_ snapID: String, matching event: WorkingSnapEvent) -> Bool {
+        snapID == event.snapID || legacySnapIDs(for: event).contains(snapID)
+    }
+
+    func legacySnapIDs(for event: WorkingSnapEvent) -> [String] {
+        guard event.sourceType == .automatic else { return [] }
+        let eventKey = event.eventIndex ?? Int((event.peakTime ?? event.startTime ?? 0) * 1000)
+        return SnapIDGenerator.legacyAutomaticIDs(for: eventKey)
+    }
+
+    private func legacySnapIDs(for event: SnapEventExport) -> [String] {
+        SnapIDGenerator.legacyAutomaticIDs(for: event.labelKey)
+    }
+
+    private func payload(for event: SnapEventExport) -> SnapEventLabelPayload? {
+        let globalID = SnapIDGenerator.automatic(
+            recordingID: snapAnalysis?.recordingID ?? metadata?.recordingID,
+            packageFolderName: folderURL.lastPathComponent,
+            eventKey: event.labelKey
+        )
+        return snapEventLabels[globalID]
+            ?? legacySnapIDs(for: event).compactMap { snapEventLabels[$0] }.first
+    }
 }
 
 enum RecordingPackageLabel: String, CaseIterable, Codable, Identifiable {
@@ -233,9 +271,11 @@ enum RecordingPackageLabel: String, CaseIterable, Codable, Identifiable {
 
 struct RecordingPackageLabelPayload: Codable {
     let displayName: String?
+    let isPinned: Bool
     let label: RecordingPackageLabel
     let packageLabel: RecordingPackageLabel?
     let notes: String
+    let participantInfo: RecordingParticipantInfo
     let snapLabels: [Int: SnapEventLabelPayload]
     let snapEventLabels: [String: SnapEventLabelPayload]
     let manualSnapEvents: [WorkingSnapEvent]
@@ -245,9 +285,11 @@ struct RecordingPackageLabelPayload: Codable {
 
     init(
         displayName: String?,
+        isPinned: Bool = false,
         label: RecordingPackageLabel,
         packageLabel: RecordingPackageLabel? = nil,
         notes: String,
+        participantInfo: RecordingParticipantInfo = .empty,
         snapLabels: [Int: SnapEventLabelPayload] = [:],
         snapEventLabels: [String: SnapEventLabelPayload] = [:],
         manualSnapEvents: [WorkingSnapEvent] = [],
@@ -256,9 +298,11 @@ struct RecordingPackageLabelPayload: Codable {
         updatedAt: Date
     ) {
         self.displayName = displayName
+        self.isPinned = isPinned
         self.label = label
         self.packageLabel = packageLabel
         self.notes = notes
+        self.participantInfo = participantInfo
         self.snapLabels = snapLabels
         self.snapEventLabels = snapEventLabels
         self.manualSnapEvents = manualSnapEvents
@@ -269,9 +313,11 @@ struct RecordingPackageLabelPayload: Codable {
 
     enum CodingKeys: String, CodingKey {
         case displayName
+        case isPinned
         case label
         case packageLabel
         case notes
+        case participantInfo
         case snapLabels
         case snapEventLabels
         case manualSnapEvents
@@ -283,11 +329,16 @@ struct RecordingPackageLabelPayload: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
+        isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
         label = try container.decodeIfPresent(RecordingPackageLabel.self, forKey: .label)
             ?? container.decodeIfPresent(RecordingPackageLabel.self, forKey: .packageLabel)
             ?? .unlabeled
         packageLabel = try container.decodeIfPresent(RecordingPackageLabel.self, forKey: .packageLabel)
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
+        participantInfo = try container.decodeIfPresent(
+            RecordingParticipantInfo.self,
+            forKey: .participantInfo
+        ) ?? .empty
         snapLabels = try container.decodeIfPresent([Int: SnapEventLabelPayload].self, forKey: .snapLabels) ?? [:]
         let decodedSnapEventLabels = try container.decodeIfPresent(
             [String: SnapEventLabelPayload].self,

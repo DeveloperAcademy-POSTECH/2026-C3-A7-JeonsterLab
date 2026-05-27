@@ -7,6 +7,7 @@ import SwiftUI
 
 struct MacHomeView: View {
     @Bindable var viewModel: MacHomeViewModel
+    @Environment(\.openWindow) private var openWindow
     @State private var pendingDeletePackage: ReceivedRecordingPackage?
 
     var body: some View {
@@ -57,18 +58,32 @@ struct MacHomeView: View {
                         }
                     }
 
-                    Section("Received Recordings") {
-                        if viewModel.receivedPackages.isEmpty {
-                            Text("아직 수신된 녹화 데이터가 없습니다.")
+                    Section("Pinned Recordings") {
+                        if viewModel.filteredPinnedPackages.isEmpty {
+                            Text("고정된 녹화가 없습니다.")
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else {
-                            ForEach(viewModel.receivedPackages) { package in
+                            ForEach(viewModel.filteredPinnedPackages) { package in
                                 receivedPackageRow(package)
                                     .tag(package.id)
                                     .contextMenu {
-                                        Button("삭제", role: .destructive) {
-                                            pendingDeletePackage = package
-                                        }
+                                        receivedPackageContextMenu(for: package)
+                                    }
+                            }
+                        }
+                    }
+
+                    Section("Received Recordings") {
+                        if viewModel.filteredReceivedPackages.isEmpty {
+                            Text("아직 수신된 녹화 데이터가 없습니다.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(viewModel.filteredReceivedPackages) { package in
+                                receivedPackageRow(package)
+                                    .tag(package.id)
+                                    .contextMenu {
+                                        receivedPackageContextMenu(for: package)
                                     }
                             }
                         }
@@ -131,6 +146,11 @@ struct MacHomeView: View {
         } message: { _ in
             Text("삭제하면 Mac에 저장된 이 녹화 패키지가 사라집니다.\n이 작업은 되돌릴 수 없습니다.")
         }
+        .searchable(
+            text: $viewModel.searchQuery,
+            placement: .toolbar,
+            prompt: "수신 기록 검색"
+        )
     }
 
     private func receivedPackageRow(_ package: ReceivedRecordingPackage) -> some View {
@@ -138,6 +158,12 @@ struct MacHomeView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(package.displayTitle)
                     .lineLimit(1)
+                if package.isPinned {
+                    Label("고정됨", systemImage: "pin.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .labelStyle(.titleAndIcon)
+                }
                 Text(package.recordingDateText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -150,15 +176,37 @@ struct MacHomeView: View {
             }
 
             Spacer(minLength: 8)
+        }
+    }
 
+    @ViewBuilder
+    private func receivedPackageContextMenu(for package: ReceivedRecordingPackage) -> some View {
+        Button {
+            openWindow(value: package.folderURL.path)
+        } label: {
+            Label("새로운 윈도우에서 열기", systemImage: "rectangle.on.rectangle")
+        }
+
+        if package.isPinned {
             Button {
-                pendingDeletePackage = package
+                viewModel.unpinPackage(package)
             } label: {
-                Image(systemName: "trash")
+                Label("고정 해제", systemImage: "pin.slash")
             }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.red)
-            .help("수신 기록 삭제")
+        } else {
+            Button {
+                viewModel.pinPackage(package)
+            } label: {
+                Label("기록 고정", systemImage: "pin")
+            }
+        }
+
+        Divider()
+
+        Button(role: .destructive) {
+            pendingDeletePackage = package
+        } label: {
+            Label("삭제하기", systemImage: "trash")
         }
     }
 
