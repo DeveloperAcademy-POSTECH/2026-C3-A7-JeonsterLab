@@ -11,7 +11,6 @@ import Charts
 struct RecordingDetailView: View {
 
     @State var viewModel: RecordingDetailViewModel
-    @State private var selectedSnapEventIndex: Int = 0
     @State private var exportURLs: [URL] = []
     @State private var isShareSheetPresented = false
     @State private var isExporting = false
@@ -83,26 +82,16 @@ struct RecordingDetailView: View {
                         .font(.caption)
                 }
             } else if !viewModel.samples.isEmpty {
-                let snapResult = AnalyzeSnapUseCase.execute(samples: viewModel.samples)
-                let selectedEvent = snapResult.event(at: selectedSnapEventIndex)
-
-                Section("스냅 분석 요약") {
-                    SnapAnalysisSummaryView(
-                        result: snapResult,
-                        selectedEventIndex: $selectedSnapEventIndex
-                    )
-                }
-
                 Section("사용자 가속도") {
-                    accelerationChart(selectedEvent: selectedEvent)
+                    accelerationChart()
                 }
 
                 Section("자이로스코프") {
-                    gyroChart(selectedEvent: selectedEvent)
+                    gyroChart()
                 }
 
                 Section("자세 (Attitude)") {
-                    attitudeChart(selectedEvent: selectedEvent)
+                    attitudeChart()
                 }
 
                 Section("3D 사용자 가속도") {
@@ -185,7 +174,7 @@ struct RecordingDetailView: View {
 
     // MARK: - Charts
 
-    private func accelerationChart(selectedEvent: SnapEventSummary?) -> some View {
+    private func accelerationChart() -> some View {
         Chart(Array(viewModel.samples.enumerated()), id: \.offset) { i, s in
             LineMark(x: .value("t", i), y: .value("X", s.userAccX))
                 .foregroundStyle(by: .value("축", "X"))
@@ -193,16 +182,12 @@ struct RecordingDetailView: View {
                 .foregroundStyle(by: .value("축", "Y"))
             LineMark(x: .value("t", i), y: .value("Z", s.userAccZ))
                 .foregroundStyle(by: .value("축", "Z"))
-
-            if let selectedEvent {
-                snapRangeMarks(for: selectedEvent)
-            }
         }
         .chartXAxis(.hidden)
         .frame(height: 120)
     }
 
-    private func gyroChart(selectedEvent: SnapEventSummary?) -> some View {
+    private func gyroChart() -> some View {
         Chart(Array(viewModel.samples.enumerated()), id: \.offset) { i, s in
             LineMark(x: .value("t", i), y: .value("X", s.rotationRateX))
                 .foregroundStyle(by: .value("축", "X"))
@@ -210,16 +195,12 @@ struct RecordingDetailView: View {
                 .foregroundStyle(by: .value("축", "Y"))
             LineMark(x: .value("t", i), y: .value("Z", s.rotationRateZ))
                 .foregroundStyle(by: .value("축", "Z"))
-
-            if let selectedEvent {
-                snapRangeMarks(for: selectedEvent)
-            }
         }
         .chartXAxis(.hidden)
         .frame(height: 120)
     }
 
-    private func attitudeChart(selectedEvent: SnapEventSummary?) -> some View {
+    private func attitudeChart() -> some View {
         Chart(Array(viewModel.samples.enumerated()), id: \.offset) { i, s in
             LineMark(x: .value("t", i), y: .value("Roll", s.attitudeRoll))
                 .foregroundStyle(by: .value("축", "Roll"))
@@ -227,27 +208,8 @@ struct RecordingDetailView: View {
                 .foregroundStyle(by: .value("축", "Pitch"))
             LineMark(x: .value("t", i), y: .value("Yaw", s.attitudeYaw))
                 .foregroundStyle(by: .value("축", "Yaw"))
-
-            if let selectedEvent {
-                snapRangeMarks(for: selectedEvent)
-            }
         }
         .chartXAxis(.hidden)
         .frame(height: 120)
-    }
-
-    @ChartContentBuilder
-    private func snapRangeMarks(for event: SnapEventSummary) -> some ChartContent {
-        RuleMark(x: .value("Snap Start", event.startIndex))
-            .foregroundStyle(.orange.opacity(0.45))
-            .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-
-        RuleMark(x: .value("Snap Peak", event.peakIndex))
-            .foregroundStyle(.red)
-            .lineStyle(StrokeStyle(lineWidth: 2))
-
-        RuleMark(x: .value("Snap End", event.endIndex))
-            .foregroundStyle(.orange.opacity(0.45))
-            .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
     }
 }
