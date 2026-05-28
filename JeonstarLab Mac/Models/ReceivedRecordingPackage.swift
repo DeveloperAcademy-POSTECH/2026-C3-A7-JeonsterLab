@@ -98,29 +98,8 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     }
 
     var workingSnapEvents: [WorkingSnapEvent] {
-        let automaticEvents = (snapAnalysis?.snapEvents ?? [])
-            .map { event in
-                let legacyIDs = legacySnapIDs(for: event)
-                let baseEvent = WorkingSnapEvent.automatic(
-                    from: event,
-                    recordingID: snapAnalysis?.recordingID ?? metadata?.recordingID,
-                    packageFolderName: folderURL.lastPathComponent,
-                    labelPayload: payload(for: event)
-                )
-                var editableEvent = editedSnapEvents[baseEvent.snapID]
-                    ?? legacyIDs.compactMap { editedSnapEvents[$0] }.first
-                    ?? baseEvent
-                editableEvent.snapID = baseEvent.snapID
-                editableEvent.recordingID = baseEvent.recordingID
-                editableEvent.eventIndex = baseEvent.eventIndex
-                editableEvent.sourceType = .automatic
-                if let payload = snapEventLabels[editableEvent.snapID] ?? legacyIDs.compactMap({ snapEventLabels[$0] }).first {
-                    editableEvent.label = payload.label
-                    editableEvent.notes = payload.notes
-                    editableEvent.updatedAt = payload.updatedAt
-                }
-                return editableEvent
-            }
+        let automaticEvents = automaticSnapEvents
+            .filter(isUserTouchedAutomaticEvent)
 
         let manualEvents = manualSnapEvents.map { event in
             var editableEvent = event
@@ -134,12 +113,24 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
 
         return (automaticEvents + manualEvents)
             .filter { event in
-                deletedSnapEventIDs.contains(event.snapID) == false
-                    && legacySnapIDs(for: event).allSatisfy { deletedSnapEventIDs.contains($0) == false }
+                !isDeleted(event)
             }
             .sorted { lhs, rhs in
                 (lhs.startTime ?? lhs.peakTime ?? 0) < (rhs.startTime ?? rhs.peakTime ?? 0)
             }
+    }
+
+    var automaticSnapEvents: [WorkingSnapEvent] {
+        let eventsFromAnalysis = (snapAnalysis?.snapEvents ?? [])
+            .map(automaticSnapEvent(from:))
+
+        let editedAutomaticEvents = editedSnapEvents.values
+            .filter { $0.sourceType == .automatic }
+            .filter { editedEvent in
+                !eventsFromAnalysis.contains { $0.snapID == editedEvent.snapID }
+            }
+
+        return eventsFromAnalysis + editedAutomaticEvents
     }
 
     mutating func addManualSnapEvent(from draft: ManualSnapDraft) {
@@ -223,6 +214,13 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
         snapID == event.snapID || legacySnapIDs(for: event).contains(snapID)
     }
 
+    func snapEvent(matching snapID: String) -> WorkingSnapEvent? {
+        workingSnapEvents.first { isSnapID(snapID, matching: $0) }
+            ?? automaticSnapEvents.first { event in
+                isUserTouchedAutomaticEvent(event) && isSnapID(snapID, matching: event) && !isDeleted(event)
+            }
+    }
+
     func legacySnapIDs(for event: WorkingSnapEvent) -> [String] {
         guard event.sourceType == .automatic else { return [] }
         let eventKey = event.eventIndex ?? Int((event.peakTime ?? event.startTime ?? 0) * 1000)
@@ -231,6 +229,52 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
 
     private func legacySnapIDs(for event: SnapEventExport) -> [String] {
         SnapIDGenerator.legacyAutomaticIDs(for: event.labelKey)
+    }
+
+    private func automaticSnapEvent(from event: SnapEventExport) -> WorkingSnapEvent {
+        let legacyIDs = legacySnapIDs(for: event)
+        let baseEvent = WorkingSnapEvent.automatic(
+            from: event,
+            recordingID: snapAnalysis?.recordingID ?? metadata?.recordingID,
+            packageFolderName: folderURL.lastPathComponent,
+            labelPayload: payload(for: event)
+        )
+        var editableEvent = editedSnapEvents[baseEvent.snapID]
+            ?? legacyIDs.compactMap { editedSnapEvents[$0] }.first
+            ?? baseEvent
+        editableEvent.snapID = baseEvent.snapID
+        editableEvent.recordingID = baseEvent.recordingID
+        editableEvent.eventIndex = baseEvent.eventIndex
+        editableEvent.sourceType = .automatic
+        if let payload = snapEventLabels[editableEvent.snapID] ?? legacyIDs.compactMap({ snapEventLabels[$0] }).first {
+            editableEvent.label = payload.label
+            editableEvent.notes = payload.notes
+            editableEvent.updatedAt = payload.updatedAt
+        }
+        return editableEvent
+    }
+
+    private func isUserTouchedAutomaticEvent(_ event: WorkingSnapEvent) -> Bool {
+        guard event.sourceType == .automatic else { return true }
+        let ids = [event.snapID] + legacySnapIDs(for: event)
+        return ids.contains { editedSnapEvents[$0] != nil }
+            || ids.compactMap { snapEventLabels[$0] }.contains(where: isMeaningfulPayload)
+            || ids.contains(where: hasSegment)
+    }
+
+    private func isMeaningfulPayload(_ payload: SnapEventLabelPayload) -> Bool {
+        payload.label != .unlabeled || !payload.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func hasSegment(snapID: String) -> Bool {
+        let segmentFolderURL = folderURL.appendingPathComponent("segments").appendingPathComponent(snapID)
+        return FileManager.default.fileExists(atPath: segmentFolderURL.appendingPathComponent("segment.csv").path)
+            && FileManager.default.fileExists(atPath: segmentFolderURL.appendingPathComponent("segment_metadata.json").path)
+    }
+
+    private func isDeleted(_ event: WorkingSnapEvent) -> Bool {
+        deletedSnapEventIDs.contains(event.snapID)
+            || legacySnapIDs(for: event).contains { deletedSnapEventIDs.contains($0) }
     }
 
     private func payload(for event: SnapEventExport) -> SnapEventLabelPayload? {

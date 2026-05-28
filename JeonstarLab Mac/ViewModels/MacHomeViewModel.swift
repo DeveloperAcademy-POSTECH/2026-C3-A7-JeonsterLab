@@ -371,7 +371,7 @@ final class MacHomeViewModel {
 
         for item in snapFolders[folderIndex].items {
             guard let package = receivedPackages.first(where: { $0.folderURL.lastPathComponent == item.packageFolderName }),
-                  let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }) else {
+                  let event = package.snapEvent(matching: item.snapID) else {
                 skippedCount += 1
                 continue
             }
@@ -509,7 +509,7 @@ final class MacHomeViewModel {
             for itemIndex in snapFolders[folderIndex].items.indices {
                 let item = snapFolders[folderIndex].items[itemIndex]
                 guard item.packageFolderName == package.folderURL.lastPathComponent,
-                      let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }) else {
+                      let event = package.snapEvent(matching: item.snapID) else {
                     continue
                 }
 

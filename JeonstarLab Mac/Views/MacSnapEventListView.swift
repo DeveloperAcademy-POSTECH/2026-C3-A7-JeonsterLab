@@ -18,7 +18,7 @@ struct MacSnapEventListView: View {
 
     var body: some View {
         if events.isEmpty {
-            Text("표시할 스냅 이벤트가 없습니다.")
+            Text("저장된 스냅 이벤트가 없습니다. 그래프에서 구간을 드래그해 스냅 이벤트를 직접 추가하세요.")
                 .foregroundStyle(.secondary)
         } else {
             VStack(alignment: .leading, spacing: 14) {
