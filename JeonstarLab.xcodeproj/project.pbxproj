@@ -35,6 +35,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C0528BC72FC96F7800F84FBD /* JeonstarLab-Watch-App-Watch-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "JeonstarLab-Watch-App-Watch-App-Info.plist"; sourceTree = "<group>"; };
 		D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JeonstarLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Watch App Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D37ECEE52FBD9F2C0098CE69 /* JeonstarLab Core.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Core.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -136,6 +137,7 @@
 		D37ECEB72FBD9E350098CE69 = {
 			isa = PBXGroup;
 			children = (
+				C0528BC72FC96F7800F84FBD /* JeonstarLab-Watch-App-Watch-App-Info.plist */,
 				D37ECF4A2FBDA5E90098CE69 /* JeonstarLab Core */,
 				D37ECEC22FBD9E350098CE69 /* JeonstarLab */,
 				D37ECED32FBD9EB70098CE69 /* JeonstarLab Watch App */,
@@ -550,8 +552,10 @@
 				DEVELOPMENT_TEAM = D383V757FG;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "JeonstarLab-Watch-App-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = JeonstarLab;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKBackgroundModes = "self-monitoring";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.Tom.JeonstarLab;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -583,8 +587,10 @@
 				DEVELOPMENT_TEAM = D383V757FG;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "JeonstarLab-Watch-App-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = JeonstarLab;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKBackgroundModes = "self-monitoring";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.Tom.JeonstarLab;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

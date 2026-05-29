@@ -51,6 +51,11 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
             }
         }
 
+        // 백그라운드 세션 만료 시 녹화 자동 종료
+        motionTracker.onExtendedSessionExpired = { [vm] in
+            vm.stopRecording()
+        }
+
         // iPhone으로부터 녹화 명령 수신
         // 여기서 vm.startRecording(), vm.stopRecording()을 호출하기 때문에
         // iPhone에서 시작/종료해도 Watch 햅틱이 정상적으로 울림.
