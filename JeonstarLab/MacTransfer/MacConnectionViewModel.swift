@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import MultipeerConnectivity
 
 @Observable
 @MainActor
@@ -17,6 +18,7 @@ final class MacConnectionViewModel {
 
     var connectionStatus: MacConnectionStatus = .idle
     var connectedMacName: String?
+    var discoveredMacs: [MCPeerID] = []
     var transferStatus: MacTransferStatus = .idle
     var errorMessage: String?
     var isAutomaticTransferEnabled: Bool {
@@ -35,10 +37,14 @@ final class MacConnectionViewModel {
             self?.connectionStatus = status
             if status == .connected {
                 self?.searchTimeoutTask?.cancel()
+                self?.discoveredMacs = []
             }
         }
         browser.onConnectedPeerChanged = { [weak self] peerName in
             self?.connectedMacName = peerName
+        }
+        browser.onDiscoveredPeersChanged = { [weak self] peers in
+            self?.discoveredMacs = peers
         }
         browser.onError = { [weak self] message in
             self?.errorMessage = message
@@ -66,7 +72,11 @@ final class MacConnectionViewModel {
         case .idle:
             return "Mac 앱에서 [수신 시작]을 먼저 눌러주세요."
         case .searching:
-            return "같은 Wi-Fi 또는 근처 Bluetooth 환경에서 Mac을 찾는 중입니다."
+            if discoveredMacs.isEmpty {
+                return "같은 Wi-Fi 또는 근처 Bluetooth 환경에서 Mac을 찾는 중입니다."
+            } else {
+                return "연결할 Mac을 선택해주세요."
+            }
         case .found:
             return "Mac을 찾았습니다. 연결을 시도하는 중입니다."
         case .connected:
@@ -104,6 +114,10 @@ final class MacConnectionViewModel {
     func stopSearching() {
         searchTimeoutTask?.cancel()
         browser.stopSearching()
+    }
+
+    func selectMac(_ peerID: MCPeerID) {
+        browser.invitePeer(peerID)
     }
 
     func sendRecording(
