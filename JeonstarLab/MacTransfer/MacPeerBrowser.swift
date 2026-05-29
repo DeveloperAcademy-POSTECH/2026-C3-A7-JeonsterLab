@@ -10,12 +10,14 @@ import UIKit
 final class MacPeerBrowser: NSObject {
     var onStatusChanged: ((MacConnectionStatus) -> Void)?
     var onConnectedPeerChanged: ((String?) -> Void)?
+    var onDiscoveredPeersChanged: (([MCPeerID]) -> Void)?
     var onError: ((String) -> Void)?
 
     private let peerID = MCPeerID(displayName: UIDevice.current.name)
     private let session: MCSession
     private let browser: MCNearbyServiceBrowser
     private var invitedPeerIDs: Set<MCPeerID> = []
+    private var discoveredPeerIDs: [MCPeerID] = []
 
     override init() {
         session = MCSession(
@@ -42,8 +44,17 @@ final class MacPeerBrowser: NSObject {
 
     func startSearching() {
         invitedPeerIDs.removeAll()
+        discoveredPeerIDs.removeAll()
+        onDiscoveredPeersChanged?([])
         browser.startBrowsingForPeers()
         onStatusChanged?(.searching)
+    }
+
+    func invitePeer(_ peerID: MCPeerID) {
+        guard !invitedPeerIDs.contains(peerID) else { return }
+        invitedPeerIDs.insert(peerID)
+        browser.invitePeer(peerID, to: session, withContext: nil, timeout: 20)
+        onStatusChanged?(.found(peerID.displayName))
     }
 
     func stopSearching() {
@@ -75,15 +86,16 @@ extension MacPeerBrowser: MCNearbyServiceBrowserDelegate {
         withDiscoveryInfo info: [String: String]?
     ) {
         Task { @MainActor in
-            onStatusChanged?(.found(peerID.displayName))
-            guard !invitedPeerIDs.contains(peerID) else { return }
-            invitedPeerIDs.insert(peerID)
-            browser.invitePeer(peerID, to: session, withContext: nil, timeout: 20)
+            guard !discoveredPeerIDs.contains(peerID) else { return }
+            discoveredPeerIDs.append(peerID)
+            onDiscoveredPeersChanged?(discoveredPeerIDs)
         }
     }
 
     func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
         Task { @MainActor in
+            discoveredPeerIDs.removeAll { $0 == peerID }
+            onDiscoveredPeersChanged?(discoveredPeerIDs)
             if connectedPeerID == nil {
                 onStatusChanged?(.searching)
             }

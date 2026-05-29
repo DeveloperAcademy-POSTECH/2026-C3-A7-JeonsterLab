@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Charts
+import MultipeerConnectivity
 
 struct RecordingDetailView: View {
 
@@ -35,6 +36,21 @@ struct RecordingDetailView: View {
                 Text(macConnectionViewModel.guidanceText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                if !macConnectionViewModel.discoveredMacs.isEmpty,
+                   macConnectionViewModel.connectionStatus == .searching {
+                    ForEach(macConnectionViewModel.discoveredMacs, id: \.self) { mac in
+                        HStack {
+                            Label(mac.displayName, systemImage: "desktopcomputer")
+                            Spacer()
+                            Button("연결") {
+                                macConnectionViewModel.selectMac(mac)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
+                    }
+                }
 
                 Toggle("Mac 연결 시 자동 전송", isOn: Binding(
                     get: { macConnectionViewModel.isAutomaticTransferEnabled },
