@@ -1,6 +1,17 @@
 # JeonstarLab
 
-> Jeonstar의 학습 데이터를 생성하기 위한 iOS / watchOS 통합 앱입니다.
+> Apple Watch에서 손목 모션 데이터를 기록하고, iPhone을 거쳐 Mac에서 라벨링·분석·데이터셋 내보내기까지 수행하는 iOS / watchOS / macOS 통합 프로젝트입니다.
+
+# 주요 기능
+
+| 구분 | 기능 |
+|---|---|
+| Apple Watch | Core Motion 기반 손목 모션 기록, WMTF 바이너리 파일 저장, iPhone으로 파일 전송 |
+| iPhone | Watch 녹화 수신, SwiftData 메타데이터 저장, 원본 WMTF 파일 보관, CSV/JSON 내보내기 |
+| iPhone → Mac | MultipeerConnectivity 기반 수동/선택적 자동 전송 |
+| Mac | 수신 녹화 목록, 검색, 고정 기록, 새 창 열기, 사용자 정보 기록 |
+| Mac 라벨링 | 자동 스냅 제안, 수동 스냅 생성, 스냅 구간 수정, 라벨/노트 작성, 폴더 분류 |
+| Mac 데이터셋 | 스냅 세그먼트 생성, 폴더 기반 단일 CSV 데이터셋 내보내기 |
 
 # 기술 스택
 
@@ -9,15 +20,30 @@
 | UI | SwiftUI | 화면 구현 |
 | 모션 추적 | CoreMotion  | 사용자의 모션(가속도, 자이로) 추적|
 | 기기 연결 | WatchConnectivity | Watch와 iPhone간의 세션 확인 및 데이터 통신|
+| 근거리 전송 | MultipeerConnectivity | iPhone과 Mac 사이의 녹화 데이터 전송 |
 | 로컬 저장소 | SwiftData | 구조화된 데이터를 기기 로컬에 영구 저장 |
+| Mac 시각화 | Swift Charts | 수신된 모션 CSV의 그래프 표시 |
 
 # 타겟 구성
 
 | 타겟             |                              역할                               | |
 | --- | --- | --- |
 | JeonstarLab Core             | iOS·watchOS가 공유하는 모델, 프로토콜, WatchConnectivity 매니저 |
-| JeonstarLab (iOS)            | iPhone 앱 – 녹음 수신·저장·조회                              |           
+| JeonstarLab (iOS)            | iPhone 앱 – Watch 녹화 수신·저장·조회·내보내기·Mac 전송 |
 | JeonstarLab Watch App        | Apple Watch 앱 – 센서 녹음·파일 전송 |
+| JeonstarLab Mac              | macOS 앱 – 녹화 수신·분석·라벨링·폴더 분류·데이터셋 내보내기 |
+
+# 데이터 흐름
+
+1. Apple Watch가 Core Motion 샘플을 50Hz로 기록합니다.
+2. Watch는 WMTF 바이너리 파일을 생성합니다.
+   - `[magic UInt32 "WMTF"] [version UInt32] [MotionSample × N]`
+3. WatchConnectivity로 iPhone에 녹화 파일을 전송합니다.
+4. iPhone은 SwiftData에 녹화 메타데이터를 저장하고, 원본 WMTF 파일은 Documents/Recordings에 보관합니다.
+5. iPhone은 선택한 녹화를 `recording.csv`, `metadata.json`, `snap_analysis.json`으로 내보냅니다.
+6. iPhone은 내보낸 파일을 공유 시트 또는 MultipeerConnectivity로 Mac에 전달합니다.
+7. Mac은 수신 패키지를 `~/Documents/JeonstarLab/ReceivedRecordings/` 아래에 저장합니다.
+8. Mac에서 스냅 라벨링, 사용자 정보 기록, 폴더 분류, 데이터셋 CSV 내보내기를 수행합니다.
 
 # 프로젝트 폴더링
 ```
@@ -33,7 +59,9 @@
   ├── ViewModels/                                                                                             
   ├── UseCases/
   ├── Storage/      # SwiftData 엔티티 + Repository 구현체                                                    
-  └── Receive/      # WatchConnectivity 파일 수신 브릿지                                                      
+  ├── Receive/      # WatchConnectivity 파일 수신 브릿지
+  ├── Export/       # CSV/JSON 내보내기
+  └── MacTransfer/  # iPhone → Mac MultipeerConnectivity 전송
                                                                                                               
   Wrist Motion Watch Watch App/  (watchOS)                                                                    
   ├── Views/                                                                                                  
@@ -42,7 +70,30 @@
   ├── Manager/      # CMMotionManager 래퍼 (MotionTracker)
   ├── Storage/      # 인메모리 버퍼 + 바이너리 파일 플러시                                                    
   └── Transfer/     # WCSession 파일 전송 서비스
+
+  JeonstarLab Mac/       (macOS)
+  ├── App/
+  ├── Connectivity/      # Mac 수신기(MultipeerConnectivity advertiser)
+  ├── Export/            # 폴더 기반 데이터셋 CSV 내보내기
+  ├── Models/            # 수신 패키지, 스냅, 폴더, 사용자 정보 모델
+  ├── Services/          # CSV/JSON 파서, 세그먼트 생성, 폴더 저장소
+  ├── ViewModels/
+  └── Views/             # 녹화 상세, 그래프, 스냅 목록, 폴더 상세
 ```
+
+# Mac 라벨링 데이터
+
+Mac 앱은 원본 `recording.csv`, `metadata.json`, `snap_analysis.json`을 직접 수정하지 않습니다.
+사용자가 편집한 정보는 수신 패키지 폴더의 사이드카 파일에 저장합니다.
+
+| 파일 | 역할 |
+|---|---|
+| `label.json` | 표시 이름, 고정 여부, 녹화별 사용자 정보, 스냅 라벨/노트, 수동·수정·삭제 스냅 정보 |
+| `folders.json` | Mac 전체 폴더 분류와 폴더에 포함된 스냅 참조 |
+| `segments/<snapID>/segment.csv` | 개별 스냅 구간의 샘플 데이터 |
+| `segments/<snapID>/segment_metadata.json` | 스냅 구간의 메타데이터와 라벨 정보 |
+
+폴더 기반 데이터셋 내보내기는 여러 스냅 세그먼트를 하나의 CSV로 합치며, 각 행은 `snapID`, `sampleIndex`, 모션 값, `label`을 포함합니다.
 
 
 # 깃 전략

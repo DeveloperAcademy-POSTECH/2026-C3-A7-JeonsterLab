@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D37ECEDC2FBD9EB80098CE69 /* JeonstarLab Watch App Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D37ECEDC2FBD9EB80098CE69 /* JeonstarLab Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,7 +27,7 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				D37ECEDC2FBD9EB80098CE69 /* JeonstarLab Watch App Watch App.app in Embed Watch Content */,
+				D37ECEDC2FBD9EB80098CE69 /* JeonstarLab Watch App.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -36,7 +36,7 @@
 
 /* Begin PBXFileReference section */
 		D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JeonstarLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Watch App Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D37ECEE52FBD9F2C0098CE69 /* JeonstarLab Core.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Core.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Mac.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -148,7 +148,7 @@
 			isa = PBXGroup;
 			children = (
 				D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */,
-				D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */,
+				D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App.app */,
 				D37ECEE52FBD9F2C0098CE69 /* JeonstarLab Core.app */,
 				D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */,
 			);
@@ -202,7 +202,7 @@
 			packageProductDependencies = (
 			);
 			productName = "JeonstarLab Watch App Watch App";
-			productReference = D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */;
+			productReference = D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
 		D37ECEE42FBD9F2C0098CE69 /* JeonstarLab Core */ = {
@@ -499,7 +499,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Tom.JeonstarLab;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sangyoung.JeonstarLab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -518,7 +518,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2QJX795Q3R;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = JeonstarLab/Info.plist;
@@ -559,7 +559,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.Tom.JeonstarLab.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "JeonstarLab Watch App";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -592,7 +592,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.Tom.JeonstarLab.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "JeonstarLab Watch App";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
