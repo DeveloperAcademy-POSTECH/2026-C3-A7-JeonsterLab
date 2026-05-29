@@ -132,14 +132,18 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
             return editableEvent
         }
 
-        return (automaticEvents + manualEvents)
-            .filter { event in
-                deletedSnapEventIDs.contains(event.snapID) == false
-                    && legacySnapIDs(for: event).allSatisfy { deletedSnapEventIDs.contains($0) == false }
-            }
-            .sorted { lhs, rhs in
-                (lhs.startTime ?? lhs.peakTime ?? 0) < (rhs.startTime ?? rhs.peakTime ?? 0)
-            }
+        let allEvents = automaticEvents + manualEvents
+
+        let filteredEvents = allEvents.filter { event in
+            deletedSnapEventIDs.contains(event.snapID) == false &&
+                legacySnapIDs(for: event).allSatisfy { deletedSnapEventIDs.contains($0) == false }
+        }
+
+        let sortedEvents = filteredEvents.sorted { lhs, rhs in
+            (lhs.startTime ?? lhs.peakTime ?? 0) < (rhs.startTime ?? rhs.peakTime ?? 0)
+        }
+
+        return sortedEvents
     }
 
     mutating func addManualSnapEvent(from draft: ManualSnapDraft) {
@@ -373,3 +377,4 @@ extension SnapEventExport {
         eventIndex ?? Int((peakTime ?? startTime ?? 0) * 1000)
     }
 }
+
