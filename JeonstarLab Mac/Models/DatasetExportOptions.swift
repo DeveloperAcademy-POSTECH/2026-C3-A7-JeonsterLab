@@ -10,6 +10,32 @@ struct DatasetExportOptions: Equatable {
     var motionColumns: Set<DatasetMotionColumn> = Set(DatasetMotionColumn.defaultSelected)
 
     static let `default` = DatasetExportOptions()
+    private static let storageKey = "JeonstarLab.lastDatasetExportOptions"
+
+    static func lastSaved(defaults: UserDefaults = .standard) -> DatasetExportOptions {
+        guard let data = defaults.data(forKey: storageKey),
+              let payload = try? JSONDecoder().decode(StoragePayload.self, from: data) else {
+            return .default
+        }
+        return DatasetExportOptions(
+            userInfoColumns: Set(payload.userInfoColumns.compactMap(DatasetUserInfoColumn.init(rawValue:))),
+            motionColumns: Set(payload.motionColumns.compactMap(DatasetMotionColumn.init(rawValue:)))
+        )
+    }
+
+    func saveAsLastUsed(defaults: UserDefaults = .standard) {
+        let payload = StoragePayload(
+            userInfoColumns: userInfoColumns.map(\.rawValue),
+            motionColumns: motionColumns.map(\.rawValue)
+        )
+        guard let data = try? JSONEncoder().encode(payload) else { return }
+        defaults.set(data, forKey: Self.storageKey)
+    }
+
+    private struct StoragePayload: Codable {
+        let userInfoColumns: [String]
+        let motionColumns: [String]
+    }
 }
 
 enum DatasetRequiredColumn: String, CaseIterable, Identifiable {

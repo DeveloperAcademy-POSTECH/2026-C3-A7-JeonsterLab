@@ -17,7 +17,7 @@ struct SnapFolderDetailView: View {
     @State private var segmentMessage: String?
     @State private var exportMessage: String?
     @State private var sortOption: SnapFolderSortOption = .dateDescending
-    @State private var exportOptions = DatasetExportOptions.default
+    @State private var exportOptions = DatasetExportOptions.lastSaved()
     @State private var isShowingExportOptions = false
 
     var body: some View {
@@ -50,7 +50,7 @@ struct SnapFolderDetailView: View {
                     .disabled(folder.items.isEmpty)
 
                     Button("데이터셋 CSV 내보내기") {
-                        exportOptions = .default
+                        exportOptions = .lastSaved()
                         isShowingExportOptions = true
                     }
                     .disabled(folder.items.isEmpty)
@@ -93,6 +93,7 @@ struct SnapFolderDetailView: View {
                 },
                 onExport: {
                     isShowingExportOptions = false
+                    exportOptions.saveAsLastUsed()
                     exportMessage = onExportDataset(folder, exportOptions)
                 }
             )
