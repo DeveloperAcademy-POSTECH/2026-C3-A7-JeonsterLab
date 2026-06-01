@@ -6,6 +6,9 @@
 //
 
 import Foundation
+import os
+
+private let storageLogger = Logger(subsystem: "com.iseungjun.Wrist-Motion", category: "Storage")
 
 @Observable
 final class WatchRecordingStorage: RecordingStorageProtocol {
@@ -19,6 +22,7 @@ final class WatchRecordingStorage: RecordingStorageProtocol {
     }
 
     func flush(sessionID: UUID, startedAt: Date) throws -> (url: URL, sampleCount: Int) {
+        let started = Date()
         let count = buffer.count
         let fileName = "WMTF-\(sessionID.uuidString).bin"
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -38,6 +42,8 @@ final class WatchRecordingStorage: RecordingStorageProtocol {
         }
 
         try data.write(to: url, options: .atomic)
+        let elapsed = Date().timeIntervalSince(started)
+        storageLogger.info("flush completed. samples=\(count), bytes=\(data.count), elapsed=\(elapsed, format: .fixed(precision: 3))s")
 
         buffer.removeAll(keepingCapacity: false)
         bufferCount = 0

@@ -7,6 +7,9 @@
 
 
 import SwiftUI
+import os
+
+private let lifecycleLogger = Logger(subsystem: "com.iseungjun.Wrist-Motion", category: "Lifecycle")
 
 @main
 struct Wrist_Motion_Watch_Watch_AppApp: App {
@@ -22,6 +25,7 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
     private let startUseCase:    StartRecordingUseCase
     private let stopUseCase:     StopRecordingUseCase
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var recordingViewModel: RecordingViewModel
 
     init() {
@@ -82,6 +86,9 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
                 viewModel: recordingViewModel,
                 storage: recordingStorage
             )
+            .onChange(of: scenePhase) { _, newPhase in
+                lifecycleLogger.info("scenePhase changed: \(String(describing: newPhase))")
+            }
         }
     }
 }
