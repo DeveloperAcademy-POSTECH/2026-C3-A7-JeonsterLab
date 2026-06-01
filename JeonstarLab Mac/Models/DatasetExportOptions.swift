@@ -51,7 +51,8 @@ enum DatasetUserInfoColumn: String, CaseIterable, Identifiable {
         .userAgeGroup,
         .userHeightCM,
         .userDominantHand,
-        .userSkillLevel
+        .userSkillLevel,
+        .userMemo
     ]
 }
 

@@ -19,8 +19,7 @@ enum FolderDatasetCSVExporter {
     private static func header(options: DatasetExportOptions) -> String {
         let headers = [
             DatasetRequiredColumn.snapID.header,
-            DatasetRequiredColumn.sampleIndex.header,
-            DatasetRequiredColumn.label.header
+            DatasetRequiredColumn.sampleIndex.header
         ]
         + DatasetUserInfoColumn.allCases
             .filter { options.userInfoColumns.contains($0) }
@@ -28,6 +27,9 @@ enum FolderDatasetCSVExporter {
         + DatasetMotionColumn.allCases
             .filter { options.motionColumns.contains($0) }
             .map(\.header)
+        + [
+            DatasetRequiredColumn.label.header
+        ]
 
         return headers.joined(separator: ",")
     }
@@ -43,8 +45,7 @@ enum FolderDatasetCSVExporter {
         return entry.samples.enumerated().map { sampleIndex, sample in
             let requiredValues = [
                 escaped(entry.snapID),
-                "\(sampleIndex)",
-                escaped(entry.label)
+                "\(sampleIndex)"
             ]
             let userInfoValues = DatasetUserInfoColumn.allCases
                 .filter { options.userInfoColumns.contains($0) }
@@ -52,8 +53,11 @@ enum FolderDatasetCSVExporter {
             let motionValues = DatasetMotionColumn.allCases
                 .filter { options.motionColumns.contains($0) }
                 .map { motionValue($0, from: sample, firstTimestamp: firstTimestamp) }
+            let labelValue = [
+                escaped(entry.label)
+            ]
 
-            return (requiredValues + userInfoValues + motionValues).joined(separator: ",")
+            return (requiredValues + userInfoValues + motionValues + labelValue).joined(separator: ",")
         }
     }
 
