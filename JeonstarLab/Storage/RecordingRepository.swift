@@ -58,4 +58,30 @@ final class RecordingRepository: RecordingRepositoryProtocol {
         let url = try fileStore.urlForFile(named: entity.fileName)
         return try MotionSampleSerializer.read(from: url)
     }
+
+    func snapDetectionMode(for sessionID: UUID) throws -> SnapDetectionMode {
+        let entity = try entity(for: sessionID)
+        guard let rawValue = entity.snapDetectionModeRawValue,
+              let mode = SnapDetectionMode(rawValue: rawValue) else {
+            return .none
+        }
+        return mode
+    }
+
+    func updateSnapDetectionMode(for sessionID: UUID, mode: SnapDetectionMode) throws {
+        let entity = try entity(for: sessionID)
+        entity.snapDetectionModeRawValue = mode.rawValue
+        try modelContext.save()
+    }
+
+    private func entity(for sessionID: UUID) throws -> RecordingEntity {
+        let id = sessionID
+        let descriptor = FetchDescriptor<RecordingEntity>(
+            predicate: #Predicate { $0.id == id }
+        )
+        guard let entity = try modelContext.fetch(descriptor).first else {
+            throw RecordingRepositoryError.notFound
+        }
+        return entity
+    }
 }

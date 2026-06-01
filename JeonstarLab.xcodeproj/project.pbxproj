@@ -63,6 +63,7 @@
 				Models/MotionSample.swift,
 				Models/RecordingCommand.swift,
 				Models/RecordingSession.swift,
+				Models/SnapDetectionMode.swift,
 				Protocols/RecordingRepositoryProtocol.swift,
 				WatchSessionManager.swift,
 			);

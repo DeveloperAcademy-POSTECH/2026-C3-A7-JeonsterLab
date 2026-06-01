@@ -20,7 +20,14 @@ final class RecordingExportService {
 
     func export(session: RecordingSession) throws -> [URL] {
         let samples = try repository.loadSamples(for: session.id)
-        let snapAnalysisResult = AnalyzeSnapUseCase.execute(samples: samples)
+        let snapDetectionMode = try repository.snapDetectionMode(for: session.id)
+        let snapAnalysisResult: SnapAnalysisResult
+        switch snapDetectionMode {
+        case .none:
+            snapAnalysisResult = SnapAnalysisResult(events: [])
+        case .jeonFlip:
+            snapAnalysisResult = AnalyzeSnapUseCase.execute(samples: samples)
+        }
         let exportDirectory = try makeExportDirectory(for: session)
 
         let csvURL = exportDirectory.appendingPathComponent("recording.csv")
@@ -31,7 +38,7 @@ final class RecordingExportService {
             .makeCSV(from: samples)
             .write(to: csvURL, atomically: true, encoding: .utf8)
         try RecordingMetadataExporter
-            .makeJSONData(for: session)
+            .makeJSONData(for: session, snapDetectionMode: snapDetectionMode)
             .write(to: metadataURL, options: .atomic)
         try SnapAnalysisJSONExporter
             .makeJSONData(for: session, result: snapAnalysisResult)

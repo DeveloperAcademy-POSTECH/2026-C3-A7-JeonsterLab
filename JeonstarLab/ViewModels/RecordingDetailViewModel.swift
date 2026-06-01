@@ -14,6 +14,8 @@ final class RecordingDetailViewModel {
     private(set) var samples:      [MotionSample] = []
     private(set) var isLoading:    Bool = false
     private(set) var errorMessage: String?
+    private(set) var appliedSnapDetectionMode: SnapDetectionMode
+    var pendingSnapDetectionMode: SnapDetectionMode
 
     private let session:    RecordingSession
     private let repository: RecordingRepositoryProtocol
@@ -21,6 +23,9 @@ final class RecordingDetailViewModel {
     init(session: RecordingSession, repository: RecordingRepositoryProtocol) {
         self.session    = session
         self.repository = repository
+        let mode = (try? repository.snapDetectionMode(for: session.id)) ?? .none
+        self.appliedSnapDetectionMode = mode
+        self.pendingSnapDetectionMode = mode
     }
 
     var title: String {
@@ -46,6 +51,19 @@ final class RecordingDetailViewModel {
         repository
     }
 
+    var availableSnapDetectionModes: [SnapDetectionMode] {
+        SnapDetectionMode.allCases
+    }
+
+    var canApplySnapDetectionMode: Bool {
+        pendingSnapDetectionMode != appliedSnapDetectionMode
+    }
+
+    var snapAnalysisResult: SnapAnalysisResult? {
+        guard appliedSnapDetectionMode == .jeonFlip else { return nil }
+        return AnalyzeSnapUseCase.execute(samples: samples)
+    }
+
     func exportRecording() throws -> [URL] {
         try RecordingExportService(repository: repository)
             .export(session: session)
@@ -59,5 +77,13 @@ final class RecordingDetailViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    func applyPendingSnapDetectionMode() throws {
+        try repository.updateSnapDetectionMode(
+            for: session.id,
+            mode: pendingSnapDetectionMode
+        )
+        appliedSnapDetectionMode = pendingSnapDetectionMode
     }
 }

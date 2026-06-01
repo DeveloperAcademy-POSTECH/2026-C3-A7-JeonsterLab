@@ -36,6 +36,11 @@ struct MacRecordingInfoPanel: View {
                     .foregroundStyle(.secondary)
             }
             GridRow {
+                Text("스냅 감지 기준")
+                Text(package.snapDetectionMode.displayName)
+                    .foregroundStyle(.secondary)
+            }
+            GridRow {
                 Text("파일 상태")
                 Text(package.completenessText)
                     .foregroundStyle(package.isComplete ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
