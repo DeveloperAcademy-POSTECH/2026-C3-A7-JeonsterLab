@@ -15,10 +15,12 @@ final class WatchRecordingStorage: RecordingStorageProtocol {
 
     private(set) var bufferCount: Int = 0
     private var buffer: [MotionSample] = []
+    private var lastVisibleCountUpdate = Date.distantPast
+    private let visibleCountUpdateInterval: TimeInterval = 1.0
 
     func append(_ sample: MotionSample) {
         buffer.append(sample)
-        bufferCount = buffer.count
+        updateVisibleBufferCountIfNeeded()
     }
 
     func flush(sessionID: UUID, startedAt: Date) throws -> (url: URL, sampleCount: Int) {
@@ -47,6 +49,7 @@ final class WatchRecordingStorage: RecordingStorageProtocol {
 
         buffer.removeAll(keepingCapacity: false)
         bufferCount = 0
+        lastVisibleCountUpdate = .distantPast
 
         return (url, count)
     }
@@ -54,5 +57,15 @@ final class WatchRecordingStorage: RecordingStorageProtocol {
     func discard() {
         buffer.removeAll(keepingCapacity: false)
         bufferCount = 0
+        lastVisibleCountUpdate = .distantPast
+    }
+
+    private func updateVisibleBufferCountIfNeeded() {
+        let now = Date()
+        guard now.timeIntervalSince(lastVisibleCountUpdate) >= visibleCountUpdateInterval else {
+            return
+        }
+        lastVisibleCountUpdate = now
+        bufferCount = buffer.count
     }
 }

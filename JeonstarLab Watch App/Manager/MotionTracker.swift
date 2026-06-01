@@ -15,6 +15,13 @@ private let motionLogger = Logger(subsystem: "com.iseungjun.Wrist-Motion", categ
 final class MotionTracker: NSObject, MotionRecorderProtocol {
 
     private let motionManager = CMMotionManager()
+    private let motionQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "com.iseungjun.Wrist-Motion.motion"
+        queue.maxConcurrentOperationCount = 1
+        queue.qualityOfService = .userInitiated
+        return queue
+    }()
     private var extendedSession: WKExtendedRuntimeSession?
     private var extendedSessionStarted = false
     private var recordingStartedAt: Date?
@@ -50,8 +57,8 @@ final class MotionTracker: NSObject, MotionRecorderProtocol {
 
         motionManager.deviceMotionUpdateInterval = 1.0 / 50.0
 
-        // OperationQueue.main 사용 → MainActor와 호환
-        motionManager.startDeviceMotionUpdates(to: .main) { data, error in
+        // Core Motion delivery is kept off the main queue so UI work cannot delay sampling.
+        motionManager.startDeviceMotionUpdates(to: motionQueue) { data, error in
             if let error {
                 motionLogger.error("deviceMotion update error: \(error.localizedDescription)")
                 return
