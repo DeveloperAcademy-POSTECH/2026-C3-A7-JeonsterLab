@@ -74,6 +74,12 @@ final class RecordingRepository: RecordingRepositoryProtocol {
         try modelContext.save()
     }
 
+    func updateMemo(for sessionID: UUID, memo: String) throws {
+        let entity = try entity(for: sessionID)
+        entity.memo = memo
+        try modelContext.save()
+    }
+
     private func entity(for sessionID: UUID) throws -> RecordingEntity {
         let id = sessionID
         let descriptor = FetchDescriptor<RecordingEntity>(

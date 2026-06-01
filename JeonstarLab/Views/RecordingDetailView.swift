@@ -30,6 +30,24 @@ struct RecordingDetailView: View {
                 LabeledContent("샘플", value: viewModel.sampleCountText)
             }
 
+            Section("메모") {
+                TextField(
+                    "녹화 당시의 특이사항을 기록하세요.",
+                    text: $viewModel.recordingMemo,
+                    axis: .vertical
+                )
+                .lineLimit(3...6)
+                .onChange(of: viewModel.recordingMemo) {
+                    viewModel.updateRecordingMemo(viewModel.recordingMemo)
+                }
+
+                if let memoErrorMessage = viewModel.memoErrorMessage {
+                    Text("메모 저장 실패: \(memoErrorMessage)")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+
             Section("Mac 전송") {
                 LabeledContent("Mac 연결 상태", value: macConnectionViewModel.connectionStatusText)
                 LabeledContent("Mac", value: macConnectionViewModel.connectedMacText)

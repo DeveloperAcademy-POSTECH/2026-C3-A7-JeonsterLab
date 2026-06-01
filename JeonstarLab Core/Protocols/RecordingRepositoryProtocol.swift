@@ -28,4 +28,7 @@ protocol RecordingRepositoryProtocol: AnyObject {
 
     /// 녹화별 스냅 감지 기준을 저장.
     func updateSnapDetectionMode(for sessionID: UUID, mode: SnapDetectionMode) throws
+
+    /// 녹화 단위 메모를 저장.
+    func updateMemo(for sessionID: UUID, memo: String) throws
 }

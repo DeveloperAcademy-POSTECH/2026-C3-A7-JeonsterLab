@@ -12,6 +12,7 @@ struct RecordingExportMetadata: Decodable, Equatable {
     let sampleCount: Int?
     let samplingRate: Int?
     let fileName: String?
+    let recordingMemo: String?
     let snapDetectionMode: MacSnapDetectionMode
 
     enum CodingKeys: String, CodingKey {
@@ -21,6 +22,8 @@ struct RecordingExportMetadata: Decodable, Equatable {
         case sampleCount
         case samplingRate
         case fileName
+        case recordingMemo
+        case memo
         case snapDetectionMode
     }
 
@@ -32,6 +35,8 @@ struct RecordingExportMetadata: Decodable, Equatable {
         sampleCount = try container.decodeIfPresent(Int.self, forKey: .sampleCount)
         samplingRate = try container.decodeIfPresent(Int.self, forKey: .samplingRate)
         fileName = try container.decodeIfPresent(String.self, forKey: .fileName)
+        recordingMemo = try container.decodeIfPresent(String.self, forKey: .recordingMemo)
+            ?? container.decodeIfPresent(String.self, forKey: .memo)
         snapDetectionMode = try container.decodeIfPresent(
             MacSnapDetectionMode.self,
             forKey: .snapDetectionMode
