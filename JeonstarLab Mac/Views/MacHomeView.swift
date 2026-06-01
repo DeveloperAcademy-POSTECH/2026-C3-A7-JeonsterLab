@@ -111,7 +111,7 @@ struct MacHomeView: View {
                         onOpenSource: viewModel.openSource(for:),
                         hasSourcePackage: viewModel.hasSourcePackage(for:),
                         onGenerateSegments: viewModel.generateSegments(for:),
-                        onExportDataset: viewModel.exportDataset(for:)
+                        onExportDataset: viewModel.exportDataset(for:options:)
                     )
                 } else if let packageBinding = viewModel.bindingForSelectedPackage() {
                     MacRecordingDetailView(
