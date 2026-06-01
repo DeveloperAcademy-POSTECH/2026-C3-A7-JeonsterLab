@@ -12,11 +12,13 @@ struct SnapFolderDetailView: View {
     let onOpenSource: (SnapFolderItem) -> Void
     let hasSourcePackage: (SnapFolderItem) -> Bool
     let onGenerateSegments: (SnapFolder) -> String
-    let onExportDataset: (SnapFolder) -> String
+    let onExportDataset: (SnapFolder, DatasetExportOptions) -> String
 
     @State private var segmentMessage: String?
     @State private var exportMessage: String?
     @State private var sortOption: SnapFolderSortOption = .dateDescending
+    @State private var exportOptions = DatasetExportOptions.default
+    @State private var isShowingExportOptions = false
 
     var body: some View {
         ScrollView {
@@ -48,7 +50,8 @@ struct SnapFolderDetailView: View {
                     .disabled(folder.items.isEmpty)
 
                     Button("데이터셋 CSV 내보내기") {
-                        exportMessage = onExportDataset(folder)
+                        exportOptions = .default
+                        isShowingExportOptions = true
                     }
                     .disabled(folder.items.isEmpty)
 
@@ -81,6 +84,18 @@ struct SnapFolderDetailView: View {
             }
             .frame(maxWidth: 920, alignment: .leading)
             .padding(28)
+        }
+        .sheet(isPresented: $isShowingExportOptions) {
+            DatasetExportOptionsView(
+                options: $exportOptions,
+                onCancel: {
+                    isShowingExportOptions = false
+                },
+                onExport: {
+                    isShowingExportOptions = false
+                    exportMessage = onExportDataset(folder, exportOptions)
+                }
+            )
         }
     }
 

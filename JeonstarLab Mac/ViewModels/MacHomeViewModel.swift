@@ -417,7 +417,7 @@ final class MacHomeViewModel {
         return "세그먼트 \(generatedCount)개를 생성했습니다."
     }
 
-    func exportDataset(for folder: SnapFolder) -> String {
+    func exportDataset(for folder: SnapFolder, options: DatasetExportOptions) -> String {
         guard folder.items.isEmpty == false else {
             return "내보낼 스냅이 없습니다."
         }
@@ -437,7 +437,8 @@ final class MacHomeViewModel {
             let report = try FolderDatasetExportService.export(
                 folder: folder,
                 packages: receivedPackages,
-                outputURL: outputURL
+                outputURL: outputURL,
+                options: options
             )
 
             var message = "\(report.summaryText) · \(report.outputURL.lastPathComponent)"
@@ -487,6 +488,7 @@ final class MacHomeViewModel {
             package.participantInfo.gender.displayName,
             package.participantInfo.ageGroup.displayName,
             package.participantInfo.heightCM,
+            package.participantInfo.dominantHand.displayName,
             package.participantInfo.skillLevel.displayName,
             package.participantInfo.memo
         ]
