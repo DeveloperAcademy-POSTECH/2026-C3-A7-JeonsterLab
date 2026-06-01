@@ -50,6 +50,14 @@ final class RecordingDetailViewModel {
         session
     }
 
+    var savedRecordingMemo: String {
+        session.memo
+    }
+
+    var hasRecordingMemoChanges: Bool {
+        recordingMemo != session.memo
+    }
+
     var recordingRepository: RecordingRepositoryProtocol {
         repository
     }
@@ -106,5 +114,10 @@ final class RecordingDetailViewModel {
         } catch {
             memoErrorMessage = error.localizedDescription
         }
+    }
+
+    func resetRecordingMemoDraft() {
+        recordingMemo = session.memo
+        memoErrorMessage = nil
     }
 }
