@@ -55,10 +55,21 @@ struct RecordingDetailView: View {
                         }
                     }
                 } else {
-                    Text(viewModel.savedRecordingMemo.isEmpty ? "녹화 당시의 특이사항을 기록하세요." : viewModel.savedRecordingMemo)
-                        .foregroundStyle(viewModel.savedRecordingMemo.isEmpty ? .secondary : .primary)
+                    Button {
+                        viewModel.resetRecordingMemoDraft()
+                        isEditingMemo = true
+                    } label: {
+                        HStack(alignment: .top) {
+                            Text(viewModel.savedRecordingMemo.isEmpty ? "녹화 당시의 특이사항을 기록하세요." : viewModel.savedRecordingMemo)
+                                .foregroundStyle(viewModel.savedRecordingMemo.isEmpty ? .secondary : .primary)
+                                .multilineTextAlignment(.leading)
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
 
-                    Button(viewModel.savedRecordingMemo.isEmpty ? "메모 추가" : "메모 편집") {
+                    Button("메모 편집") {
                         viewModel.resetRecordingMemoDraft()
                         isEditingMemo = true
                     }
