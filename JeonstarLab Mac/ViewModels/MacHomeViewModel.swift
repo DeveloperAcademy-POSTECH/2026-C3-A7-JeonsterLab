@@ -434,9 +434,10 @@ final class MacHomeViewModel {
         }
 
         do {
+            let packagesForExport = reloadPackagesForExport()
             let report = try FolderDatasetExportService.export(
                 folder: folder,
-                packages: receivedPackages,
+                packages: packagesForExport,
                 outputURL: outputURL,
                 options: options
             )
@@ -452,6 +453,16 @@ final class MacHomeViewModel {
         } catch {
             return "CSV 내보내기 실패: \(error.localizedDescription)"
         }
+    }
+
+    private func reloadPackagesForExport() -> [ReceivedRecordingPackage] {
+        let loadedPackages = packageLoader.loadPackages(rootURL: rootReceivedFolderURL)
+        guard !loadedPackages.isEmpty else {
+            return receivedPackages
+        }
+        receivedPackages = loadedPackages
+        updateAllFolderItemSnapshots(shouldSave: false)
+        return loadedPackages
     }
 
     private func upsert(_ package: ReceivedRecordingPackage) {
@@ -495,13 +506,15 @@ final class MacHomeViewModel {
         .joined(separator: " ")
     }
 
-    private func updateAllFolderItemSnapshots() {
+    private func updateAllFolderItemSnapshots(shouldSave: Bool = true) {
         guard !snapFolders.isEmpty else { return }
         for package in receivedPackages {
             updateFolderItems(for: package, shouldSave: false)
         }
         snapFolders = normalizedFolderMemberships(snapFolders)
-        saveFolders()
+        if shouldSave {
+            saveFolders()
+        }
     }
 
     private func updateFolderItems(for package: ReceivedRecordingPackage, shouldSave: Bool = true) {
