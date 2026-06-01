@@ -16,6 +16,7 @@ final class RecordingEntity {
     var sampleCount:  Int
     var fileName:     String
     var samplingRate: Int
+    var snapDetectionModeRawValue: String?
 
     init(session: RecordingSession) {
         self.id          = session.id
@@ -24,6 +25,7 @@ final class RecordingEntity {
         self.sampleCount = session.sampleCount
         self.fileName    = session.fileName
         self.samplingRate = session.samplingRate
+        self.snapDetectionModeRawValue = SnapDetectionMode.none.rawValue
     }
 
     var asRecordingSession: RecordingSession {

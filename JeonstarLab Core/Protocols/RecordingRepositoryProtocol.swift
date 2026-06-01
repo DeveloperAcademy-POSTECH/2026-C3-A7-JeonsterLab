@@ -22,4 +22,10 @@ protocol RecordingRepositoryProtocol: AnyObject {
 
     /// 주어진 세션의 binary 파일에서 모든 샘플을 읽어 반환.
     func loadSamples(for sessionID: UUID) throws -> [MotionSample]
+
+    /// 녹화별 스냅 감지 기준을 읽어 반환.
+    func snapDetectionMode(for sessionID: UUID) throws -> SnapDetectionMode
+
+    /// 녹화별 스냅 감지 기준을 저장.
+    func updateSnapDetectionMode(for sessionID: UUID, mode: SnapDetectionMode) throws
 }
