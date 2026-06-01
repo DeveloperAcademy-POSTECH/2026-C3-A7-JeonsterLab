@@ -36,7 +36,7 @@ final class MotionTracker: NSObject, MotionRecorderProtocol {
     /// RecordingViewModel.stopRecording()을 연결해 자동 종료 처리.
     var onExtendedSessionExpired: (() -> Void)?
 
-    func startRecording(onSample: @escaping @MainActor (MotionSample) -> Void) throws {
+    func startRecording(onSample: @escaping (MotionSample) -> Void) throws {
         motionLogger.info("startRecording requested. available=\(self.motionManager.isDeviceMotionAvailable), active=\(self.motionManager.isDeviceMotionActive), isRecording=\(self.isRecording)")
         guard motionManager.isDeviceMotionAvailable else {
             throw MotionTrackerError.hardwareUnavailable
@@ -82,7 +82,7 @@ final class MotionTracker: NSObject, MotionRecorderProtocol {
                 userAccY:       data.userAcceleration.y,
                 userAccZ:       data.userAcceleration.z
             )
-            Task { @MainActor in onSample(sample) }
+            onSample(sample)
         }
         isRecording = true
     }

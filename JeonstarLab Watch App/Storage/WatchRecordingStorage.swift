@@ -14,18 +14,40 @@ private let storageLogger = Logger(subsystem: "com.iseungjun.Wrist-Motion", cate
 final class WatchRecordingStorage: RecordingStorageProtocol {
 
     private(set) var bufferCount: Int = 0
-    private var buffer: [MotionSample] = []
-    private var lastVisibleCountUpdate = Date.distantPast
+    private let bufferLock = NSLock()
+    nonisolated(unsafe) private var buffer: [MotionSample] = []
+    nonisolated(unsafe) private var lastVisibleCountUpdate = Date.distantPast
+    nonisolated(unsafe) private var countUpdateGeneration = 0
     private let visibleCountUpdateInterval: TimeInterval = 1.0
 
-    func append(_ sample: MotionSample) {
+    nonisolated func append(_ sample: MotionSample) {
+        let countForDisplay: Int?
+        let generation: Int
+        bufferLock.lock()
         buffer.append(sample)
-        updateVisibleBufferCountIfNeeded()
+        generation = countUpdateGeneration
+
+        let now = Date()
+        if now.timeIntervalSince(lastVisibleCountUpdate) >= visibleCountUpdateInterval {
+            lastVisibleCountUpdate = now
+            countForDisplay = buffer.count
+        } else {
+            countForDisplay = nil
+        }
+        bufferLock.unlock()
+
+        if let countForDisplay {
+            Task { @MainActor [weak self] in
+                guard self?.currentCountUpdateGeneration == generation else { return }
+                self?.bufferCount = countForDisplay
+            }
+        }
     }
 
     func flush(sessionID: UUID, startedAt: Date) throws -> (url: URL, sampleCount: Int) {
         let started = Date()
-        let count = buffer.count
+        let samples = drainBuffer()
+        let count = samples.count
         let fileName = "WMTF-\(sessionID.uuidString).bin"
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent(fileName)
@@ -39,7 +61,7 @@ final class WatchRecordingStorage: RecordingStorageProtocol {
         withUnsafeBytes(of: &version) { data.append(contentsOf: $0) }
 
         // 페이로드: raw MotionSample 배열
-        buffer.withUnsafeBytes { ptr in
+        samples.withUnsafeBytes { ptr in
             data.append(contentsOf: ptr)
         }
 
@@ -47,25 +69,30 @@ final class WatchRecordingStorage: RecordingStorageProtocol {
         let elapsed = Date().timeIntervalSince(started)
         storageLogger.info("flush completed. samples=\(count), bytes=\(data.count), elapsed=\(elapsed, format: .fixed(precision: 3))s")
 
-        buffer.removeAll(keepingCapacity: false)
         bufferCount = 0
-        lastVisibleCountUpdate = .distantPast
 
         return (url, count)
     }
 
     func discard() {
-        buffer.removeAll(keepingCapacity: false)
+        _ = drainBuffer()
         bufferCount = 0
-        lastVisibleCountUpdate = .distantPast
     }
 
-    private func updateVisibleBufferCountIfNeeded() {
-        let now = Date()
-        guard now.timeIntervalSince(lastVisibleCountUpdate) >= visibleCountUpdateInterval else {
-            return
-        }
-        lastVisibleCountUpdate = now
-        bufferCount = buffer.count
+    private var currentCountUpdateGeneration: Int {
+        bufferLock.lock()
+        defer { bufferLock.unlock() }
+        return countUpdateGeneration
+    }
+
+    private func drainBuffer() -> [MotionSample] {
+        bufferLock.lock()
+        defer { bufferLock.unlock() }
+
+        let samples = buffer
+        buffer.removeAll(keepingCapacity: false)
+        lastVisibleCountUpdate = .distantPast
+        countUpdateGeneration += 1
+        return samples
     }
 }
