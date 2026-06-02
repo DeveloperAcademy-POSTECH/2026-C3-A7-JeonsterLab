@@ -38,7 +38,7 @@ struct Wrist_MotionApp: App {
             fileStore:    fileStore
         )
         let importUC  = ImportRecordingUseCase(repository: repo)
-        let receiver  = FileReceiveService(importUseCase: importUC)
+        let receiver  = FileReceiveService(importUseCase: importUC, sessionManager: sm)
         let listVM    = RecordingListViewModel(repository: repo)
 
         // WCSession 파일 수신 → FileReceiveService 연결

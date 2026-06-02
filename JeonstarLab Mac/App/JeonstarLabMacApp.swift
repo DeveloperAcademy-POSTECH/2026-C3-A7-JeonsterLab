@@ -14,6 +14,15 @@ struct JeonstarLabMacApp: App {
             MacHomeView(viewModel: viewModel)
         }
 
+        WindowGroup("Receiver Project", for: ReceiverProjectWindowRequest.self) { $request in
+            if let request {
+                MacReceiverProjectWindowView(request: request)
+            } else {
+                Text("프로젝트 작업공간을 열 수 없습니다.")
+                    .frame(minWidth: 680, minHeight: 480)
+            }
+        }
+
         WindowGroup("Recording Detail", for: String.self) { $packagePath in
             if let packagePath {
                 MacRecordingDetailWindowView(packagePath: packagePath)

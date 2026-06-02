@@ -51,7 +51,6 @@ final class StopRecordingUseCase {
         logger.debug("▶︎ [3] transfer 호출 시작")
         transfer.transfer(fileURL: fileURL, session: session)
         logger.debug("▶︎ [4] transferFile enqueue 완료")
-        // 파일 삭제는 WatchSessionManager.didFinish 콜백에서 처리.
-        // Apple 문서: "Do not modify or delete the file until after it has been delivered."
+        // 파일 삭제는 iPhone import 성공 ACK 수신 후 처리한다.
     }
 }

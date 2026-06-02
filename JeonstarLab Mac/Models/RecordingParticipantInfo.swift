@@ -10,14 +10,34 @@ struct RecordingParticipantInfo: Codable, Equatable {
     var gender: ParticipantGenderOption
     var ageGroup: ParticipantAgeGroupOption
     var heightCM: String
+    var dominantHand: ParticipantDominantHandOption
     var skillLevel: ParticipantSkillLevelOption
     var memo: String
+
+    init(
+        nameOrNickname: String,
+        gender: ParticipantGenderOption,
+        ageGroup: ParticipantAgeGroupOption,
+        heightCM: String,
+        dominantHand: ParticipantDominantHandOption = .unspecified,
+        skillLevel: ParticipantSkillLevelOption,
+        memo: String
+    ) {
+        self.nameOrNickname = nameOrNickname
+        self.gender = gender
+        self.ageGroup = ageGroup
+        self.heightCM = heightCM
+        self.dominantHand = dominantHand
+        self.skillLevel = skillLevel
+        self.memo = memo
+    }
 
     static let empty = RecordingParticipantInfo(
         nameOrNickname: "",
         gender: .unspecified,
         ageGroup: .unspecified,
         heightCM: "",
+        dominantHand: .unspecified,
         skillLevel: .unspecified,
         memo: ""
     )
@@ -28,9 +48,31 @@ struct RecordingParticipantInfo: Codable, Equatable {
             "participantGender": gender.rawValue,
             "participantAgeGroup": ageGroup.rawValue,
             "participantHeightCM": heightCM,
+            "participantDominantHand": dominantHand.rawValue,
             "participantSkillLevel": skillLevel.rawValue,
             "participantMemo": memo
         ]
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case nameOrNickname
+        case gender
+        case ageGroup
+        case heightCM
+        case dominantHand
+        case skillLevel
+        case memo
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        nameOrNickname = try container.decodeIfPresent(String.self, forKey: .nameOrNickname) ?? ""
+        gender = try container.decodeIfPresent(ParticipantGenderOption.self, forKey: .gender) ?? .unspecified
+        ageGroup = try container.decodeIfPresent(ParticipantAgeGroupOption.self, forKey: .ageGroup) ?? .unspecified
+        heightCM = try container.decodeIfPresent(String.self, forKey: .heightCM) ?? ""
+        dominantHand = try container.decodeIfPresent(ParticipantDominantHandOption.self, forKey: .dominantHand) ?? .unspecified
+        skillLevel = try container.decodeIfPresent(ParticipantSkillLevelOption.self, forKey: .skillLevel) ?? .unspecified
+        memo = try container.decodeIfPresent(String.self, forKey: .memo) ?? ""
     }
 }
 
@@ -72,6 +114,22 @@ enum ParticipantAgeGroupOption: String, Codable, CaseIterable, Identifiable {
         case .forties: return "40대"
         case .fifties: return "50대"
         case .sixtiesPlus: return "60대 이상"
+        }
+    }
+}
+
+enum ParticipantDominantHandOption: String, Codable, CaseIterable, Identifiable {
+    case unspecified
+    case left
+    case right
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .unspecified: return "미입력"
+        case .left: return "왼손"
+        case .right: return "오른손"
         }
     }
 }

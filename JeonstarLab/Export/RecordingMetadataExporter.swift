@@ -6,14 +6,19 @@
 import Foundation
 
 enum RecordingMetadataExporter {
-    static func makeJSONData(for session: RecordingSession) throws -> Data {
+    static func makeJSONData(
+        for session: RecordingSession,
+        snapDetectionMode: SnapDetectionMode
+    ) throws -> Data {
         let metadata = RecordingMetadataPayload(
             recordingID: session.id,
             startedAt: session.startedAt,
             duration: session.duration,
             sampleCount: session.sampleCount,
             samplingRate: session.samplingRate,
-            fileName: session.fileName
+            fileName: session.fileName,
+            recordingMemo: session.memo,
+            snapDetectionMode: snapDetectionMode.rawValue
         )
 
         return try JSONEncoder.exportEncoder.encode(metadata)
@@ -27,4 +32,6 @@ private struct RecordingMetadataPayload: Encodable {
     let sampleCount: Int
     let samplingRate: Int
     let fileName: String
+    let recordingMemo: String
+    let snapDetectionMode: String
 }

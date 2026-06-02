@@ -7,6 +7,9 @@
 
 
 import SwiftUI
+import os
+
+private let lifecycleLogger = Logger(subsystem: "com.iseungjun.Wrist-Motion", category: "Lifecycle")
 
 @main
 struct Wrist_Motion_Watch_Watch_AppApp: App {
@@ -22,6 +25,7 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
     private let startUseCase:    StartRecordingUseCase
     private let stopUseCase:     StopRecordingUseCase
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var recordingViewModel: RecordingViewModel
 
     init() {
@@ -41,6 +45,7 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
         let vm = RecordingViewModel(
             startUseCase: start,
             stopUseCase: stop,
+            transferService: transfer,
             hapticManager: hapticManager
         )
 
@@ -48,6 +53,12 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
         sessionManager.onTransferDidFinish = { [vm] error in
             Task { @MainActor in
                 vm.transferDidComplete(error: error)
+            }
+        }
+
+        sessionManager.onRecordingImportAcknowledged = { [recordingStorage] sessionID, fileName in
+            Task { @MainActor in
+                recordingStorage.deleteRetainedFile(sessionID: sessionID, fileName: fileName)
             }
         }
 
@@ -82,6 +93,9 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
                 viewModel: recordingViewModel,
                 storage: recordingStorage
             )
+            .onChange(of: scenePhase) { _, newPhase in
+                lifecycleLogger.info("scenePhase changed: \(String(describing: newPhase))")
+            }
         }
     }
 }

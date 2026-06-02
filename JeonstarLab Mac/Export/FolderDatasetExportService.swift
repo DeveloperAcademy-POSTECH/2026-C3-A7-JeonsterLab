@@ -10,6 +10,7 @@ enum FolderDatasetExportService {
         folder: SnapFolder,
         packages: [ReceivedRecordingPackage],
         outputURL: URL,
+        options: DatasetExportOptions = .default,
         fileManager: FileManager = .default
     ) throws -> FolderDatasetExportReport {
         var entries: [FolderDatasetSnapEntry] = []
@@ -59,6 +60,7 @@ enum FolderDatasetExportService {
                     FolderDatasetSnapEntry(
                         snapID: event.snapID,
                         label: datasetLabel,
+                        participantInfo: package.participantInfo,
                         samples: segmentSamples
                     )
                 )
@@ -71,7 +73,7 @@ enum FolderDatasetExportService {
             throw FolderDatasetExportError.noExportableSnaps(skippedReasons)
         }
 
-        let csv = FolderDatasetCSVExporter.csvString(for: entries)
+        let csv = FolderDatasetCSVExporter.csvString(for: entries, options: options)
         try fileManager.createDirectory(
             at: outputURL.deletingLastPathComponent(),
             withIntermediateDirectories: true

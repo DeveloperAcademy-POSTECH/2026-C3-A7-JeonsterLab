@@ -13,7 +13,8 @@ final class MacHomeViewModel {
     private let receiver = MacPeerReceiver()
     private let packageLoader = ReceivedRecordingPackageLoader()
     private let fileStore = MacReceivedFileStore()
-    private let folderStore: SnapFolderStore
+    private let workspaceManager: ReceiverWorkspaceManager
+    private var folderStore: SnapFolderStore
     @ObservationIgnored private var labelChangeObserver: NSObjectProtocol?
 
     var receiverStatus: MacReceiverStatus = .idle
@@ -23,10 +24,15 @@ final class MacHomeViewModel {
     var selectedPackageID: ReceivedRecordingPackage.ID?
     var selectedFolderID: SnapFolder.ID?
     var errorMessage: String?
+    var projectPackageMessage: String?
     var searchQuery = ""
 
-    init() {
-        folderStore = SnapFolderStore(rootURL: fileStore.rootDirectory)
+    init(workspace: ReceiverWorkspace? = nil) {
+        workspaceManager = ReceiverWorkspaceManager(
+            defaultRecordingsURL: fileStore.rootDirectory,
+            initialWorkspace: workspace
+        )
+        folderStore = SnapFolderStore(rootURL: workspaceManager.currentWorkspace.foldersRootURL)
         reloadFolders()
         reloadPackages()
         receiver.onStatusChanged = { [weak self] status in
@@ -37,6 +43,7 @@ final class MacHomeViewModel {
         }
         receiver.onReceivedFiles = { [weak self] fileURLs in
             guard let self else { return }
+            switchToDefaultWorkspace()
             let folders = Set(fileURLs.map { $0.deletingLastPathComponent() })
             for folder in folders {
                 if let package = packageLoader.loadPackage(folderURL: folder) {
@@ -111,7 +118,25 @@ final class MacHomeViewModel {
     }
 
     var rootReceivedFolderURL: URL {
-        fileStore.rootDirectory
+        workspaceManager.currentWorkspace.recordingsRootURL
+    }
+
+    var activeWorkspace: ReceiverWorkspace {
+        workspaceManager.currentWorkspace
+    }
+
+    var workspaceTitle: String {
+        activeWorkspace.displayName
+    }
+
+    var workspaceSubtitle: String {
+        activeWorkspace.isDefaultLocal
+            ? "MacBook 데이터 수신 준비"
+            : "프로젝트 파일 작업공간"
+    }
+
+    var canOpenProjectPackage: Bool {
+        activeWorkspace.isDefaultLocal
     }
 
     var isAdvertising: Bool {
@@ -131,6 +156,10 @@ final class MacHomeViewModel {
     }
 
     func reloadPackages() {
+        try? FileManager.default.createDirectory(
+            at: rootReceivedFolderURL,
+            withIntermediateDirectories: true
+        )
         receivedPackages = packageLoader.loadPackages(rootURL: rootReceivedFolderURL)
         if selectedPackageID == nil && selectedFolderID == nil {
             selectedPackageID = receivedPackages.first?.id
@@ -149,6 +178,7 @@ final class MacHomeViewModel {
     }
 
     func reloadFolders() {
+        folderStore = SnapFolderStore(rootURL: activeWorkspace.foldersRootURL)
         let loadedFolders = folderStore.loadFolders()
         let normalizedFolders = normalizedFolderMemberships(loadedFolders)
         snapFolders = normalizedFolders
@@ -164,6 +194,15 @@ final class MacHomeViewModel {
             withIntermediateDirectories: true
         )
         NSWorkspace.shared.open(folderURL)
+    }
+
+    func switchToDefaultWorkspace() {
+        workspaceManager.switchToDefaultWorkspace()
+        selectedPackageID = nil
+        selectedFolderID = nil
+        searchQuery = ""
+        reloadFolders()
+        reloadPackages()
     }
 
     func deleteReceivedRecording(_ package: ReceivedRecordingPackage) {
@@ -421,7 +460,7 @@ final class MacHomeViewModel {
         return "세그먼트 \(generatedCount)개를 생성했습니다."
     }
 
-    func exportDataset(for folder: SnapFolder) -> String {
+    func exportDataset(for folder: SnapFolder, options: DatasetExportOptions) -> String {
         guard folder.items.isEmpty == false else {
             return "내보낼 스냅이 없습니다."
         }
@@ -438,10 +477,12 @@ final class MacHomeViewModel {
         }
 
         do {
+            let packagesForExport = reloadPackagesForExport()
             let report = try FolderDatasetExportService.export(
                 folder: folder,
-                packages: receivedPackages,
-                outputURL: outputURL
+                packages: packagesForExport,
+                outputURL: outputURL,
+                options: options
             )
 
             var message = "\(report.summaryText) · \(report.outputURL.lastPathComponent)"
@@ -455,6 +496,65 @@ final class MacHomeViewModel {
         } catch {
             return "CSV 내보내기 실패: \(error.localizedDescription)"
         }
+    }
+
+    func exportReceiverProjectPackage() {
+        let savePanel = NSSavePanel()
+        savePanel.title = "Receiver 프로젝트 내보내기"
+        savePanel.nameFieldStringValue = ReceiverProjectPackageService.defaultFileName()
+        savePanel.canCreateDirectories = true
+        savePanel.allowedContentTypes = [UTType(filenameExtension: "jeonstarlab") ?? .zip]
+
+        guard savePanel.runModal() == .OK,
+              let outputURL = savePanel.url else {
+            return
+        }
+
+        do {
+            let report = try ReceiverProjectPackageService.exportProject(
+                recordingsRootURL: activeWorkspace.recordingsRootURL,
+                foldersRootURL: activeWorkspace.foldersRootURL,
+                workspaceName: activeWorkspace.displayName,
+                folders: snapFolders,
+                outputURL: outputURL
+            )
+            projectPackageMessage = "\(report.message): \(report.recordingCount)개 녹화, \(report.folderCount)개 폴더\n\(report.outputURL?.lastPathComponent ?? "")"
+        } catch {
+            errorMessage = "프로젝트 내보내기 실패: \(error.localizedDescription)"
+        }
+    }
+
+    func makeProjectWindowRequest() -> ReceiverProjectWindowRequest? {
+        let openPanel = NSOpenPanel()
+        openPanel.title = "Receiver 프로젝트 열기"
+        openPanel.canChooseFiles = true
+        openPanel.canChooseDirectories = false
+        openPanel.allowsMultipleSelection = false
+        openPanel.allowedContentTypes = [UTType(filenameExtension: "jeonstarlab") ?? .zip]
+
+        guard openPanel.runModal() == .OK,
+              let packageURL = openPanel.url else {
+            return nil
+        }
+
+        do {
+            let workspace = try workspaceManager.createProjectWorkspace(packageURL: packageURL)
+            projectPackageMessage = "프로젝트를 새 창으로 열었습니다.\n\(workspace.displayName)"
+            return ReceiverProjectWindowRequest(workspace: workspace)
+        } catch {
+            errorMessage = "프로젝트 열기 실패: \(error.localizedDescription)"
+            return nil
+        }
+    }
+
+    private func reloadPackagesForExport() -> [ReceivedRecordingPackage] {
+        let loadedPackages = packageLoader.loadPackages(rootURL: rootReceivedFolderURL)
+        guard !loadedPackages.isEmpty else {
+            return receivedPackages
+        }
+        receivedPackages = loadedPackages
+        updateAllFolderItemSnapshots(shouldSave: false)
+        return loadedPackages
     }
 
     private func upsert(_ package: ReceivedRecordingPackage) {
@@ -491,19 +591,22 @@ final class MacHomeViewModel {
             package.participantInfo.gender.displayName,
             package.participantInfo.ageGroup.displayName,
             package.participantInfo.heightCM,
+            package.participantInfo.dominantHand.displayName,
             package.participantInfo.skillLevel.displayName,
             package.participantInfo.memo
         ]
         .joined(separator: " ")
     }
 
-    private func updateAllFolderItemSnapshots() {
+    private func updateAllFolderItemSnapshots(shouldSave: Bool = true) {
         guard !snapFolders.isEmpty else { return }
         for package in receivedPackages {
             updateFolderItems(for: package, shouldSave: false)
         }
         snapFolders = normalizedFolderMemberships(snapFolders)
-        saveFolders()
+        if shouldSave {
+            saveFolders()
+        }
     }
 
     private func updateFolderItems(for package: ReceivedRecordingPackage, shouldSave: Bool = true) {

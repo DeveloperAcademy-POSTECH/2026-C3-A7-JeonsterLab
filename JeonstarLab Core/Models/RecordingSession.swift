@@ -16,4 +16,23 @@ struct RecordingSession: Identifiable, Hashable {
     let sampleCount:  Int
     let fileName:     String        // "WMTF-<uuid>.bin"
     let samplingRate: Int           // 50
+    let memo:         String
+
+    init(
+        id: UUID,
+        startedAt: Date,
+        duration: TimeInterval,
+        sampleCount: Int,
+        fileName: String,
+        samplingRate: Int,
+        memo: String = ""
+    ) {
+        self.id = id
+        self.startedAt = startedAt
+        self.duration = duration
+        self.sampleCount = sampleCount
+        self.fileName = fileName
+        self.samplingRate = samplingRate
+        self.memo = memo
+    }
 }

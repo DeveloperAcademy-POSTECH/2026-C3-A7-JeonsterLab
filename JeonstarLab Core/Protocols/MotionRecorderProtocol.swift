@@ -14,9 +14,9 @@ protocol MotionRecorderProtocol: AnyObject {
     var isRecording: Bool { get }
 
     /// 50Hz CMDeviceMotion 업데이트를 시작.
-    /// 각 업데이트는 MainActor에서 onSample을 호출.
+    /// 각 업데이트는 센서 콜백 큐에서 onSample을 호출.
     /// 하드웨어를 사용할 수 없는 경우 throw.
-    func startRecording(onSample: @escaping @MainActor (MotionSample) -> Void) throws
+    func startRecording(onSample: @escaping (MotionSample) -> Void) throws
 
     /// 업데이트를 중지. 이미 중지된 경우 안전하게 호출 가능.
     func stopRecording()

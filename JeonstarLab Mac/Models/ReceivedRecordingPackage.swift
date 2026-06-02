@@ -53,6 +53,10 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
         return count == 3 ? "파일 3/3" : "파일 \(count)/3"
     }
 
+    var snapDetectionMode: MacSnapDetectionMode {
+        metadata?.snapDetectionMode ?? .none
+    }
+
     var isComplete: Bool {
         csvURL != nil && metadataURL != nil && snapAnalysisURL != nil
     }
@@ -99,6 +103,9 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
 
     var workingSnapEvents: [WorkingSnapEvent] {
         let automaticEvents = (snapAnalysis?.snapEvents ?? [])
+            .filter { event in
+                snapDetectionMode == .jeonFlip || hasUserPreservedAutomaticEvent(event)
+            }
             .map { event in
                 let legacyIDs = legacySnapIDs(for: event)
                 let baseEvent = WorkingSnapEvent.automatic(
@@ -246,6 +253,43 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
         return snapEventLabels[globalID]
             ?? legacySnapIDs(for: event).compactMap { snapEventLabels[$0] }.first
     }
+
+    private func hasUserPreservedAutomaticEvent(_ event: SnapEventExport) -> Bool {
+        let globalID = SnapIDGenerator.automatic(
+            recordingID: snapAnalysis?.recordingID ?? metadata?.recordingID,
+            packageFolderName: folderURL.lastPathComponent,
+            eventKey: event.labelKey
+        )
+        let candidateIDs = [globalID] + legacySnapIDs(for: event)
+
+        if candidateIDs.contains(where: { editedSnapEvents[$0] != nil }) {
+            return true
+        }
+
+        if candidateIDs.contains(where: { snapID in
+            guard let payload = snapEventLabels[snapID] else { return false }
+            return payload.label != .unlabeled || payload.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        }) {
+            return true
+        }
+
+        return candidateIDs.contains(where: segmentExists(for:))
+    }
+
+    private func segmentExists(for snapID: String) -> Bool {
+        let segmentFolderURL = folderURL
+            .appendingPathComponent("segments", isDirectory: true)
+            .appendingPathComponent(filesystemSafeName(snapID), isDirectory: true)
+        return FileManager.default.fileExists(atPath: segmentFolderURL.appendingPathComponent("segment.csv").path)
+            && FileManager.default.fileExists(atPath: segmentFolderURL.appendingPathComponent("segment_metadata.json").path)
+    }
+
+    private func filesystemSafeName(_ value: String) -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+        return String(value.unicodeScalars.map { scalar in
+            allowed.contains(scalar) ? Character(scalar) : "-"
+        })
+    }
 }
 
 enum RecordingPackageLabel: String, CaseIterable, Codable, Identifiable {
@@ -377,4 +421,3 @@ extension SnapEventExport {
         eventIndex ?? Int((peakTime ?? startTime ?? 0) * 1000)
     }
 }
-

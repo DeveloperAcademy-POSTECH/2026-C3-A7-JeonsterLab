@@ -294,6 +294,20 @@ struct MacRecordingDetailView: View {
             }
 
             GridRow {
+                Text("주 사용 손")
+                    .foregroundStyle(.secondary)
+                Picker("주 사용 손", selection: $package.participantInfo.dominantHand) {
+                    ForEach(ParticipantDominantHandOption.allCases) { option in
+                        Text(option.displayName).tag(option)
+                    }
+                }
+                .labelsHidden()
+                .onChange(of: package.participantInfo.dominantHand) {
+                    onSaveLabel(package)
+                }
+            }
+
+            GridRow {
                 Text("숙련도")
                     .foregroundStyle(.secondary)
                 Picker("숙련도", selection: $package.participantInfo.skillLevel) {
@@ -310,8 +324,17 @@ struct MacRecordingDetailView: View {
             GridRow(alignment: .top) {
                 Text("메모")
                     .foregroundStyle(.secondary)
+                    .padding(.top, 6)
                 TextEditor(text: $package.participantInfo.memo)
-                    .frame(minHeight: 72)
+                    .font(.body)
+                    .frame(minHeight: 80, maxHeight: 120)
+                    .padding(4)
+                    .background(.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(.quaternary)
+                    }
                     .onChange(of: package.participantInfo.memo) {
                         onSaveLabel(package)
                     }
