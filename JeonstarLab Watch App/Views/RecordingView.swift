@@ -13,12 +13,15 @@ struct RecordingView: View {
     var storage: WatchRecordingStorage
 
     var body: some View {
-        VStack(spacing: 12) {
-            statusView
-            sampleCountView
-            actionButton
+        ScrollView {
+            VStack(spacing: 12) {
+                statusView
+                sampleCountView
+                actionButton
+                retainedFilesView
+            }
+            .padding()
         }
-        .padding()
     }
 
     // MARK: - Subviews
@@ -86,5 +89,54 @@ struct RecordingView: View {
     private var isButtonDisabled: Bool {
         if case .transferring = viewModel.state { return true }
         return false
+    }
+
+    @ViewBuilder
+    private var retainedFilesView: some View {
+        if !storage.retainedFiles.isEmpty {
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("전송 확인 대기")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                ForEach(storage.retainedFiles) { file in
+                    HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(file.fileName)
+                                .font(.caption2)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Text(byteCountText(file.byteCount))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer(minLength: 4)
+
+                        Button {
+                            storage.deleteRetainedFile(file)
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                        .tint(.red)
+                        .disabled(!canDeleteRetainedFiles)
+                        .accessibilityLabel("보관 파일 삭제")
+                    }
+                }
+            }
+        }
+    }
+
+    private func byteCountText(_ byteCount: Int) -> String {
+        ByteCountFormatter.string(fromByteCount: Int64(byteCount), countStyle: .file)
+    }
+
+    private var canDeleteRetainedFiles: Bool {
+        if case .transferring = viewModel.state { return false }
+        return true
     }
 }

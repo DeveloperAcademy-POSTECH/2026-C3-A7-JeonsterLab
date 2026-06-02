@@ -22,6 +22,7 @@ final class WatchTransferService: RecordingTransferProtocol {
     func transfer(fileURL: URL, session: RecordingSession) {
         let metadata: [String: Any] = [
             "sessionID":    session.id.uuidString,
+            "fileName":     session.fileName,
             "startedAt":    session.startedAt.timeIntervalSince1970,
             "duration":     session.duration,
             "sampleCount":  session.sampleCount,

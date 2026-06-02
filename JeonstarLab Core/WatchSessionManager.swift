@@ -29,6 +29,9 @@ final class WatchSessionManager: NSObject {
     /// 파일 전송이 완료(성공/실패)되면 호출.
     var onTransferDidFinish: ((Error?) -> Void)?
 
+    /// iPhone이 녹화 파일을 저장한 뒤 ACK를 보내면 호출.
+    var onRecordingImportAcknowledged: ((UUID, String?) -> Void)?
+
     /// iPhone으로부터 녹화 명령을 수신하면 호출.
     var onCommandReceived: ((RecordingCommand) -> Void)?
     #endif
@@ -90,6 +93,16 @@ extension WatchSessionManager: WCSessionDelegate {
     }
 
     private func handleCommand(from dict: [String: Any]) {
+        if let type = dict["type"] as? String,
+           type == "recordingImportAck",
+           let idString = dict["sessionID"] as? String,
+           let sessionID = UUID(uuidString: idString) {
+            let fileName = dict["fileName"] as? String
+            logger.debug("✔ recordingImportAck 수신 — sessionID: \(idString), fileName: \(fileName ?? "nil")")
+            onRecordingImportAcknowledged?(sessionID, fileName)
+            return
+        }
+
         guard
             let raw     = dict[RecordingCommand.messageKey] as? String,
             let command = RecordingCommand(rawValue: raw)
@@ -124,10 +137,7 @@ extension WatchSessionManager {
         } else {
             logger.debug("✔ [5] didFinish 전송 성공 — file: \(fileTransfer.file.fileURL.lastPathComponent)")
         }
-        // Apple 문서: "Do not delete the file until after it has been delivered."
-        if error == nil {
-            try? FileManager.default.removeItem(at: fileTransfer.file.fileURL)
-        }
+        // transport 완료는 iPhone 저장 완료가 아니므로 파일은 ACK 수신 전까지 보관한다.
         onTransferDidFinish?(error)
         #endif
     }
@@ -143,6 +153,21 @@ extension WatchSessionManager {
     func sendCommand(_ command: RecordingCommand) {
         guard WCSession.default.activationState == .activated else { return }
         let message = [RecordingCommand.messageKey: command.rawValue]
+        sendMessageOrUserInfo(message)
+    }
+
+    func sendRecordingImportAck(sessionID: UUID, fileName: String) {
+        guard WCSession.default.activationState == .activated else { return }
+        let message: [String: Any] = [
+            "type": "recordingImportAck",
+            "sessionID": sessionID.uuidString,
+            "fileName": fileName
+        ]
+        sendMessageOrUserInfo(message)
+        logger.debug("✔ recordingImportAck 전송 — sessionID: \(sessionID.uuidString), fileName: \(fileName)")
+    }
+
+    private func sendMessageOrUserInfo(_ message: [String: Any]) {
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(message, replyHandler: nil)
         } else {

@@ -23,7 +23,8 @@ final class ImportRecordingUseCase {
     }
 
     /// WCSession metadata를 파싱하여 RecordingSession을 구성하고 영구 저장.
-    func execute(tempFileURL: URL, metadata: [String: Any]) throws {
+    @discardableResult
+    func execute(tempFileURL: URL, metadata: [String: Any]) throws -> RecordingSession {
         logger.debug("▶︎ [8] ImportUseCase.execute — metadata keys: \(metadata.keys.joined(separator: ", "))")
 
         guard
@@ -52,6 +53,7 @@ final class ImportRecordingUseCase {
         logger.debug("✔ [8b] repository.save 완료")
 
         onRecordingSaved?(session)
+        return session
     }
 }
 

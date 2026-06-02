@@ -55,6 +55,12 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
             }
         }
 
+        sessionManager.onRecordingImportAcknowledged = { [recordingStorage] sessionID, fileName in
+            Task { @MainActor in
+                recordingStorage.deleteRetainedFile(sessionID: sessionID, fileName: fileName)
+            }
+        }
+
         // 백그라운드 세션 만료 시 녹화 자동 종료
         motionTracker.onExtendedSessionExpired = { [vm] in
             vm.stopRecording()
