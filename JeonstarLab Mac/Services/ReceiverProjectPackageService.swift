@@ -40,12 +40,14 @@ enum ReceiverProjectPackageService {
     }
 
     static func exportProject(
-        rootURL: URL,
+        recordingsRootURL: URL,
+        foldersRootURL: URL,
+        workspaceName: String,
         folders: [SnapFolder],
         outputURL: URL
     ) throws -> ReceiverProjectPackageReport {
         let fileManager = FileManager.default
-        try fileManager.createDirectory(at: rootURL, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: recordingsRootURL, withIntermediateDirectories: true)
 
         let stagingURL = fileManager.temporaryDirectory
             .appendingPathComponent("jeonstarlab-project-\(UUID().uuidString)", isDirectory: true)
@@ -66,7 +68,7 @@ enum ReceiverProjectPackageService {
         try fileManager.createDirectory(at: foldersURL, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: projectURL, withIntermediateDirectories: true)
 
-        let recordingURLs = try receivedRecordingDirectories(in: rootURL)
+        let recordingURLs = try receivedRecordingDirectories(in: recordingsRootURL)
         for recordingURL in recordingURLs {
             try copyDirectory(
                 from: recordingURL,
@@ -74,7 +76,7 @@ enum ReceiverProjectPackageService {
             )
         }
 
-        let globalFoldersURL = rootURL.appendingPathComponent(foldersFileName)
+        let globalFoldersURL = foldersRootURL.appendingPathComponent(foldersFileName)
         if fileManager.fileExists(atPath: globalFoldersURL.path) {
             try fileManager.copyItem(
                 at: globalFoldersURL,
@@ -89,7 +91,7 @@ enum ReceiverProjectPackageService {
         try writeJSON(manifest, to: stagingURL.appendingPathComponent(manifestFileName))
         try writeJSON(
             [
-                "name": "JeonstarLab Receiver Project",
+                "name": workspaceName,
                 "createdAt": ISO8601DateFormatter().string(from: manifest.exportedAt)
             ],
             to: projectURL.appendingPathComponent("project_info.json")
@@ -108,6 +110,85 @@ enum ReceiverProjectPackageService {
             folderCount: folders.count,
             outputURL: finalOutputURL,
             message: "프로젝트 패키지 내보내기 완료"
+        )
+    }
+
+    static func openProjectWorkspace(
+        packageURL: URL,
+        projectsRootURL: URL
+    ) throws -> ReceiverWorkspace {
+        let fileManager = FileManager.default
+        let extractionURL = fileManager.temporaryDirectory
+            .appendingPathComponent("jeonstarlab-open-\(UUID().uuidString)", isDirectory: true)
+
+        defer {
+            try? fileManager.removeItem(at: extractionURL)
+        }
+
+        try fileManager.createDirectory(at: extractionURL, withIntermediateDirectories: true)
+        try runDitto(arguments: ["-x", "-k", packageURL.path, extractionURL.path])
+
+        let manifestURL = extractionURL.appendingPathComponent(manifestFileName)
+        guard fileManager.fileExists(atPath: manifestURL.path) else {
+            throw ReceiverProjectPackageError.missingManifest
+        }
+
+        let manifest = try readJSON(ReceiverProjectManifest.self, from: manifestURL)
+        guard manifest.formatVersion == ReceiverProjectManifest.currentFormatVersion else {
+            throw ReceiverProjectPackageError.unsupportedVersion(manifest.formatVersion)
+        }
+
+        let extractedRecordingsURL = extractionURL.appendingPathComponent(recordingsDirectoryName, isDirectory: true)
+        guard fileManager.fileExists(atPath: extractedRecordingsURL.path) else {
+            throw ReceiverProjectPackageError.missingRecordingsDirectory
+        }
+
+        try fileManager.createDirectory(at: projectsRootURL, withIntermediateDirectories: true)
+
+        let projectName = packageURL.deletingPathExtension().lastPathComponent
+        let workspaceDirectoryName = uniqueDirectoryName(
+            baseName: safeFileName("\(projectName)-\(manifest.packageID.uuidString.prefix(8))"),
+            in: projectsRootURL
+        )
+        let workspaceRootURL = projectsRootURL.appendingPathComponent(workspaceDirectoryName, isDirectory: true)
+        guard isChild(workspaceRootURL, of: projectsRootURL) else {
+            throw ReceiverProjectPackageError.unsafeDestination(workspaceRootURL)
+        }
+
+        try fileManager.createDirectory(at: workspaceRootURL, withIntermediateDirectories: true)
+        try fileManager.copyItem(
+            at: manifestURL,
+            to: workspaceRootURL.appendingPathComponent(manifestFileName)
+        )
+        try copyDirectory(
+            from: extractedRecordingsURL,
+            to: workspaceRootURL.appendingPathComponent(recordingsDirectoryName, isDirectory: true)
+        )
+
+        let extractedFoldersURL = extractionURL.appendingPathComponent(foldersDirectoryName, isDirectory: true)
+        let workspaceFoldersURL = workspaceRootURL.appendingPathComponent(foldersDirectoryName, isDirectory: true)
+        if fileManager.fileExists(atPath: extractedFoldersURL.path) {
+            try copyDirectory(from: extractedFoldersURL, to: workspaceFoldersURL)
+        } else {
+            try fileManager.createDirectory(at: workspaceFoldersURL, withIntermediateDirectories: true)
+        }
+
+        let extractedProjectURL = extractionURL.appendingPathComponent(projectDirectoryName, isDirectory: true)
+        if fileManager.fileExists(atPath: extractedProjectURL.path) {
+            try copyDirectory(
+                from: extractedProjectURL,
+                to: workspaceRootURL.appendingPathComponent(projectDirectoryName, isDirectory: true)
+            )
+        }
+
+        return ReceiverWorkspace(
+            id: workspaceRootURL.path,
+            name: projectName,
+            rootURL: workspaceRootURL,
+            recordingsRootURL: workspaceRootURL.appendingPathComponent(recordingsDirectoryName, isDirectory: true),
+            foldersRootURL: workspaceFoldersURL,
+            kind: .importedProject,
+            manifest: manifest
         )
     }
 
@@ -308,6 +389,15 @@ enum ReceiverProjectPackageService {
         }
         usedNames.insert(candidate)
         return candidate
+    }
+
+    private static func safeFileName(_ name: String) -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_ "))
+        let scalars = name.unicodeScalars.map { scalar in
+            allowed.contains(scalar) ? Character(scalar) : "-"
+        }
+        let cleaned = String(scalars).trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? "JeonstarLab Project" : cleaned
     }
 
     private static func isChild(_ url: URL, of parentURL: URL) -> Bool {

@@ -29,9 +29,25 @@ struct MacHomeView: View {
                     .help("Receiver 프로젝트 가져오기")
                 }
 
-                Text("MacBook 데이터 수신 준비")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(viewModel.workspaceTitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Text(viewModel.workspaceSubtitle)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+
+                    if viewModel.canReturnToDefaultWorkspace {
+                        Button {
+                            viewModel.switchToDefaultWorkspace()
+                        } label: {
+                            Label("기본 작업공간으로 돌아가기", systemImage: "arrow.uturn.backward")
+                        }
+                        .font(.caption)
+                        .buttonStyle(.link)
+                    }
+                }
 
                 List(selection: viewModel.packageSelectionBinding()) {
                     Section("Folders") {
