@@ -14,15 +14,18 @@ final class RecordingDetailViewModel {
     private(set) var samples:      [MotionSample] = []
     private(set) var isLoading:    Bool = false
     private(set) var errorMessage: String?
+    private(set) var memoErrorMessage: String?
     private(set) var appliedSnapDetectionMode: SnapDetectionMode
     var pendingSnapDetectionMode: SnapDetectionMode
+    var recordingMemo: String
 
-    private let session:    RecordingSession
+    private var session:    RecordingSession
     private let repository: RecordingRepositoryProtocol
 
     init(session: RecordingSession, repository: RecordingRepositoryProtocol) {
         self.session    = session
         self.repository = repository
+        self.recordingMemo = session.memo
         let mode = (try? repository.snapDetectionMode(for: session.id)) ?? .none
         self.appliedSnapDetectionMode = mode
         self.pendingSnapDetectionMode = mode
@@ -45,6 +48,14 @@ final class RecordingDetailViewModel {
 
     var currentSession: RecordingSession {
         session
+    }
+
+    var savedRecordingMemo: String {
+        session.memo
+    }
+
+    var hasRecordingMemoChanges: Bool {
+        recordingMemo != session.memo
     }
 
     var recordingRepository: RecordingRepositoryProtocol {
@@ -85,5 +96,28 @@ final class RecordingDetailViewModel {
             mode: pendingSnapDetectionMode
         )
         appliedSnapDetectionMode = pendingSnapDetectionMode
+    }
+
+    func updateRecordingMemo(_ memo: String) {
+        do {
+            try repository.updateMemo(for: session.id, memo: memo)
+            session = RecordingSession(
+                id: session.id,
+                startedAt: session.startedAt,
+                duration: session.duration,
+                sampleCount: session.sampleCount,
+                fileName: session.fileName,
+                samplingRate: session.samplingRate,
+                memo: memo
+            )
+            memoErrorMessage = nil
+        } catch {
+            memoErrorMessage = error.localizedDescription
+        }
+    }
+
+    func resetRecordingMemoDraft() {
+        recordingMemo = session.memo
+        memoErrorMessage = nil
     }
 }

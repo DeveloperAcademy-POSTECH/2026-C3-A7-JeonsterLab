@@ -19,6 +19,7 @@ struct RecordingDetailView: View {
     @State private var exportErrorMessage: String?
     @State private var snapDetectionModeErrorMessage: String?
     @State private var isSnapDetectionModeConfirmationPresented = false
+    @State private var isEditingMemo = false
     @State private var macConnectionViewModel = MacConnectionViewModel.shared
 
     var body: some View {
@@ -28,6 +29,57 @@ struct RecordingDetailView: View {
                 LabeledContent("날짜", value: viewModel.title)
                 LabeledContent("길이", value: viewModel.durationText)
                 LabeledContent("샘플", value: viewModel.sampleCountText)
+            }
+
+            Section("메모") {
+                if isEditingMemo {
+                    TextField(
+                        "녹화 당시의 특이사항을 기록하세요.",
+                        text: $viewModel.recordingMemo,
+                        axis: .vertical
+                    )
+                    .lineLimit(3...6)
+
+                    HStack {
+                        Button("저장") {
+                            viewModel.updateRecordingMemo(viewModel.recordingMemo)
+                            if viewModel.memoErrorMessage == nil {
+                                isEditingMemo = false
+                            }
+                        }
+                        .disabled(!viewModel.hasRecordingMemoChanges)
+
+                        Button("취소") {
+                            viewModel.resetRecordingMemoDraft()
+                            isEditingMemo = false
+                        }
+                    }
+                } else {
+                    Button {
+                        viewModel.resetRecordingMemoDraft()
+                        isEditingMemo = true
+                    } label: {
+                        HStack(alignment: .top) {
+                            Text(viewModel.savedRecordingMemo.isEmpty ? "녹화 당시의 특이사항을 기록하세요." : viewModel.savedRecordingMemo)
+                                .foregroundStyle(viewModel.savedRecordingMemo.isEmpty ? .secondary : .primary)
+                                .multilineTextAlignment(.leading)
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button("메모 편집") {
+                        viewModel.resetRecordingMemoDraft()
+                        isEditingMemo = true
+                    }
+                }
+
+                if let memoErrorMessage = viewModel.memoErrorMessage {
+                    Text("메모 저장 실패: \(memoErrorMessage)")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
             }
 
             Section("Mac 전송") {

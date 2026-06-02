@@ -17,6 +17,7 @@ enum RecordingMetadataExporter {
             sampleCount: session.sampleCount,
             samplingRate: session.samplingRate,
             fileName: session.fileName,
+            recordingMemo: session.memo,
             snapDetectionMode: snapDetectionMode.rawValue
         )
 
@@ -31,5 +32,6 @@ private struct RecordingMetadataPayload: Encodable {
     let sampleCount: Int
     let samplingRate: Int
     let fileName: String
+    let recordingMemo: String
     let snapDetectionMode: String
 }

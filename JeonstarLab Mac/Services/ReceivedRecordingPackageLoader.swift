@@ -68,6 +68,10 @@ final class ReceivedRecordingPackageLoader {
         }
 
         let labelPayload = loadLabelPayload(folderURL: folderURL)
+        let participantInfo = participantInfo(
+            from: labelPayload,
+            metadata: metadata
+        )
 
         return ReceivedRecordingPackage(
             id: folderURL,
@@ -82,7 +86,7 @@ final class ReceivedRecordingPackageLoader {
             isPinned: labelPayload?.isPinned ?? false,
             label: labelPayload?.label ?? .unlabeled,
             notes: labelPayload?.notes ?? "",
-            participantInfo: labelPayload?.participantInfo ?? .empty,
+            participantInfo: participantInfo,
             snapLabels: labelPayload?.snapLabels ?? [:],
             snapEventLabels: labelPayload?.snapEventLabels ?? [:],
             manualSnapEvents: labelPayload?.manualSnapEvents ?? [],
@@ -90,6 +94,19 @@ final class ReceivedRecordingPackageLoader {
             deletedSnapEventIDs: labelPayload?.deletedSnapEventIDs ?? [],
             parseMessages: messages
         )
+    }
+
+    private func participantInfo(
+        from labelPayload: RecordingPackageLabelPayload?,
+        metadata: RecordingExportMetadata?
+    ) -> RecordingParticipantInfo {
+        var participantInfo = labelPayload?.participantInfo ?? .empty
+        let currentMemo = participantInfo.memo.trimmingCharacters(in: .whitespacesAndNewlines)
+        let importedMemo = metadata?.recordingMemo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if currentMemo.isEmpty && !importedMemo.isEmpty {
+            participantInfo.memo = importedMemo
+        }
+        return participantInfo
     }
 
     func saveLabel(package: ReceivedRecordingPackage) throws {
