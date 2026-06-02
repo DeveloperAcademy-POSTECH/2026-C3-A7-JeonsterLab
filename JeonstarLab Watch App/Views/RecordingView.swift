@@ -10,6 +10,7 @@ import SwiftUI
 struct RecordingView: View {
 
     @State var viewModel: RecordingViewModel
+    @State private var pendingDeleteFile: RetainedWatchRecordingFile?
     var storage: WatchRecordingStorage
 
     var body: some View {
@@ -21,6 +22,24 @@ struct RecordingView: View {
                 retainedFilesView
             }
             .padding()
+        }
+        .alert(
+            "보관된 기록을 삭제할까요?",
+            isPresented: Binding(
+                get: { pendingDeleteFile != nil },
+                set: { if !$0 { pendingDeleteFile = nil } }
+            ),
+            presenting: pendingDeleteFile
+        ) { file in
+            Button("삭제", role: .destructive) {
+                storage.deleteRetainedFile(file)
+                pendingDeleteFile = nil
+            }
+            Button("취소", role: .cancel) {
+                pendingDeleteFile = nil
+            }
+        } message: { _ in
+            Text("삭제하면 Watch에 보관된 녹화 파일이 사라집니다. iPhone으로 아직 저장되지 않은 기록이라면 복구할 수 없습니다.")
         }
     }
 
@@ -126,7 +145,7 @@ struct RecordingView: View {
                         .accessibilityLabel("보관 파일 재전송")
 
                         Button {
-                            storage.deleteRetainedFile(file)
+                            pendingDeleteFile = file
                         } label: {
                             Image(systemName: "trash")
                         }
