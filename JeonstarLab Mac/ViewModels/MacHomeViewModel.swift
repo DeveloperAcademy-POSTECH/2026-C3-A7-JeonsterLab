@@ -392,9 +392,13 @@ final class MacHomeViewModel {
             selectedFolderID = nil
         } else {
             reloadPackages()
-            selectedPackageID = receivedPackages.first {
+            guard let package = receivedPackages.first(where: {
                 $0.folderURL.lastPathComponent == item.packageFolderName
-            }?.id
+            }) else {
+                errorMessage = "원본 데이터를 찾을 수 없습니다. 이 스냅 이벤트의 원본 녹화가 삭제되었거나 현재 작업공간에 없습니다."
+                return
+            }
+            selectedPackageID = package.id
             selectedFolderID = nil
         }
     }
