@@ -20,13 +20,17 @@ struct MacHomeView: View {
 
                     Spacer()
 
-                    Button {
-                        viewModel.importReceiverProjectPackage()
-                    } label: {
-                        Label("프로젝트 가져오기", systemImage: "plus")
-                            .labelStyle(.iconOnly)
+                    if viewModel.canOpenProjectPackage {
+                        Button {
+                            if let request = viewModel.makeProjectWindowRequest() {
+                                openWindow(value: request)
+                            }
+                        } label: {
+                            Label("프로젝트 열기", systemImage: "plus")
+                                .labelStyle(.iconOnly)
+                        }
+                        .help("Receiver 프로젝트 열기")
                     }
-                    .help("Receiver 프로젝트 가져오기")
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -37,16 +41,6 @@ struct MacHomeView: View {
                     Text(viewModel.workspaceSubtitle)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
-
-                    if viewModel.canReturnToDefaultWorkspace {
-                        Button {
-                            viewModel.switchToDefaultWorkspace()
-                        } label: {
-                            Label("기본 작업공간으로 돌아가기", systemImage: "arrow.uturn.backward")
-                        }
-                        .font(.caption)
-                        .buttonStyle(.link)
-                    }
                 }
 
                 List(selection: viewModel.packageSelectionBinding()) {

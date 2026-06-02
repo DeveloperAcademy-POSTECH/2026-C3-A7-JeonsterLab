@@ -27,8 +27,11 @@ final class MacHomeViewModel {
     var projectPackageMessage: String?
     var searchQuery = ""
 
-    init() {
-        workspaceManager = ReceiverWorkspaceManager(defaultRecordingsURL: fileStore.rootDirectory)
+    init(workspace: ReceiverWorkspace? = nil) {
+        workspaceManager = ReceiverWorkspaceManager(
+            defaultRecordingsURL: fileStore.rootDirectory,
+            initialWorkspace: workspace
+        )
         folderStore = SnapFolderStore(rootURL: workspaceManager.currentWorkspace.foldersRootURL)
         reloadFolders()
         reloadPackages()
@@ -129,11 +132,11 @@ final class MacHomeViewModel {
     var workspaceSubtitle: String {
         activeWorkspace.isDefaultLocal
             ? "MacBook 데이터 수신 준비"
-            : "별도 프로젝트 작업공간"
+            : "프로젝트 파일 작업공간"
     }
 
-    var canReturnToDefaultWorkspace: Bool {
-        !activeWorkspace.isDefaultLocal
+    var canOpenProjectPackage: Bool {
+        activeWorkspace.isDefaultLocal
     }
 
     var isAdvertising: Bool {
@@ -517,9 +520,9 @@ final class MacHomeViewModel {
         }
     }
 
-    func importReceiverProjectPackage() {
+    func makeProjectWindowRequest() -> ReceiverProjectWindowRequest? {
         let openPanel = NSOpenPanel()
-        openPanel.title = "Receiver 프로젝트 가져오기"
+        openPanel.title = "Receiver 프로젝트 열기"
         openPanel.canChooseFiles = true
         openPanel.canChooseDirectories = false
         openPanel.allowsMultipleSelection = false
@@ -527,19 +530,16 @@ final class MacHomeViewModel {
 
         guard openPanel.runModal() == .OK,
               let packageURL = openPanel.url else {
-            return
+            return nil
         }
 
         do {
-            try workspaceManager.openProjectPackage(packageURL: packageURL)
-            selectedPackageID = nil
-            selectedFolderID = nil
-            searchQuery = ""
-            reloadFolders()
-            reloadPackages()
-            projectPackageMessage = "프로젝트를 별도 작업공간으로 열었습니다.\n\(activeWorkspace.displayName)"
+            let workspace = try workspaceManager.createProjectWorkspace(packageURL: packageURL)
+            projectPackageMessage = "프로젝트를 새 창으로 열었습니다.\n\(workspace.displayName)"
+            return ReceiverProjectWindowRequest(workspace: workspace)
         } catch {
             errorMessage = "프로젝트 열기 실패: \(error.localizedDescription)"
+            return nil
         }
     }
 

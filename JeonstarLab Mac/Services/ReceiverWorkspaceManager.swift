@@ -11,10 +11,15 @@ final class ReceiverWorkspaceManager {
 
     private(set) var currentWorkspace: ReceiverWorkspace
 
-    init(defaultRecordingsURL: URL, fileManager: FileManager = .default) {
+    init(
+        defaultRecordingsURL: URL,
+        initialWorkspace: ReceiverWorkspace? = nil,
+        fileManager: FileManager = .default
+    ) {
         self.defaultRecordingsURL = defaultRecordingsURL
         self.fileManager = fileManager
-        self.currentWorkspace = Self.makeDefaultWorkspace(defaultRecordingsURL: defaultRecordingsURL)
+        self.currentWorkspace = initialWorkspace
+            ?? Self.makeDefaultWorkspace(defaultRecordingsURL: defaultRecordingsURL)
     }
 
     var projectsRootURL: URL {
@@ -28,8 +33,8 @@ final class ReceiverWorkspaceManager {
         currentWorkspace = Self.makeDefaultWorkspace(defaultRecordingsURL: defaultRecordingsURL)
     }
 
-    func openProjectPackage(packageURL: URL) throws {
-        currentWorkspace = try ReceiverProjectPackageService.openProjectWorkspace(
+    func createProjectWorkspace(packageURL: URL) throws -> ReceiverWorkspace {
+        try ReceiverProjectPackageService.openProjectWorkspace(
             packageURL: packageURL,
             projectsRootURL: projectsRootURL
         )
