@@ -31,6 +31,23 @@ final class RecordingRepository: RecordingRepositoryProtocol {
 
     func save(session: RecordingSession, from tempFileURL: URL) throws {
         try fileStore.moveToDocuments(from: tempFileURL, fileName: session.fileName)
+        let id = session.id
+        let descriptor = FetchDescriptor<RecordingEntity>(
+            predicate: #Predicate { $0.id == id }
+        )
+        if let entity = try modelContext.fetch(descriptor).first {
+            entity.startedAt = session.startedAt
+            entity.duration = session.duration
+            entity.sampleCount = session.sampleCount
+            entity.fileName = session.fileName
+            entity.samplingRate = session.samplingRate
+            if entity.memo.isEmpty {
+                entity.memo = session.memo
+            }
+            try modelContext.save()
+            return
+        }
+
         let entity = RecordingEntity(session: session)
         modelContext.insert(entity)
         try modelContext.save()

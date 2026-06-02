@@ -45,6 +45,7 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
         let vm = RecordingViewModel(
             startUseCase: start,
             stopUseCase: stop,
+            transferService: transfer,
             hapticManager: hapticManager
         )
 

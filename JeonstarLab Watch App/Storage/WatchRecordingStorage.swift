@@ -16,6 +16,7 @@ struct RetainedWatchRecordingFile: Identifiable, Equatable {
     let fileName: String
     let fileURL: URL
     let byteCount: Int
+    let sampleCount: Int
     let modifiedAt: Date?
 }
 
@@ -111,6 +112,7 @@ final class WatchRecordingStorage: RecordingStorageProtocol {
                     fileName: url.lastPathComponent,
                     fileURL: url,
                     byteCount: values?.fileSize ?? 0,
+                    sampleCount: Self.sampleCount(byteCount: values?.fileSize ?? 0),
                     modifiedAt: values?.contentModificationDate
                 )
             }
@@ -163,5 +165,10 @@ final class WatchRecordingStorage: RecordingStorageProtocol {
         let start = fileName.index(fileName.startIndex, offsetBy: 5)
         let end = fileName.index(fileName.endIndex, offsetBy: -4)
         return UUID(uuidString: String(fileName[start..<end]))
+    }
+
+    private static func sampleCount(byteCount: Int) -> Int {
+        let payloadSize = max(0, byteCount - MotionSampleSerializer.headerSize)
+        return payloadSize / MemoryLayout<MotionSample>.stride
     }
 }

@@ -116,6 +116,16 @@ struct RecordingView: View {
                         Spacer(minLength: 4)
 
                         Button {
+                            viewModel.resendRetainedFile(file)
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                        .disabled(!viewModel.canResendRetainedFile || file.sessionID == nil)
+                        .accessibilityLabel("보관 파일 재전송")
+
+                        Button {
                             storage.deleteRetainedFile(file)
                         } label: {
                             Image(systemName: "trash")
