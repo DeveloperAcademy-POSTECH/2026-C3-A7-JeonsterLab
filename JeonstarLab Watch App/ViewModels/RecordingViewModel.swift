@@ -22,15 +22,18 @@ final class RecordingViewModel {
 
     private let startUseCase: StartRecordingUseCase
     private let stopUseCase: StopRecordingUseCase
+    private let transferService: RecordingTransferProtocol
     private let hapticManager: WatchHapticManager
 
     init(
         startUseCase: StartRecordingUseCase,
         stopUseCase: StopRecordingUseCase,
+        transferService: RecordingTransferProtocol,
         hapticManager: WatchHapticManager
     ) {
         self.startUseCase = startUseCase
         self.stopUseCase = stopUseCase
+        self.transferService = transferService
         self.hapticManager = hapticManager
     }
 
@@ -73,6 +76,38 @@ final class RecordingViewModel {
         } else {
             state = .idle
             hapticManager.playTransferCompleted()
+        }
+    }
+
+    func resendRetainedFile(_ file: RetainedWatchRecordingFile) {
+        guard canResendRetainedFile else { return }
+        guard let sessionID = file.sessionID else {
+            state = .error("세션 ID를 확인할 수 없습니다.")
+            hapticManager.playError()
+            return
+        }
+
+        let duration = TimeInterval(file.sampleCount) / 50.0
+        let startedAt = (file.modifiedAt ?? Date()).addingTimeInterval(-duration)
+        let session = RecordingSession(
+            id: sessionID,
+            startedAt: startedAt,
+            duration: duration,
+            sampleCount: file.sampleCount,
+            fileName: file.fileName,
+            samplingRate: 50
+        )
+
+        transferService.transfer(fileURL: file.fileURL, session: session)
+        state = .transferring
+    }
+
+    var canResendRetainedFile: Bool {
+        switch state {
+        case .idle, .error:
+            return true
+        case .recording, .transferring:
+            return false
         }
     }
 }

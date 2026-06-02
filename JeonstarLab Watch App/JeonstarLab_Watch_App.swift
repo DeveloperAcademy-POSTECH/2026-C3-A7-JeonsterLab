@@ -45,6 +45,7 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
         let vm = RecordingViewModel(
             startUseCase: start,
             stopUseCase: stop,
+            transferService: transfer,
             hapticManager: hapticManager
         )
 
@@ -52,6 +53,12 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
         sessionManager.onTransferDidFinish = { [vm] error in
             Task { @MainActor in
                 vm.transferDidComplete(error: error)
+            }
+        }
+
+        sessionManager.onRecordingImportAcknowledged = { [recordingStorage] sessionID, fileName in
+            Task { @MainActor in
+                recordingStorage.deleteRetainedFile(sessionID: sessionID, fileName: fileName)
             }
         }
 

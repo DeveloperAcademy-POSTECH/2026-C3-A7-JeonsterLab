@@ -10,15 +10,37 @@ import SwiftUI
 struct RecordingView: View {
 
     @State var viewModel: RecordingViewModel
+    @State private var pendingDeleteFile: RetainedWatchRecordingFile?
     var storage: WatchRecordingStorage
 
     var body: some View {
-        VStack(spacing: 12) {
-            statusView
-            sampleCountView
-            actionButton
+        ScrollView {
+            VStack(spacing: 12) {
+                statusView
+                sampleCountView
+                actionButton
+                retainedFilesView
+            }
+            .padding()
         }
-        .padding()
+        .alert(
+            "보관된 기록을 삭제할까요?",
+            isPresented: Binding(
+                get: { pendingDeleteFile != nil },
+                set: { if !$0 { pendingDeleteFile = nil } }
+            ),
+            presenting: pendingDeleteFile
+        ) { file in
+            Button("삭제", role: .destructive) {
+                storage.deleteRetainedFile(file)
+                pendingDeleteFile = nil
+            }
+            Button("취소", role: .cancel) {
+                pendingDeleteFile = nil
+            }
+        } message: { _ in
+            Text("삭제하면 Watch에 보관된 녹화 파일이 사라집니다. iPhone으로 아직 저장되지 않은 기록이라면 복구할 수 없습니다.")
+        }
     }
 
     // MARK: - Subviews
@@ -86,5 +108,64 @@ struct RecordingView: View {
     private var isButtonDisabled: Bool {
         if case .transferring = viewModel.state { return true }
         return false
+    }
+
+    @ViewBuilder
+    private var retainedFilesView: some View {
+        if !storage.retainedFiles.isEmpty {
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("전송 확인 대기")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                ForEach(storage.retainedFiles) { file in
+                    HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(file.fileName)
+                                .font(.caption2)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Text(byteCountText(file.byteCount))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer(minLength: 4)
+
+                        Button {
+                            viewModel.resendRetainedFile(file)
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                        .disabled(!viewModel.canResendRetainedFile || file.sessionID == nil)
+                        .accessibilityLabel("보관 파일 재전송")
+
+                        Button {
+                            pendingDeleteFile = file
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                        .tint(.red)
+                        .disabled(!canDeleteRetainedFiles)
+                        .accessibilityLabel("보관 파일 삭제")
+                    }
+                }
+            }
+        }
+    }
+
+    private func byteCountText(_ byteCount: Int) -> String {
+        ByteCountFormatter.string(fromByteCount: Int64(byteCount), countStyle: .file)
+    }
+
+    private var canDeleteRetainedFiles: Bool {
+        if case .transferring = viewModel.state { return false }
+        return true
     }
 }
