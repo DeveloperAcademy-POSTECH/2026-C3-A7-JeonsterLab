@@ -16,6 +16,7 @@ struct SnapFolderDetailView: View {
 
     @State private var segmentMessage: String?
     @State private var exportMessage: String?
+    @State private var sourceNavigationMessage: String?
     @State private var sortOption: SnapFolderSortOption = .dateDescending
 
     var body: some View {
@@ -81,6 +82,19 @@ struct SnapFolderDetailView: View {
             }
             .frame(maxWidth: 920, alignment: .leading)
             .padding(28)
+        }
+        .alert(
+            "원본 데이터를 찾을 수 없습니다.",
+            isPresented: Binding(
+                get: { sourceNavigationMessage != nil },
+                set: { if !$0 { sourceNavigationMessage = nil } }
+            )
+        ) {
+            Button("확인") {
+                sourceNavigationMessage = nil
+            }
+        } message: {
+            Text(sourceNavigationMessage ?? "")
         }
     }
 
@@ -150,7 +164,11 @@ struct SnapFolderDetailView: View {
 
             HStack {
                 Button("원본으로 이동") {
-                    onOpenSource(item)
+                    if hasSourcePackage(item) {
+                        onOpenSource(item)
+                    } else {
+                        sourceNavigationMessage = "이 스냅 이벤트의 원본 녹화가 삭제되었거나 현재 작업공간에 없습니다."
+                    }
                 }
 
                 Button("폴더에서 제거", role: .destructive) {
