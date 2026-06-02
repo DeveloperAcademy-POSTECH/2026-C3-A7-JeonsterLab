@@ -13,9 +13,21 @@ struct MacHomeView: View {
     var body: some View {
         NavigationSplitView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("JeonstarLab Receiver")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                HStack {
+                    Text("JeonstarLab Receiver")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+
+                    Spacer()
+
+                    Button {
+                        viewModel.importReceiverProjectPackage()
+                    } label: {
+                        Label("프로젝트 가져오기", systemImage: "plus")
+                            .labelStyle(.iconOnly)
+                    }
+                    .help("Receiver 프로젝트 가져오기")
+                }
 
                 Text("MacBook 데이터 수신 준비")
                     .font(.subheadline)
@@ -145,6 +157,29 @@ struct MacHomeView: View {
             }
         } message: { _ in
             Text("삭제하면 Mac에 저장된 이 녹화 패키지가 사라집니다.\n이 작업은 되돌릴 수 없습니다.")
+        }
+        .alert(
+            "Receiver 프로젝트",
+            isPresented: Binding(
+                get: { viewModel.projectPackageMessage != nil },
+                set: { if !$0 { viewModel.projectPackageMessage = nil } }
+            )
+        ) {
+            Button("확인") {
+                viewModel.projectPackageMessage = nil
+            }
+        } message: {
+            Text(viewModel.projectPackageMessage ?? "")
+        }
+        .toolbar {
+            ToolbarItem {
+                Button {
+                    viewModel.exportReceiverProjectPackage()
+                } label: {
+                    Label("프로젝트 내보내기", systemImage: "square.and.arrow.up")
+                }
+                .help("Receiver 프로젝트 내보내기")
+            }
         }
         .searchable(
             text: $viewModel.searchQuery,

@@ -23,6 +23,7 @@ final class MacHomeViewModel {
     var selectedPackageID: ReceivedRecordingPackage.ID?
     var selectedFolderID: SnapFolder.ID?
     var errorMessage: String?
+    var projectPackageMessage: String?
     var searchQuery = ""
 
     init() {
@@ -452,6 +453,59 @@ final class MacHomeViewModel {
             return message
         } catch {
             return "CSV 내보내기 실패: \(error.localizedDescription)"
+        }
+    }
+
+    func exportReceiverProjectPackage() {
+        let savePanel = NSSavePanel()
+        savePanel.title = "Receiver 프로젝트 내보내기"
+        savePanel.nameFieldStringValue = ReceiverProjectPackageService.defaultFileName()
+        savePanel.canCreateDirectories = true
+        savePanel.allowedContentTypes = [UTType(filenameExtension: "jeonstarlab") ?? .zip]
+
+        guard savePanel.runModal() == .OK,
+              let outputURL = savePanel.url else {
+            return
+        }
+
+        do {
+            let report = try ReceiverProjectPackageService.exportProject(
+                rootURL: rootReceivedFolderURL,
+                folders: snapFolders,
+                outputURL: outputURL
+            )
+            projectPackageMessage = "\(report.message): \(report.recordingCount)개 녹화, \(report.folderCount)개 폴더\n\(report.outputURL?.lastPathComponent ?? "")"
+        } catch {
+            errorMessage = "프로젝트 내보내기 실패: \(error.localizedDescription)"
+        }
+    }
+
+    func importReceiverProjectPackage() {
+        let openPanel = NSOpenPanel()
+        openPanel.title = "Receiver 프로젝트 가져오기"
+        openPanel.canChooseFiles = true
+        openPanel.canChooseDirectories = false
+        openPanel.allowsMultipleSelection = false
+        openPanel.allowedContentTypes = [UTType(filenameExtension: "jeonstarlab") ?? .zip]
+
+        guard openPanel.runModal() == .OK,
+              let packageURL = openPanel.url else {
+            return
+        }
+
+        do {
+            let result = try ReceiverProjectPackageService.importProject(
+                packageURL: packageURL,
+                destinationRootURL: rootReceivedFolderURL,
+                existingFolders: snapFolders
+            )
+            snapFolders = result.folders
+            saveFolders()
+            reloadFolders()
+            reloadPackages()
+            projectPackageMessage = "\(result.report.message): \(result.report.recordingCount)개 녹화, \(result.report.folderCount)개 폴더"
+        } catch {
+            errorMessage = "프로젝트 가져오기 실패: \(error.localizedDescription)"
         }
     }
 
