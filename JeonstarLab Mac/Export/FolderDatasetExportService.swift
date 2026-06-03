@@ -158,10 +158,18 @@ enum FolderDatasetExportService {
         switch label {
         case .success:
             return "success"
-        case .partialSuccess:
-            return "partial"
         case .failure:
             return "failure"
+        case .flipped:
+            return "flipped"
+        case .partialFlipped:
+            return "partial_flipped"
+        case .unflipped:
+            return "unflipped"
+        case .loosen:
+            return "loosen"
+        case .idle:
+            return "idle"
         case .unlabeled, .other:
             return nil
         }

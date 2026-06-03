@@ -88,7 +88,7 @@ struct MacMotionChartsView: View {
                         xStart: .value("Saved Snap Start", range.startTime),
                         xEnd: .value("Saved Snap End", range.endTime)
                     )
-                    .foregroundStyle(.gray.opacity(0.10))
+                    .foregroundStyle(range.label.backgroundColor)
 
                     RuleMark(x: .value("Saved Snap Start", range.startTime))
                         .foregroundStyle(.gray.opacity(0.55))
@@ -304,7 +304,8 @@ struct MacMotionChartsView: View {
             return SnapPreviewRange(
                 id: event.snapID,
                 startTime: normalized.startTime,
-                endTime: normalized.endTime
+                endTime: normalized.endTime,
+                label: event.label
             )
         }
     }
@@ -473,4 +474,5 @@ private struct SnapPreviewRange: Identifiable {
     let id: String
     let startTime: Double
     let endTime: Double
+    let label: RecordingPackageLabel
 }

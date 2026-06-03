@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 struct ReceivedRecordingPackage: Identifiable, Equatable {
     let id: URL
@@ -295,8 +296,12 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
 enum RecordingPackageLabel: String, CaseIterable, Codable, Identifiable {
     case unlabeled
     case success
-    case partialSuccess
     case failure
+    case flipped
+    case partialFlipped
+    case unflipped
+    case loosen
+    case idle
     case other
 
     var id: String { rawValue }
@@ -306,13 +311,35 @@ enum RecordingPackageLabel: String, CaseIterable, Codable, Identifiable {
         case .unlabeled:
             return "미분류"
         case .success:
-            return "성공"
-        case .partialSuccess:
-            return "부분 성공"
+            return "성공 모션"
         case .failure:
-            return "실패"
+            return "실패 모션"
+        case .flipped:
+            return "뒤집기 성공"
+        case .partialFlipped:
+            return "부분 뒤집기 성공"
+        case .unflipped:
+            return "뒤집기 실패"
+        case .loosen:
+            return "분리"
+        case .idle:
+            return "대기"
         case .other:
             return "기타"
+        }
+    }
+
+    var backgroundColor: Color {
+        switch self {
+        case .unlabeled:      return .gray.opacity(0.5)
+        case .success:        return .green.opacity(0.5)
+        case .failure:        return .red.opacity(0.5)
+        case .flipped:        return .blue.opacity(0.5)
+        case .partialFlipped: return .cyan.opacity(0.5)
+        case .unflipped:      return .orange.opacity(0.5)
+        case .loosen:         return .purple.opacity(0.5)
+        case .idle:           return .mint.opacity(0.5)
+        case .other:          return .gray.opacity(0.5)
         }
     }
 }
