@@ -100,6 +100,19 @@ struct SnapFolderDetailView: View {
             Text(sourceNavigationMessage ?? "")
 
         }
+        .sheet(isPresented: $isShowingExportOptions) {
+            DatasetExportOptionsView(
+                options: $exportOptions,
+                onCancel: {
+                    isShowingExportOptions = false
+                },
+                onExport: {
+                    exportOptions.saveAsLastUsed()
+                    exportMessage = onExportDataset(folder, exportOptions)
+                    isShowingExportOptions = false
+                }
+            )
+        }
     }
 
     private var sortedItems: [SnapFolderItem] {

@@ -306,6 +306,22 @@ enum RecordingPackageLabel: String, CaseIterable, Codable, Identifiable {
 
     var id: String { rawValue }
 
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        switch rawValue {
+        case "partialSuccess", "partial":
+            self = .partialFlipped
+        default:
+            self = RecordingPackageLabel(rawValue: rawValue) ?? .unlabeled
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
     var displayName: String {
         switch self {
         case .unlabeled:
