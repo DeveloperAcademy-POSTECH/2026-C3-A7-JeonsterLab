@@ -123,3 +123,4 @@ GoogleService-Info.plist
 # ========================
 *.log
 *.orig
+*.p8
