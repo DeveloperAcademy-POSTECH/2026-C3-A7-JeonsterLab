@@ -13,6 +13,7 @@ struct SnapFolderDetailView: View {
     let hasSourcePackage: (SnapFolderItem) -> Bool
     let onGenerateSegments: (SnapFolder) -> String
     let onExportDataset: (SnapFolder, DatasetExportOptions) -> String
+    let onExportCreateML: (SnapFolder) -> String
 
     @State private var segmentMessage: String?
     @State private var exportMessage: String?
@@ -53,6 +54,11 @@ struct SnapFolderDetailView: View {
                     Button("데이터셋 CSV 내보내기") {
                         exportOptions = .lastSaved()
                         isShowingExportOptions = true
+                    }
+                    .disabled(folder.items.isEmpty)
+
+                    Button("Create ML용 내보내기") {
+                        exportMessage = onExportCreateML(folder)
                     }
                     .disabled(folder.items.isEmpty)
 

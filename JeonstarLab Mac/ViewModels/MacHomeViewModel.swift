@@ -498,6 +498,46 @@ final class MacHomeViewModel {
         }
     }
 
+    func exportCreateMLActivityDataset(for folder: SnapFolder) -> String {
+        guard folder.items.isEmpty == false else {
+            return "내보낼 스냅이 없습니다."
+        }
+
+        let openPanel = NSOpenPanel()
+        openPanel.title = "Create ML용 내보내기 위치 선택"
+        openPanel.prompt = "내보내기"
+        openPanel.message = "선택한 위치 아래에 \(folder.name) 클래스 폴더와 스냅별 CSV 파일을 생성합니다."
+        openPanel.canChooseFiles = false
+        openPanel.canChooseDirectories = true
+        openPanel.canCreateDirectories = true
+        openPanel.allowsMultipleSelection = false
+
+        guard openPanel.runModal() == .OK,
+              let outputDirectoryURL = openPanel.url else {
+            return "내보내기가 취소되었습니다."
+        }
+
+        do {
+            let packagesForExport = reloadPackagesForExport()
+            let report = try CreateMLActivityExporter.export(
+                folder: folder,
+                packages: packagesForExport,
+                destinationDirectoryURL: outputDirectoryURL
+            )
+
+            var message = "\(report.summaryText) · \(report.outputDirectoryURL.lastPathComponent)"
+            if report.skippedItemCount > 0 {
+                let reasons = report.skippedReasons.prefix(2).joined(separator: " / ")
+                if !reasons.isEmpty {
+                    message += "\n제외 사유: \(reasons)"
+                }
+            }
+            return message
+        } catch {
+            return "Create ML 내보내기 실패: \(error.localizedDescription)"
+        }
+    }
+
     func exportReceiverProjectPackage() {
         let savePanel = NSSavePanel()
         savePanel.title = "Receiver 프로젝트 내보내기"
