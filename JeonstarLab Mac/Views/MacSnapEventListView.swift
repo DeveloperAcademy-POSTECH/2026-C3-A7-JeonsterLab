@@ -64,11 +64,18 @@ struct MacSnapEventListView: View {
                         }
 
                         HStack(alignment: .top, spacing: 10) {
-                            NumberShortcutMenuButton(
-                                title: "라벨: \(currentLabel(for: event).displayName)",
-                                options: labelShortcutOptions(for: key)
-                            )
-                            .frame(width: 130)
+                            HStack(spacing: 6) {
+                                Text("라벨")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                NumberShortcutPopUpButton(
+                                    placeholder: currentLabel(for: event).displayName,
+                                    selectedIndex: labelSelectedIndex(for: event),
+                                    options: labelShortcutOptions(for: key)
+                                )
+                                .frame(width: 122, height: 24)
+                            }
 
                             TextField("스냅 노트", text: notesBinding(for: key), axis: .vertical)
                                 .textFieldStyle(.roundedBorder)
@@ -140,14 +147,20 @@ struct MacSnapEventListView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    NumberShortcutMenuButton(
-                        title: "폴더에 추가",
+                    NumberShortcutPopUpButton(
+                        placeholder: "폴더에 추가",
+                        selectedIndex: nil,
                         emptyMessage: "생성된 폴더가 없습니다.",
                         options: folderShortcutOptions(for: event)
                     )
+                    .frame(width: 104, height: 24)
                 }
             }
         }
+    }
+
+    private func labelSelectedIndex(for event: WorkingSnapEvent) -> Int? {
+        RecordingPackageLabel.allCases.firstIndex(of: currentLabel(for: event))
     }
 
     private func labelShortcutOptions(for key: String) -> [NumberShortcutMenuOption] {
@@ -223,117 +236,77 @@ private struct NumberShortcutMenuOption: Identifiable {
     var hasShortcut: Bool { (1...9).contains(index) }
 }
 
-private struct NumberShortcutMenuButton: View {
-    let title: String
+private struct NumberShortcutPopUpButton: NSViewRepresentable {
+    let placeholder: String
+    let selectedIndex: Int?
     var emptyMessage: String = "선택할 항목이 없습니다."
     let options: [NumberShortcutMenuOption]
 
-    @State private var isPresented = false
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
 
-    var body: some View {
-        Button {
-            isPresented = true
-        } label: {
-            HStack(spacing: 6) {
-                Text(title)
-                    .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity)
+    func makeNSView(context: Context) -> NSPopUpButton {
+        let popUpButton = NSPopUpButton(frame: .zero, pullsDown: false)
+        popUpButton.controlSize = .small
+        popUpButton.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        popUpButton.target = context.coordinator
+        popUpButton.action = #selector(Coordinator.selectItem(_:))
+        return popUpButton
+    }
+
+    func updateNSView(_ popUpButton: NSPopUpButton, context: Context) {
+        context.coordinator.options = options
+        popUpButton.removeAllItems()
+
+        if options.isEmpty {
+            popUpButton.addItem(withTitle: emptyMessage)
+            popUpButton.item(at: 0)?.isEnabled = false
+            popUpButton.isEnabled = false
+            return
         }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-            NumberShortcutMenuContent(
-                emptyMessage: emptyMessage,
-                options: options,
-                isPresented: $isPresented
+
+        popUpButton.isEnabled = true
+        for option in options {
+            let item = NSMenuItem(
+                title: option.prefixedTitle,
+                action: #selector(Coordinator.selectItem(_:)),
+                keyEquivalent: option.hasShortcut ? "\(option.index)" : ""
             )
+            item.target = context.coordinator
+            item.tag = option.index
+            popUpButton.menu?.addItem(item)
+        }
+
+        if let selectedIndex, options.indices.contains(selectedIndex) {
+            popUpButton.selectItem(at: selectedIndex)
+        } else {
+            popUpButton.addItem(withTitle: placeholder)
+            if let placeholderItem = popUpButton.item(withTitle: placeholder) {
+                placeholderItem.isEnabled = false
+                popUpButton.select(placeholderItem)
+            }
         }
     }
-}
 
-private struct NumberShortcutMenuContent: View {
-    let emptyMessage: String
-    let options: [NumberShortcutMenuOption]
-    @Binding var isPresented: Bool
+    final class Coordinator: NSObject {
+        var options: [NumberShortcutMenuOption] = []
 
-    @State private var keyMonitor: Any?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if options.isEmpty {
-                Text(emptyMessage)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
+        @objc func selectItem(_ sender: Any?) {
+            let tag: Int?
+            if let menuItem = sender as? NSMenuItem {
+                tag = menuItem.tag
+            } else if let popUpButton = sender as? NSPopUpButton {
+                tag = popUpButton.selectedItem?.tag
             } else {
-                ForEach(options) { option in
-                    Button {
-                        select(option)
-                    } label: {
-                        HStack {
-                            Text(option.prefixedTitle)
-                                .lineLimit(1)
-                            Spacer()
-                            if option.hasShortcut {
-                                Text("\(option.index)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                }
-            }
-        }
-        .frame(minWidth: 180, alignment: .leading)
-        .padding(.vertical, 6)
-        .onAppear(perform: installKeyMonitor)
-        .onDisappear(perform: removeKeyMonitor)
-    }
-
-    private func select(_ option: NumberShortcutMenuOption) {
-        option.action()
-        isPresented = false
-    }
-
-    private func installKeyMonitor() {
-        removeKeyMonitor()
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard let number = shortcutNumber(from: event),
-                  let option = options.first(where: { $0.index == number }) else {
-                return event
+                tag = nil
             }
 
-            select(option)
-            return nil
+            guard let tag,
+                  let option = options.first(where: { $0.index == tag }) else {
+                return
+            }
+            option.action()
         }
-    }
-
-    private func removeKeyMonitor() {
-        if let keyMonitor {
-            NSEvent.removeMonitor(keyMonitor)
-            self.keyMonitor = nil
-        }
-    }
-
-    private func shortcutNumber(from event: NSEvent) -> Int? {
-        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        guard modifiers.isEmpty,
-              let characters = event.charactersIgnoringModifiers,
-              characters.count == 1,
-              let number = Int(characters),
-              (1...9).contains(number) else {
-            return nil
-        }
-
-        return number
     }
 }
