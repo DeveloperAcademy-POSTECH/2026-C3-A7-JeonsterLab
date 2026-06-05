@@ -64,11 +64,19 @@ struct MacSnapEventListView: View {
                         }
 
                         HStack(alignment: .top, spacing: 10) {
-                            NumberShortcutMenuButton(
-                                title: "라벨: \(currentLabel(for: event).displayName)",
-                                options: labelShortcutOptions(for: key)
-                            )
-                            .frame(width: 150)
+                            HStack(spacing: 6) {
+                                Text("라벨")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 28, alignment: .leading)
+
+                                NumberShortcutMenuButton(
+                                    title: currentLabel(for: event).displayName,
+                                    options: labelShortcutOptions(for: key)
+                                )
+                                .frame(width: 132)
+                            }
+                            .padding(.top, 1)
 
                             TextField("스냅 노트", text: notesBinding(for: key), axis: .vertical)
                                 .textFieldStyle(.roundedBorder)
