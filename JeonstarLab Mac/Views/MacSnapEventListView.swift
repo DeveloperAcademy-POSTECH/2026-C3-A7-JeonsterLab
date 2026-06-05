@@ -220,7 +220,6 @@ private struct NumberShortcutMenuOption: Identifiable {
     let action: () -> Void
 
     var id: Int { index }
-    var prefixedTitle: String { "\(index). \(title)" }
     var hasShortcut: Bool { (1...9).contains(index) }
 }
 
@@ -277,7 +276,7 @@ private struct NumberShortcutMenuContent: View {
                         select(option)
                     } label: {
                         HStack {
-                            Text(option.prefixedTitle)
+                            Text(option.title)
                                 .lineLimit(1)
                             Spacer()
                             if option.hasShortcut {
