@@ -358,6 +358,33 @@ enum RecordingPackageLabel: String, CaseIterable, Codable, Identifiable {
         case .other:          return .gray.opacity(0.5)
         }
     }
+
+    var chipBackgroundColor: Color {
+        switch self {
+        case .unlabeled:
+            return .gray.opacity(0.12)
+        default:
+            return backgroundColor.opacity(0.45)
+        }
+    }
+
+    var chipBorderColor: Color {
+        switch self {
+        case .unlabeled:
+            return .gray.opacity(0.35)
+        default:
+            return backgroundColor.opacity(0.95)
+        }
+    }
+
+    var chipForegroundColor: Color {
+        switch self {
+        case .unlabeled:
+            return .secondary
+        default:
+            return .primary
+        }
+    }
 }
 
 struct RecordingPackageLabelPayload: Codable {
