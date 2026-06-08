@@ -72,6 +72,7 @@ struct MacSnapEventListView: View {
 
                                 NumberShortcutMenuButton(
                                     title: currentLabel(for: event).displayName,
+                                    labelStyle: currentLabel(for: event),
                                     options: labelShortcutOptions(for: key)
                                 )
                                 .frame(width: 132)
@@ -233,26 +234,14 @@ private struct NumberShortcutMenuOption: Identifiable {
 
 private struct NumberShortcutMenuButton: View {
     let title: String
+    var labelStyle: RecordingPackageLabel?
     var emptyMessage: String = "선택할 항목이 없습니다."
     let options: [NumberShortcutMenuOption]
 
     @State private var isPresented = false
 
     var body: some View {
-        Button {
-            isPresented = true
-        } label: {
-            HStack(spacing: 6) {
-                Text(title)
-                    .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
+        button
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
             NumberShortcutMenuContent(
                 emptyMessage: emptyMessage,
@@ -260,6 +249,49 @@ private struct NumberShortcutMenuButton: View {
                 isPresented: $isPresented
             )
         }
+    }
+
+    @ViewBuilder
+    private var button: some View {
+        if let labelStyle {
+            Button {
+                isPresented = true
+            } label: {
+                labelContent
+                    .font(.callout)
+                    .foregroundStyle(labelStyle.chipForegroundColor)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(labelStyle.chipBackgroundColor)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(labelStyle.chipBorderColor, lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+        } else {
+            Button {
+                isPresented = true
+            } label: {
+                labelContent
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+    }
+
+    private var labelContent: some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .lineLimit(1)
+            Image(systemName: "chevron.down")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
