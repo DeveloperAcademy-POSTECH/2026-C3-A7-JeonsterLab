@@ -22,8 +22,6 @@ final class MotionTracker: NSObject, MotionRecorderProtocol {
         queue.qualityOfService = .userInitiated
         return queue
     }()
-    private var extendedSession: WKExtendedRuntimeSession?
-    private var extendedSessionStarted = false
     private var recordingStartedAt: Date?
     private var deliveredSampleCount = 0
     private var lastSampleTimestamp: TimeInterval?
@@ -34,7 +32,7 @@ final class MotionTracker: NSObject, MotionRecorderProtocol {
 
     /// 백그라운드 세션이 만료되거나 예기치 않게 종료될 때 호출됨.
     /// RecordingViewModel.stopRecording()을 연결해 자동 종료 처리.
-    var onExtendedSessionExpired: (() -> Void)?
+    var onRecordingFailure: ((String) -> Void)?
 
     func startRecording(onSample: @escaping (MotionSample) -> Void) throws {
         motionLogger.info("startRecording requested. available=\(self.motionManager.isDeviceMotionAvailable), active=\(self.motionManager.isDeviceMotionActive), isRecording=\(self.isRecording)")
@@ -49,18 +47,13 @@ final class MotionTracker: NSObject, MotionRecorderProtocol {
         maxSampleGap = 0
         lastProgressLogTime = 0
 
-        // CMMotionManager 시작 전에 백그라운드 세션을 먼저 활성화
-        let session = WKExtendedRuntimeSession()
-        session.delegate = self
-        session.start()
-        extendedSession = session
-
         motionManager.deviceMotionUpdateInterval = 1.0 / 50.0
 
         // Core Motion delivery is kept off the main queue so UI work cannot delay sampling.
         motionManager.startDeviceMotionUpdates(to: motionQueue) { data, error in
             if let error {
                 motionLogger.error("deviceMotion update error: \(error.localizedDescription)")
+                Task { @MainActor in self.onRecordingFailure?("Motion recording stopped. Check Motion & Fitness permissions. \(error.localizedDescription)") }
                 return
             }
             guard let data else { return }
@@ -92,9 +85,6 @@ final class MotionTracker: NSObject, MotionRecorderProtocol {
         let expectedCount = Int((elapsed * 50.0).rounded())
         motionLogger.info("stopRecording requested. delivered=\(self.deliveredSampleCount), expected≈\(expectedCount), elapsed=\(elapsed, format: .fixed(precision: 2))s, maxGap=\(self.maxSampleGap, format: .fixed(precision: 3))s, active=\(self.motionManager.isDeviceMotionActive)")
         motionManager.stopDeviceMotionUpdates()
-        extendedSession?.invalidate()
-        extendedSession = nil
-        extendedSessionStarted = false
         recordingStartedAt = nil
         isRecording = false
     }
@@ -121,40 +111,6 @@ final class MotionTracker: NSObject, MotionRecorderProtocol {
             let expectedCount = Int((elapsed * 50.0).rounded())
             motionLogger.info("recording progress. delivered=\(self.deliveredSampleCount), expected≈\(expectedCount), maxGap=\(self.maxSampleGap, format: .fixed(precision: 3))s, active=\(self.motionManager.isDeviceMotionActive)")
         }
-    }
-}
-
-extension MotionTracker: WKExtendedRuntimeSessionDelegate {
-    func extendedRuntimeSessionDidStart(_ extendedRuntimeSession: WKExtendedRuntimeSession) {
-        extendedSessionStarted = true
-        motionLogger.info("extended runtime session started")
-    }
-
-    /// 세션 만료 약 5분 전에 호출됨 — 녹화를 자동 종료
-    func extendedRuntimeSessionWillExpire(_ extendedRuntimeSession: WKExtendedRuntimeSession) {
-        motionLogger.warning("extended runtime session will expire")
-        Task { @MainActor in onExtendedSessionExpired?() }
-    }
-
-    /// 세션 종료 — 정상 시작 이후 종료된 경우에만 녹화 자동 종료.
-    /// 세션이 시작조차 못하고 실패한 경우(설정 문제 등)에는 녹화를 유지
-    /// (포그라운드에서는 CMMotionManager가 계속 동작하므로 데이터 수집 가능).
-    func extendedRuntimeSession(
-        _ extendedRuntimeSession: WKExtendedRuntimeSession,
-        didInvalidateWith reason: WKExtendedRuntimeSessionInvalidationReason,
-        error: (any Error)?
-    ) {
-        if let error {
-            motionLogger.error("extended runtime session invalidated. reason=\(reason.rawValue), error=\(error.localizedDescription)")
-        } else {
-            motionLogger.info("extended runtime session invalidated. reason=\(reason.rawValue)")
-        }
-        guard isRecording, extendedSessionStarted else {
-            extendedSessionStarted = false
-            return
-        }
-        extendedSessionStarted = false
-        Task { @MainActor in onExtendedSessionExpired?() }
     }
 }
 

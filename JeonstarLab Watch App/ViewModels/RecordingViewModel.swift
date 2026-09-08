@@ -19,6 +19,13 @@ final class RecordingViewModel {
     }
 
     private(set) var state: RecordingState = .idle
+    var isAppActive = true
+
+    func recordingFailed(_ message: String) {
+        stopRecording()
+        state = .error(message)
+        hapticManager.playError()
+    }
 
     private let startUseCase: StartRecordingUseCase
     private let stopUseCase: StopRecordingUseCase
@@ -91,8 +98,8 @@ final class RecordingViewModel {
             return
         }
 
-        let duration = TimeInterval(file.sampleCount) / 50.0
-        let startedAt = (file.modifiedAt ?? Date()).addingTimeInterval(-duration)
+        let duration = file.duration ?? TimeInterval(file.sampleCount) / 50.0
+        let startedAt = file.startedAt ?? (file.modifiedAt ?? Date()).addingTimeInterval(-duration)
         let session = RecordingSession(
             id: sessionID,
             startedAt: startedAt,
@@ -111,6 +118,7 @@ final class RecordingViewModel {
     }
 
     var canStartRecording: Bool {
+        guard isAppActive else { return false }
         switch state {
         case .idle, .error:
             return true

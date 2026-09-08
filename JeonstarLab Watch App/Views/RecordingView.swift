@@ -35,7 +35,7 @@ struct RecordingView: View {
           }
           .buttonStyle(.bordered)
           .accessibilityLabel("Saved on Watch, \(storage.retainedFiles.count) recordings")
-          Text("Review on iPhone.\nEdit on Mac.")
+          Text("Keep this app open.\nLeaving it saves and stops recording.")
             .font(.caption2)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)

@@ -21,7 +21,7 @@ final class StartRecordingUseCase {
     /// 새 녹화를 시작. 이 세션에 할당된 UUID를 반환.
     func execute() throws -> UUID {
         let sessionID = UUID()
-        storage.discard()   // 이전에 남아있던 버퍼 초기화
+        try storage.begin(sessionID: sessionID, startedAt: Date())
         try recorder.startRecording { [storage] sample in
             storage.append(sample)
         }

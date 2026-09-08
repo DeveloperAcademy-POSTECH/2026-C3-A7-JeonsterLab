@@ -532,7 +532,6 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "WatchMotion Editor";
 				INFOPLIST_KEY_CFBundleName = "WatchMotion Editor";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKBackgroundModes = "self-monitoring";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.Jeonster.WatchMotionEditor;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -571,7 +570,6 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "WatchMotion Editor";
 				INFOPLIST_KEY_CFBundleName = "WatchMotion Editor";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKBackgroundModes = "self-monitoring";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.Jeonster.WatchMotionEditor;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

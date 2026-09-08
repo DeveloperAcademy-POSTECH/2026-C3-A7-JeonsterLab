@@ -91,7 +91,7 @@
         ]
       case (.phone, 1):
         [
-          "Open the Watch app and tap Record. Tap Stop when you are finished; the recording is queued for your iPhone.",
+        "Open the Watch app and tap Record. Keep it open while recording. Tap Stop to save and queue delivery to iPhone; moving the app to the background also saves and stops.",
           "Open a recording on your iPhone to check its duration and acceleration, gyroscope, or attitude graphs.",
           "Add context in the Notes section. Saved files on the Watch remain until your iPhone confirms import.",
         ]

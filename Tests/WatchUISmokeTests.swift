@@ -39,7 +39,28 @@ private final class TestTransfer: RecordingTransferProtocol {
 @main
 struct WatchUISmokeTests {
     @MainActor
-    static func main() {
+    static func main() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("watch-journal-test-\(UUID())")
+        let journal = WatchRecordingStorage(directory: root)
+        let journalID = UUID()
+        let start = Date(timeIntervalSince1970: 1000)
+        try journal.begin(sessionID: journalID, startedAt: start)
+        for index in 0..<107 {
+            journal.append(MotionSample(timestamp: Double(index) / 50,
+                attitudeRoll: 0, attitudePitch: 0, attitudeYaw: 0,
+                rotationRateX: 0, rotationRateY: 0, rotationRateZ: 0,
+                gravityX: 0, gravityY: 0, gravityZ: 1, userAccX: 0, userAccY: 0, userAccZ: 0))
+        }
+        let recovered = WatchRecordingStorage(directory: root)
+        precondition(recovered.retainedFiles.first?.sampleCount == 100, "Checkpoint survives a new storage instance")
+        precondition(recovered.retainedFiles.first?.startedAt == start)
+        let saved = try journal.flush(sessionID: journalID, startedAt: start)
+        precondition(saved.sampleCount == 107)
+        let samples = try MotionSampleSerializer.read(from: saved.url)
+        precondition(samples.count == 107 && samples.last?.timestamp == 106.0 / 50)
+        try journal.begin(sessionID: UUID(), startedAt: Date())
+        precondition(FileManager.default.fileExists(atPath: saved.url.path), "New session must preserve old recording")
+
         let recorder = TestRecorder()
         let storage = TestStorage()
         let transfer = TestTransfer()

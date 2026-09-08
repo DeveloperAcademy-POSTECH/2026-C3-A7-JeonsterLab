@@ -129,6 +129,10 @@ extension WatchSessionManager {
         #endif
         guard activationState == .activated else {
             logger.error("✗ sendFile 중단 — WCSession not activated (state: \(activationState.rawValue))")
+            #if os(watchOS)
+            onTransferDidFinish?(NSError(domain: "WatchMotionTransfer", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "iPhone connection is not ready. Your file is saved; retry from Saved Files."]))
+            #endif
             return
         }
         WCSession.default.transferFile(file, metadata: metadata)

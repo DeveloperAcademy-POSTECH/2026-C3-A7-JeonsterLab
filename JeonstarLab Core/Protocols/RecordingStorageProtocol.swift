@@ -10,6 +10,7 @@ import Foundation
 /// Watch 전용: 샘플을 메모리에 버퍼링하고 binary 파일로 flush.
 /// 구현체: WatchRecordingStorage (watchOS 타겟)
 protocol RecordingStorageProtocol: AnyObject {
+    func begin(sessionID: UUID, startedAt: Date) throws
     /// 현재 버퍼에 있는 샘플 수.
     var bufferCount: Int { get }
 
@@ -23,4 +24,8 @@ protocol RecordingStorageProtocol: AnyObject {
 
     /// 파일 쓰기 없이 버퍼를 버림.
     func discard()
+}
+
+extension RecordingStorageProtocol {
+    func begin(sessionID: UUID, startedAt: Date) throws { discard() }
 }
