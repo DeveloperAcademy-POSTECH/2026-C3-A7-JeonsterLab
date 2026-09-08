@@ -397,7 +397,7 @@ enum ReceiverProjectPackageService {
             allowed.contains(scalar) ? Character(scalar) : "-"
         }
         let cleaned = String(scalars).trimmingCharacters(in: .whitespacesAndNewlines)
-        return cleaned.isEmpty ? "JeonstarLab Project" : cleaned
+        return cleaned.isEmpty ? "WatchMotion Editor Project" : cleaned
     }
 
     private static func isChild(_ url: URL, of parentURL: URL) -> Bool {

@@ -10,11 +10,11 @@ struct JeonstarLabMacApp: App {
     @State private var viewModel = MacHomeViewModel()
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup("WatchMotion Editor") {
             MacHomeView(viewModel: viewModel)
         }
 
-        WindowGroup("Receiver Project", for: ReceiverProjectWindowRequest.self) { $request in
+        WindowGroup("WatchMotion Editor — 프로젝트", for: ReceiverProjectWindowRequest.self) { $request in
             if let request {
                 MacReceiverProjectWindowView(request: request)
             } else {

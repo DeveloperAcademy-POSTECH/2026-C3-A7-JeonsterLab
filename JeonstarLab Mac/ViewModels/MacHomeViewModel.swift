@@ -540,7 +540,7 @@ final class MacHomeViewModel {
 
     func exportReceiverProjectPackage() {
         let savePanel = NSSavePanel()
-        savePanel.title = "Receiver 프로젝트 내보내기"
+        savePanel.title = "WatchMotion Editor 프로젝트 내보내기"
         savePanel.nameFieldStringValue = ReceiverProjectPackageService.defaultFileName()
         savePanel.canCreateDirectories = true
         savePanel.allowedContentTypes = [UTType(filenameExtension: "jeonstarlab") ?? .zip]
@@ -566,7 +566,7 @@ final class MacHomeViewModel {
 
     func makeProjectWindowRequest() -> ReceiverProjectWindowRequest? {
         let openPanel = NSOpenPanel()
-        openPanel.title = "Receiver 프로젝트 열기"
+        openPanel.title = "WatchMotion Editor 프로젝트 열기"
         openPanel.canChooseFiles = true
         openPanel.canChooseDirectories = false
         openPanel.allowsMultipleSelection = false

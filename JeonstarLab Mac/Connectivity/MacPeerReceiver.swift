@@ -12,7 +12,7 @@ final class MacPeerReceiver: NSObject {
     var onReceivedFiles: (([URL]) -> Void)?
     var onError: ((String) -> Void)?
 
-    private let peerID = MCPeerID(displayName: Host.current().localizedName ?? "JeonstarLab Mac")
+    private let peerID = MCPeerID(displayName: Host.current().localizedName ?? "WatchMotion Editor")
     private let session: MCSession
     private let advertiser: MCNearbyServiceAdvertiser
     private let fileStore: MacReceivedFileStore

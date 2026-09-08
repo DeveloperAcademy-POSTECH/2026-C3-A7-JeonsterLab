@@ -29,7 +29,7 @@ struct MacHomeView: View {
                             Label("프로젝트 열기", systemImage: "plus")
                                 .labelStyle(.iconOnly)
                         }
-                        .help("Receiver 프로젝트 열기")
+                        .help("WatchMotion Editor 프로젝트 열기")
                     }
                 }
 
@@ -170,7 +170,7 @@ struct MacHomeView: View {
             Text("삭제하면 Mac에 저장된 이 녹화 패키지가 사라집니다.\n이 작업은 되돌릴 수 없습니다.")
         }
         .alert(
-            "Receiver 프로젝트",
+            "WatchMotion Editor 프로젝트",
             isPresented: Binding(
                 get: { viewModel.projectPackageMessage != nil },
                 set: { if !$0 { viewModel.projectPackageMessage = nil } }
@@ -189,7 +189,7 @@ struct MacHomeView: View {
                 } label: {
                     Label("프로젝트 내보내기", systemImage: "square.and.arrow.up")
                 }
-                .help("Receiver 프로젝트 내보내기")
+                .help("WatchMotion Editor 프로젝트 내보내기")
             }
         }
         .searchable(

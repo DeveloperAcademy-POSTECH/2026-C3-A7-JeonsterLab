@@ -36,9 +36,9 @@
 
 /* Begin PBXFileReference section */
 		C0528BC72FC96F7800F84FBD /* JeonstarLab-Watch-App-Watch-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "JeonstarLab-Watch-App-Watch-App-Info.plist"; sourceTree = "<group>"; };
-		D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JeonstarLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Watch App Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Mac.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -172,7 +172,7 @@
 			name = JeonstarLab;
 			packageProductDependencies = (
 			);
-			productName = JeonstarLab;
+			productName = "WatchMotion Editor";
 			productReference = D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -195,7 +195,7 @@
 			name = "JeonstarLab Watch App Watch App";
 			packageProductDependencies = (
 			);
-			productName = "JeonstarLab Watch App Watch App";
+			productName = "WatchMotion Editor";
 			productReference = D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -217,7 +217,7 @@
 			name = "JeonstarLab Mac";
 			packageProductDependencies = (
 			);
-			productName = "JeonstarLab Mac";
+			productName = "WatchMotion Editor";
 			productReference = D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -459,7 +459,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "WatchMotion Editor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -491,7 +491,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "WatchMotion Editor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -527,7 +527,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "WatchMotion Editor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -566,7 +566,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "WatchMotion Editor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -600,7 +600,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor.mac;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "WatchMotion Editor";
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -630,7 +630,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor.mac;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "WatchMotion Editor";
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
