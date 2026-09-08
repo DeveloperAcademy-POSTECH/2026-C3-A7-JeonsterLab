@@ -7,6 +7,7 @@ import SwiftUI
 import AppKit
 
 struct MacSnapEventListView: View {
+    @Environment(\.projectLabelOptions) private var projectLabels
     let events: [WorkingSnapEvent]
     @Binding var snapEventLabels: [String: SnapEventLabelPayload]
     let folders: [SnapFolder]
@@ -187,8 +188,9 @@ struct MacSnapEventListView: View {
     }
 
     private func labelShortcutOptions(for key: String) -> [NumberShortcutMenuOption] {
-        RecordingPackageLabel.allCases.enumerated().map { index, label in
-            NumberShortcutMenuOption(index: index + 1, title: label.displayName) {
+        projectLabels.enumerated().map { index, definition in
+            let label = definition.label
+            return NumberShortcutMenuOption(index: index + 1, title: label.displayName, shortcut: definition.shortcut ?? 0) {
                 labelBinding(for: key).wrappedValue = label
             }
         }
@@ -252,10 +254,12 @@ struct MacSnapEventListView: View {
 private struct NumberShortcutMenuOption: Identifiable {
     let index: Int
     let title: String
+    var shortcut: Int? = nil
     let action: () -> Void
 
     var id: Int { index }
-    var hasShortcut: Bool { (1...9).contains(index) }
+    var shortcutNumber: Int { shortcut ?? index }
+    var hasShortcut: Bool { (1...9).contains(shortcutNumber) }
 }
 
 private struct NumberShortcutMenuButton: View {
@@ -346,7 +350,7 @@ private struct NumberShortcutMenuContent: View {
                                 .lineLimit(1)
                             Spacer()
                             if option.hasShortcut {
-                                Text("\(option.index)")
+                                Text("\(option.shortcutNumber)")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -374,7 +378,7 @@ private struct NumberShortcutMenuContent: View {
         removeKeyMonitor()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard let number = shortcutNumber(from: event),
-                  let option = options.first(where: { $0.index == number }) else {
+                  let option = options.first(where: { $0.hasShortcut && $0.shortcutNumber == number }) else {
                 return event
             }
 

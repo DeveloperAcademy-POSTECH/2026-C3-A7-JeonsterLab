@@ -26,6 +26,7 @@ final class MacHomeViewModel {
     var errorMessage: String?
     var projectPackageMessage: String?
     var searchQuery = ""
+    var labelCatalog = ProjectLabelCatalog.legacy
 
     init(workspace: ReceiverWorkspace? = nil) {
         workspaceManager = ReceiverWorkspaceManager(
@@ -156,6 +157,11 @@ final class MacHomeViewModel {
     }
 
     func reloadPackages() {
+        do { labelCatalog = try ProjectLabelCatalog.load(root: rootReceivedFolderURL) }
+        catch {
+            labelCatalog = ProjectLabelCatalog(labels: [ProjectLabelDefinition(label: .unlabeled)])
+            errorMessage = "Unable to read project labels: \(error.localizedDescription)"
+        }
         try? FileManager.default.createDirectory(
             at: rootReceivedFolderURL,
             withIntermediateDirectories: true
@@ -543,7 +549,8 @@ final class MacHomeViewModel {
         savePanel.title = "Export WatchMotion Editor Project"
         savePanel.nameFieldStringValue = ReceiverProjectPackageService.defaultFileName()
         savePanel.canCreateDirectories = true
-        savePanel.allowedContentTypes = [UTType(filenameExtension: "jeonstarlab") ?? .zip]
+        savePanel.allowedContentTypes = [ProjectExportPreferences.format.contentType]
+        savePanel.isExtensionHidden = false
 
         guard savePanel.runModal() == .OK,
               let outputURL = savePanel.url else {
@@ -570,7 +577,7 @@ final class MacHomeViewModel {
         openPanel.canChooseFiles = true
         openPanel.canChooseDirectories = false
         openPanel.allowsMultipleSelection = false
-        openPanel.allowedContentTypes = [UTType(filenameExtension: "jeonstarlab") ?? .zip]
+        openPanel.allowedContentTypes = [.watchMotionProject, UTType(filenameExtension: "jeonstarlab") ?? .data, .zip]
 
         guard openPanel.runModal() == .OK,
               let packageURL = openPanel.url else {

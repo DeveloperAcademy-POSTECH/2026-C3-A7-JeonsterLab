@@ -209,6 +209,15 @@ struct MacHomeView: View {
             Text(viewModel.projectPackageMessage ?? "")
         }
         .toolbar {
+            ToolbarItem {
+                Menu {
+                    Button("Project Labels…") {
+                        openWindow(value: ProjectSettingsRequest(recordingsPath: viewModel.rootReceivedFolderURL.path,
+                                                                 title: viewModel.workspaceTitle))
+                    }
+                    SettingsLink { Text("App Settings…") }
+                } label: { Label("Settings", systemImage: "gearshape") }
+            }
             ToolbarItem { EditorAppearanceMenu() }
             ToolbarItem {
                 Button {
@@ -218,6 +227,19 @@ struct MacHomeView: View {
                 }
                 .help("Export WatchMotion Editor Project")
             }
+        }
+        .environment(\.projectLabelOptions, viewModel.labelCatalog.activeLabels)
+        .task {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--show-project-labels") {
+                openWindow(value: ProjectSettingsRequest(recordingsPath: viewModel.rootReceivedFolderURL.path,
+                                                         title: viewModel.workspaceTitle))
+            }
+            #endif
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .projectLabelsDidChange)) { notification in
+            guard notification.object as? String == viewModel.rootReceivedFolderURL.standardizedFileURL.path else { return }
+            viewModel.reloadPackages()
         }
         .searchable(
             text: $viewModel.searchQuery,

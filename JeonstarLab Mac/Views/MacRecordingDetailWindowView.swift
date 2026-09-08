@@ -10,6 +10,7 @@ struct MacRecordingDetailWindowView: View {
 
     @State private var package: ReceivedRecordingPackage?
     @State private var errorMessage: String?
+    @State private var labelCatalog = ProjectLabelCatalog.legacy
 
     private let loader = ReceivedRecordingPackageLoader()
 
@@ -39,6 +40,11 @@ struct MacRecordingDetailWindowView: View {
         .task(id: packagePath) {
             loadPackage()
         }
+        .environment(\.projectLabelOptions, labelCatalog.activeLabels)
+        .onReceive(NotificationCenter.default.publisher(for: .projectLabelsDidChange)) { notification in
+            guard notification.object as? String == URL(fileURLWithPath: packagePath).deletingLastPathComponent().standardizedFileURL.path else { return }
+            loadPackage()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .recordingPackageLabelDidChange)) { notification in
             guard let changedPath = notification.object as? String,
                   changedPath == packagePath else {
@@ -58,6 +64,8 @@ struct MacRecordingDetailWindowView: View {
 
     private func loadPackage() {
         let folderURL = URL(fileURLWithPath: packagePath)
+        do { labelCatalog = try ProjectLabelCatalog.load(root: folderURL.deletingLastPathComponent()) }
+        catch { errorMessage = error.localizedDescription; return }
         guard let loadedPackage = loader.loadPackage(folderURL: folderURL) else {
             package = nil
             errorMessage = "The package folder was removed or required files are missing."

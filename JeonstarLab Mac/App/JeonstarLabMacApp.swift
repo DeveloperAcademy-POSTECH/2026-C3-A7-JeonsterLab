@@ -7,7 +7,22 @@ import SwiftUI
 
 @main
 struct JeonstarLabMacApp: App {
-    @State private var viewModel = MacHomeViewModel()
+    @State private var viewModel: MacHomeViewModel
+
+    init() {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if let index = args.firstIndex(of: "--ui-workspace"), args.indices.contains(index + 1) {
+            let root = URL(fileURLWithPath: args[index + 1], isDirectory: true)
+            let workspace = ReceiverWorkspace(id: root.path, name: "UI Verification",
+                rootURL: root, recordingsRootURL: root, foldersRootURL: root,
+                kind: .importedProject, manifest: nil)
+            _viewModel = State(initialValue: MacHomeViewModel(workspace: workspace))
+            return
+        }
+        #endif
+        _viewModel = State(initialValue: MacHomeViewModel())
+    }
 
     var body: some Scene {
         WindowGroup("WatchMotion Editor") {
@@ -40,5 +55,12 @@ struct JeonstarLabMacApp: App {
                     .frame(minWidth: 480, minHeight: 320)
             }
         }
+
+        Settings { EditorSettingsView() }
+
+        WindowGroup("Project Settings", for: ProjectSettingsRequest.self) { $request in
+            if let request { ProjectLabelSettingsView(request: request) }
+        }
+        .defaultSize(width: 760, height: 540)
     }
 }
