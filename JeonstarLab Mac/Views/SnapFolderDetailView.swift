@@ -26,7 +26,7 @@ struct SnapFolderDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 TextField("Folder Name", text: $folder.name)
-                    .font(.largeTitle)
+                    .font(.system(size: 28, weight: .semibold))
                     .textFieldStyle(.plain)
                     .onChange(of: folder.name) {
                         folder.updatedAt = Date()
@@ -37,36 +37,23 @@ struct SnapFolderDetailView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                HStack(spacing: 10) {
-                    Picker("Sort", selection: $sortOption) {
-                        ForEach(SnapFolderSortOption.allCases) { option in
-                            Text(option.displayName).tag(option)
-                        }
+                Text("Organize labeled snaps into a dataset. Generate segment files before exporting, or export directly from the source recordings.")
+                    .font(.callout).foregroundStyle(.secondary)
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        sortPicker
+                        Spacer()
+                        exportActions
                     }
-                    .pickerStyle(.menu)
-                    .frame(maxWidth: 220)
-
-                    Button("Generate Segments") {
-                        segmentMessage = onGenerateSegments(folder)
+                    VStack(alignment: .leading, spacing: 12) {
+                        sortPicker
+                        exportActions
                     }
-                    .disabled(folder.items.isEmpty)
-
-                    Button("Export CSV Dataset") {
-                        exportOptions = .lastSaved()
-                        isShowingExportOptions = true
-                    }
-                    .disabled(folder.items.isEmpty)
-
-                    Button("Export Create ML") {
-                        exportMessage = onExportCreateML(folder)
-                    }
-                    .disabled(folder.items.isEmpty)
-
-                    if let segmentMessage {
-                        Text(segmentMessage)
-                            .font(.caption)
-                            .foregroundStyle(segmentMessage.localizedCaseInsensitiveContains("failed") ? .red : .secondary)
-                    }
+                }
+                if let segmentMessage {
+                    Text(segmentMessage)
+                        .font(.caption)
+                        .foregroundStyle(segmentMessage.localizedCaseInsensitiveContains("failed") ? .red : .secondary)
                 }
 
                 if let exportMessage {
@@ -77,20 +64,19 @@ struct SnapFolderDetailView: View {
                 }
 
                 if folder.items.isEmpty {
-                    Text("No snaps in this folder yet.")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 180, alignment: .center)
+                    ContentUnavailableView("Build Your Dataset", systemImage: "folder.badge.plus",
+                        description: Text("Select a snap in a recording, assign a label, then add it to this folder."))
+                        .frame(maxWidth: .infinity, minHeight: 240)
                 } else {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(sortedItems) { item in
                             folderItemRow(item)
-                            Divider()
                         }
                     }
                 }
             }
-            .frame(maxWidth: 920, alignment: .leading)
-            .padding(28)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
         }
         .alert(
             "Source recording unavailable.",
@@ -119,6 +105,31 @@ struct SnapFolderDetailView: View {
                 }
             )
         }
+    }
+
+    private var sortPicker: some View {
+        Picker("Sort", selection: $sortOption) {
+            ForEach(SnapFolderSortOption.allCases) { option in
+                Text(option.displayName).tag(option)
+            }
+        }
+        .pickerStyle(.menu)
+        .frame(width: 220)
+    }
+
+    private var exportActions: some View {
+        HStack(spacing: 10) {
+            Button("Generate Segments") { segmentMessage = onGenerateSegments(folder) }
+            Button("Export Create ML") { exportMessage = onExportCreateML(folder) }
+            Button {
+                exportOptions = .lastSaved()
+                isShowingExportOptions = true
+            } label: {
+                Label("Export CSV", systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .disabled(folder.items.isEmpty)
     }
 
     private var sortedItems: [SnapFolderItem] {
@@ -171,7 +182,7 @@ struct SnapFolderDetailView: View {
                     .clipShape(Capsule())
             }
 
-            HStack(spacing: 16) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), alignment: .leading)], alignment: .leading, spacing: 12) {
                 metric("Label", item.label.displayName)
                 metric("Start", formatted(item.startTime, suffix: "s"))
                 metric("Peak", formatted(item.peakTime, suffix: "s"))
@@ -194,6 +205,7 @@ struct SnapFolderDetailView: View {
                     }
                 }
 
+                Spacer()
                 Button("Remove from Folder", role: .destructive) {
                     onDeleteItem(item)
                 }
@@ -201,7 +213,8 @@ struct SnapFolderDetailView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
         }
-        .padding(.vertical, 6)
+        .padding(18)
+        .editorSurface()
     }
 
     private func metric(_ title: String, _ value: String) -> some View {
@@ -219,10 +232,9 @@ struct SnapFolderDetailView: View {
             Text("Segment")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Circle()
-                .fill(hasSegment ? Color.green : Color.red)
-                .frame(width: 9, height: 9)
-                .help(hasSegment ? "Segment saved" : "Missing Segments")
+            Label(hasSegment ? "Saved" : "Not Generated", systemImage: hasSegment ? "checkmark.circle.fill" : "circle.dashed")
+                .font(.callout)
+                .foregroundStyle(hasSegment ? Color.green : Color.secondary)
         }
     }
 
