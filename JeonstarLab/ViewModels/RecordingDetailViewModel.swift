@@ -63,11 +63,16 @@ final class RecordingDetailViewModel {
     }
 
     func loadSamples() async {
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
         errorMessage = nil
         do {
-            samples = try repository.loadSamples(for: session.id)
+            let loaded = try await repository.loadSamplesForReview(for: session.id)
+            try Task.checkCancellation()
+            samples = loaded
+        } catch is CancellationError {
+            // Navigating away is not a failed import or a corrupt recording.
         } catch {
             errorMessage = error.localizedDescription
         }

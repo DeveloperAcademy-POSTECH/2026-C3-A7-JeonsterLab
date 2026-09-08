@@ -23,6 +23,9 @@ protocol RecordingRepositoryProtocol: AnyObject {
     /// 주어진 세션의 binary 파일에서 모든 샘플을 읽어 반환.
     func loadSamples(for sessionID: UUID) throws -> [MotionSample]
 
+    /// 화면 표시용 로드는 UI 스레드를 막지 않도록 분리.
+    @MainActor func loadSamplesForReview(for sessionID: UUID) async throws -> [MotionSample]
+
     /// 녹화별 스냅 감지 기준을 읽어 반환.
     func snapDetectionMode(for sessionID: UUID) throws -> SnapDetectionMode
 
@@ -31,4 +34,10 @@ protocol RecordingRepositoryProtocol: AnyObject {
 
     /// 녹화 단위 메모를 저장.
     func updateMemo(for sessionID: UUID, memo: String) throws
+}
+
+extension RecordingRepositoryProtocol {
+    @MainActor func loadSamplesForReview(for sessionID: UUID) async throws -> [MotionSample] {
+        try loadSamples(for: sessionID)
+    }
 }

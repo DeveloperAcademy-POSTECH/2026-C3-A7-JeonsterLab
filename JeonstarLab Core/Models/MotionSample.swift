@@ -38,12 +38,13 @@ struct MotionSample: Sendable {
 // MARK: - MotionSampleSerializer
 
 /// binary 파일 포맷: [4바이트 magic "WMTF"] [4바이트 version UInt32] [MotionSample × N]
-enum MotionSampleSerializer {
+nonisolated enum MotionSampleSerializer {
     nonisolated static let magic: UInt32 = 0x574D5446
     nonisolated static let version: UInt32 = 1
     nonisolated static let headerSize = 8
 
     static func read(from url: URL) throws -> [MotionSample] {
+        try Task.checkCancellation()
         let data = try Data(contentsOf: url, options: .mappedIfSafe)
         guard data.count <= 256 * 1024 * 1024 else { throw SerializerError.tooLarge }
         guard data.count >= headerSize else { throw SerializerError.invalidHeader }
@@ -57,8 +58,11 @@ enum MotionSampleSerializer {
         guard payload.count % sampleSize == 0 else { throw SerializerError.truncated }
 
         let count = payload.count / sampleSize
-        return payload.withUnsafeBytes { ptr in
-            (0..<count).map { ptr.loadUnaligned(fromByteOffset: $0 * sampleSize, as: MotionSample.self) }
+        return try payload.withUnsafeBytes { ptr in
+            try (0..<count).map { index in
+                if index.isMultiple(of: 4096) { try Task.checkCancellation() }
+                return ptr.loadUnaligned(fromByteOffset: index * sampleSize, as: MotionSample.self)
+            }
         }
     }
 

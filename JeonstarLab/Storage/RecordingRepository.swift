@@ -92,6 +92,18 @@ final class RecordingRepository: RecordingRepositoryProtocol {
         return mode
     }
 
+    func loadSamplesForReview(for sessionID: UUID) async throws -> [MotionSample] {
+        // SwiftData stays on MainActor; only immutable file data crosses to the worker.
+        let fileName = try entity(for: sessionID).fileName
+        let url = try fileStore.urlForFile(named: fileName)
+        let worker = Task.detached(priority: .userInitiated) {
+            try MotionSampleSerializer.read(from: url)
+        }
+        return try await withTaskCancellationHandler {
+            try await worker.value
+        } onCancel: { worker.cancel() }
+    }
+
     func updateSnapDetectionMode(for sessionID: UUID, mode: SnapDetectionMode) throws {
         let entity = try entity(for: sessionID)
         entity.snapDetectionModeRawValue = mode.rawValue
