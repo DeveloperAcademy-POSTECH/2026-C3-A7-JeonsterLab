@@ -38,6 +38,14 @@ struct ProjectSettingsSmokeTests {
         precondition(unknown.id == "custom-legacy", "Unknown IDs must not become Unlabeled")
 
         var catalog = ProjectLabelCatalog.legacy
+        var extended = catalog
+        for number in 10...25 { extended.addLabel(named: "Custom \(number)") }
+        try extended.validate()
+        precondition(extended.labels.last?.shortcut == 25 && extended.shortcutLimit == 25)
+        let extendedRoundTrip = try JSONDecoder().decode(ProjectLabelCatalog.self, from: JSONEncoder().encode(extended))
+        precondition(extendedRoundTrip.labels.last?.shortcut == 25)
+        extended.labels[1].shortcut = 0
+        requireThrows { try extended.validate() }
         catalog.labels[1].label.displayName = "Walk"
         catalog.labels[1].label.colorHex = "123ABC"
         catalog.labels[3].isArchived = true

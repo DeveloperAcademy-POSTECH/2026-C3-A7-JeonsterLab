@@ -263,7 +263,7 @@ private struct NumberShortcutMenuOption: Identifiable {
 
     var id: Int { index }
     var shortcutNumber: Int { shortcut ?? index }
-    var hasShortcut: Bool { (1...9).contains(shortcutNumber) }
+    var hasShortcut: Bool { shortcutNumber > 0 }
 }
 
 private struct NumberShortcutMenuButton: View {
@@ -335,9 +335,15 @@ private struct NumberShortcutMenuContent: View {
     @Binding var isPresented: Bool
 
     @State private var keyMonitor: Any?
+    @State private var numberInput = ""
 
     var body: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: 4) {
+            if options.contains(where: { $0.shortcutNumber >= 10 }) {
+                Text(numberInput.isEmpty ? String(localized: "Type a number · Return to confirm") : "\(numberInput) ↵")
+                    .font(.caption).foregroundStyle(.secondary).padding(10)
+            }
             if options.isEmpty {
                 Text(emptyMessage)
                     .font(.callout)
@@ -369,6 +375,8 @@ private struct NumberShortcutMenuContent: View {
         }
         .frame(minWidth: 180, alignment: .leading)
         .padding(.vertical, 6)
+        }
+        .frame(width: 260, height: min(420, CGFloat(options.count * 36 + 50)))
         .onAppear(perform: installKeyMonitor)
         .onDisappear(perform: removeKeyMonitor)
     }
@@ -380,13 +388,26 @@ private struct NumberShortcutMenuContent: View {
 
     private func installKeyMonitor() {
         removeKeyMonitor()
+        let menuWindow = NSApp.keyWindow
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard let number = shortcutNumber(from: event),
-                  let option = options.first(where: { $0.hasShortcut && $0.shortcutNumber == number }) else {
-                return event
+            guard event.window === menuWindow,
+                  event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty else { return event }
+            if event.keyCode == 53 { isPresented = false; return nil }
+            if event.keyCode == 51 {
+                if !numberInput.isEmpty { numberInput.removeLast() }
+                return nil
             }
-
-            select(option)
+            if event.keyCode == 36 || event.keyCode == 76 {
+                if let option = options.first(where: { $0.hasShortcut && String($0.shortcutNumber) == numberInput }) { select(option) }
+                return nil
+            }
+            guard let digit = event.charactersIgnoringModifiers, digit.count == 1,
+                  digit.unicodeScalars.allSatisfy({ (48...57).contains($0.value) }) else { return event }
+            let candidate = numberInput + digit
+            let matches = options.filter { $0.hasShortcut && String($0.shortcutNumber).hasPrefix(candidate) }
+            guard !matches.isEmpty else { NSSound.beep(); return nil }
+            numberInput = candidate
+            if matches.count == 1, String(matches[0].shortcutNumber) == candidate { select(matches[0]) }
             return nil
         }
     }
@@ -396,18 +417,6 @@ private struct NumberShortcutMenuContent: View {
             NSEvent.removeMonitor(keyMonitor)
             self.keyMonitor = nil
         }
-    }
-
-    private func shortcutNumber(from event: NSEvent) -> Int? {
-        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        guard modifiers.isEmpty,
-              let characters = event.charactersIgnoringModifiers,
-              characters.count == 1,
-              let number = Int(characters),
-              (1...9).contains(number) else {
-            return nil
-        }
-
-        return number
+        numberInput = ""
     }
 }

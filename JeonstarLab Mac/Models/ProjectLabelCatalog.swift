@@ -17,6 +17,12 @@ nonisolated struct ProjectLabelCatalog: Codable {
         })
     }
     var activeLabels: [ProjectLabelDefinition] { labels.filter { !$0.isArchived } }
+    var shortcutLimit: Int { max(1, labels.count) }
+    mutating func addLabel(named name: String) {
+        let used = Set(labels.compactMap(\.shortcut))
+        let next = (1...(labels.count + 1)).first { !used.contains($0) }!
+        labels.append(ProjectLabelDefinition(label: RecordingPackageLabel(name: name, colorHex: "0A84FF"), shortcut: next))
+    }
     func resolve(_ label: RecordingPackageLabel) -> RecordingPackageLabel {
         labels.first { $0.id == label.id }?.label ?? label
     }
@@ -48,7 +54,7 @@ nonisolated struct ProjectLabelCatalog: Codable {
                 throw CatalogError.invalid("Use a six-digit color, such as FF453A.")
             }
             if let key = item.shortcut {
-                guard (1...9).contains(key) else { throw CatalogError.invalid("Shortcuts must be 1–9.") }
+                guard (1...shortcutLimit).contains(key) else { throw CatalogError.invalid("Shortcut numbers must be within the project's label count.") }
                 if !item.isArchived && !shortcuts.insert(key).inserted {
                     throw CatalogError.invalid("Visible labels cannot share a shortcut.")
                 }

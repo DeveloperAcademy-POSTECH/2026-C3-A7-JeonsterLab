@@ -149,6 +149,9 @@
     "Confirm Segment" : {
 
     },
+    "Contact Support" : {
+
+    },
     "Continue Editing" : {
 
     },
@@ -248,6 +251,9 @@
     "Folders" : {
 
     },
+    "For multi-digit shortcuts, type the number. Press Return when the number is also the start of a longer shortcut, such as 1 and 10. Escape cancels." : {
+
+    },
     "Free trial: one workspace, three recordings, one dataset export." : {
 
     },
@@ -287,6 +293,9 @@
     "Height (cm)" : {
 
     },
+    "Help & Privacy" : {
+
+    },
     "In %@" : {
 
     },
@@ -306,6 +315,12 @@
 
     },
     "Labels and notes are saved automatically." : {
+
+    },
+    "Learn & Support" : {
+
+    },
+    "Links open in your default browser. An internet connection is required." : {
 
     },
     "Loading CSV" : {
@@ -380,6 +395,9 @@
     "OK" : {
 
     },
+    "Official Website" : {
+
+    },
     "One-time purchase · No subscription" : {
 
     },
@@ -423,6 +441,12 @@
 
     },
     "Price unavailable" : {
+
+    },
+    "Privacy" : {
+
+    },
+    "Privacy Policy" : {
 
     },
     "Project Labels" : {
@@ -570,6 +594,9 @@
     "Settings" : {
 
     },
+    "Setup Guide" : {
+
+    },
     "Shortcut" : {
 
     },
@@ -657,6 +684,9 @@
     "Turn every recording into a finished dataset." : {
 
     },
+    "Type a number · Return to confirm" : {
+
+    },
     "Unable to load the price. Check your connection and try again." : {
 
     },
@@ -699,6 +729,9 @@
     "Use Settings → Project Labels in a workspace toolbar to edit that project's labels, colors, order, and shortcuts." : {
 
     },
+    "User Guide" : {
+
+    },
     "WatchMotion\nEditor" : {
 
     },
@@ -706,6 +739,9 @@
 
     },
     "WatchMotion Editor Project" : {
+
+    },
+    "WatchMotion Editor Website" : {
 
     },
     "WatchMotion Editor — Project" : {

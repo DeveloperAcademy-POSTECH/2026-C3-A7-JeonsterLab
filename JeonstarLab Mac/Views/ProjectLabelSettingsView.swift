@@ -18,6 +18,8 @@ struct ProjectLabelSettingsView: View {
                 Text("Changes apply to this project. Archived labels stay on saved annotations. Number shortcuts work while the label menu is open; custom names appear in future CSV exports.")
                     .font(.callout).foregroundStyle(.secondary)
                     .padding(.top, 6)
+                Text("For multi-digit shortcuts, type the number. Press Return when the number is also the start of a longer shortcut, such as 1 and 10. Escape cancels.")
+                    .font(.callout).foregroundStyle(.secondary)
             }
             ScrollView {
                 LazyVStack(spacing: 8) {
@@ -69,7 +71,7 @@ struct ProjectLabelSettingsView: View {
                 get: { catalog.labels[index].shortcut ?? 0 },
                 set: { catalog.labels[index].shortcut = $0 == 0 ? nil : $0; saved = false })) {
                 Text("None").tag(0)
-                ForEach(1...9, id: \.self) { Text(String($0)).tag($0) }
+                ForEach(1...catalog.shortcutLimit, id: \.self) { Text(String($0)).tag($0) }
             }
             .frame(width: 125)
             Toggle("Archived", isOn: Binding(
@@ -89,7 +91,7 @@ struct ProjectLabelSettingsView: View {
     private func addLabel() {
         var n = 1
         while catalog.labels.contains(where: { $0.label.displayName.lowercased() == "label \(n)" }) { n += 1 }
-        catalog.labels.append(ProjectLabelDefinition(label: RecordingPackageLabel(name: "Label \(n)", colorHex: "0A84FF")))
+        catalog.addLabel(named: "Label \(n)")
         saved = false
     }
     private func move(_ index: Int, by offset: Int) {

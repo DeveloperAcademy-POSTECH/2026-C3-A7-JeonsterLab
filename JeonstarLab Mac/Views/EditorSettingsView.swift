@@ -53,6 +53,24 @@ struct EditorSettingsView: View {
             }
             .formStyle(.grouped)
             .tabItem { Label("Export", systemImage: "square.and.arrow.up") }
+
+            Form {
+                Section("Learn & Support") {
+                    Link("Setup Guide", destination: URL(string: "https://watch-motion-editor-site.vercel.app/guide/getting-started")!)
+                    Link("User Guide", destination: URL(string: "https://watch-motion-editor-site.vercel.app/guide")!)
+                    Link("Contact Support", destination: URL(string: "https://watch-motion-editor-site.vercel.app/support")!)
+                }
+                Section("Privacy") {
+                    Link("Privacy Policy", destination: URL(string: "https://watch-motion-editor-site.vercel.app/privacy")!)
+                }
+                Section("Official Website") {
+                    Link("WatchMotion Editor Website", destination: URL(string: "https://watch-motion-editor-site.vercel.app/")!)
+                    Text("Links open in your default browser. An internet connection is required.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .formStyle(.grouped)
+            .tabItem { Label("Help & Privacy", systemImage: "questionmark.circle") }
         }
         .padding(12)
         .frame(width: 600, height: 420)
