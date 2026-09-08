@@ -87,7 +87,7 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
             return "Unlabeled snaps"
         }
 
-        return RecordingPackageLabel.allCases
+        return counts.keys.sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
             .compactMap { label in
                 guard let count = counts[label], count > 0 else { return nil }
                 return "\(label.displayName) \(count)"
@@ -100,6 +100,14 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
             let label = snapEventLabels[event.snapID]?.label ?? event.label
             counts[label, default: 0] += 1
         }
+    }
+
+    mutating func resolveLabels(using catalog: ProjectLabelCatalog) {
+        label = catalog.resolve(label)
+        snapLabels = snapLabels.mapValues { var p = $0; p.label = catalog.resolve(p.label); return p }
+        snapEventLabels = snapEventLabels.mapValues { var p = $0; p.label = catalog.resolve(p.label); return p }
+        manualSnapEvents = manualSnapEvents.map { var e = $0; e.label = catalog.resolve(e.label); return e }
+        editedSnapEvents = editedSnapEvents.mapValues { var e = $0; e.label = catalog.resolve(e.label); return e }
     }
 
     var workingSnapEvents: [WorkingSnapEvent] {
@@ -293,99 +301,6 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     }
 }
 
-enum RecordingPackageLabel: String, CaseIterable, Codable, Identifiable {
-    case unlabeled
-    case success
-    case failure
-    case flipped
-    case partialFlipped
-    case unflipped
-    case loosen
-    case idle
-    case other
-
-    var id: String { rawValue }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let rawValue = try container.decode(String.self)
-        switch rawValue {
-        case "partialSuccess", "partial":
-            self = .partialFlipped
-        default:
-            self = RecordingPackageLabel(rawValue: rawValue) ?? .unlabeled
-        }
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
-    }
-
-    var displayName: String {
-        switch self {
-        case .unlabeled:
-            return "Unlabeled"
-        case .success:
-            return "Successful Motion"
-        case .failure:
-            return "Failed Motion"
-        case .flipped:
-            return "Flip Success"
-        case .partialFlipped:
-            return "Partial Flip"
-        case .unflipped:
-            return "Flip Failure"
-        case .loosen:
-            return "Loosen"
-        case .idle:
-            return "Idle"
-        case .other:
-            return "Other"
-        }
-    }
-
-    var backgroundColor: Color {
-        switch self {
-        case .unlabeled:      return .gray.opacity(0.5)
-        case .success:        return .green.opacity(0.5)
-        case .failure:        return .red.opacity(0.5)
-        case .flipped:        return .blue.opacity(0.5)
-        case .partialFlipped: return .cyan.opacity(0.5)
-        case .unflipped:      return .orange.opacity(0.5)
-        case .loosen:         return .purple.opacity(0.5)
-        case .idle:           return .mint.opacity(0.5)
-        case .other:          return .gray.opacity(0.5)
-        }
-    }
-
-    var chipBackgroundColor: Color {
-        switch self {
-        case .unlabeled:
-            return .gray.opacity(0.12)
-        default:
-            return backgroundColor.opacity(0.45)
-        }
-    }
-
-    var chipBorderColor: Color {
-        switch self {
-        case .unlabeled:
-            return .gray.opacity(0.35)
-        default:
-            return backgroundColor.opacity(0.95)
-        }
-    }
-
-    var chipForegroundColor: Color {
-        switch self {
-        case .unlabeled:
-            return .secondary
-        default:
-            return .primary
-        }
-    }
-}
 
 struct RecordingPackageLabelPayload: Codable {
     let displayName: String?

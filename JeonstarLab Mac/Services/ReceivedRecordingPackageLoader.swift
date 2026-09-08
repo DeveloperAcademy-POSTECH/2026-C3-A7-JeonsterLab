@@ -73,7 +73,7 @@ final class ReceivedRecordingPackageLoader {
             metadata: metadata
         )
 
-        return ReceivedRecordingPackage(
+        var package = ReceivedRecordingPackage(
             id: folderURL,
             folderURL: folderURL,
             receivedAt: receivedAt(for: folderURL),
@@ -94,6 +94,13 @@ final class ReceivedRecordingPackageLoader {
             deletedSnapEventIDs: labelPayload?.deletedSnapEventIDs ?? [],
             parseMessages: messages
         )
+        do {
+            let catalog = try ProjectLabelCatalog.load(root: folderURL.deletingLastPathComponent())
+            package.resolveLabels(using: catalog)
+        } catch {
+            package.parseMessages.append("Unable to read project labels: \(error.localizedDescription)")
+        }
+        return package
     }
 
     private func participantInfo(
