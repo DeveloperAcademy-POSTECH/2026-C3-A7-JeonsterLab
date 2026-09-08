@@ -72,6 +72,9 @@ struct ChartInteractionOverlay: NSViewRepresentable {
         }
 
         override var acceptsFirstResponder: Bool { true }
+        // ChartProxy/GeometryReader use a top-left origin. NSView defaults to
+        // bottom-left, which previously made the upper plot area reject drags.
+        override var isFlipped: Bool { true }
 
         override func updateTrackingAreas() {
             super.updateTrackingAreas()
