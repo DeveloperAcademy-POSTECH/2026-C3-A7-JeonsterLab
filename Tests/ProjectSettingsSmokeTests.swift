@@ -16,9 +16,11 @@ struct ProjectSettingsSmokeTests {
         let header = "index,timestamp,relativeTime,attitudeRoll,attitudePitch,attitudeYaw,rotationRateX,rotationRateY,rotationRateZ,gravityX,gravityY,gravityZ,userAccX,userAccY,userAccZ\n"
         let rows = (0..<1000).map { index -> String in
             let time = Double(index) / 50
-            let wave = sin(time * 3)
+            let active = (2...4).contains(time) || (8...10).contains(time) || (14...16).contains(time)
+            let wave = active ? sin(time * 3) : 0
             let values = [Double(index), 100 + time, time, wave * 0.4, cos(time) * 0.3, wave * 0.2,
-                          wave * 1.2, cos(time * 2), sin(time), 0, 0, 1, wave * 0.3, cos(time * 3) * 0.2, sin(time * 5) * 0.1]
+                          wave * 1.2, active ? cos(time * 2) : 0, active ? sin(time) : 0, 0, 0, 1,
+                          wave * 0.3, active ? cos(time * 3) * 0.2 : 0, active ? sin(time * 5) * 0.1 : 0]
             return String(index) + "," + values.dropFirst().map { String($0) }.joined(separator: ",")
         }
         let csv = header + rows.joined(separator: "\n") + "\n"
@@ -63,6 +65,7 @@ struct ProjectSettingsSmokeTests {
 
         let loader = ReceivedRecordingPackageLoader()
         var package = loader.loadPackage(folderURL: folder)!
+        precondition(package.autoSegmentReview == nil, "Legacy recordings do not imply suggestions")
         package.label = custom
         package.snapEventLabels["fixture"] = SnapEventLabelPayload(label: .success, notes: "Original notes 한글", updatedAt: nil)
         try loader.saveLabel(package: package)
@@ -104,6 +107,38 @@ struct ProjectSettingsSmokeTests {
             }
         }
         let otherRoot = root.appendingPathComponent("another-project")
+        // Pending suggestions never enter working snaps or dataset exports.
+        let candidate = AutoSegmentCandidate(id: "fixture-v1", startTime: 2, endTime: 4, peakTime: 3)
+        let rejected = AutoSegmentCandidate(id: "dismissed-v1", startTime: 8, endTime: 10, peakTime: 9)
+        let review = AutoSegmentReview(candidates: [candidate, rejected], analyzedAt: Date())
+        package.mergeAutoSegments(review)
+        precondition(package.workingSnapEvents.isEmpty)
+        package.dismissAutoSegment(id: rejected.id)
+        let draft = ManualSnapDraft(selection: ChartTimeSelection(startTime: 2.1, endTime: 3.9),
+                                    sampleCount: 90, snapDuration: 1.8, peakAcceleration: 0.3,
+                                    peakGyro: 1, peakTime: 3, dominantAxis: "X", rollRange: 0, pitchRange: 0, yawRange: 0)
+        let confirmed = package.confirmAutoSegment(id: candidate.id, draft: draft)!
+        precondition(confirmed.sourceType == .autoSegment && confirmed.startTime == 2.1)
+        precondition(package.confirmAutoSegment(id: candidate.id, draft: draft) == nil, "No double confirmation")
+        package.snapEventLabels[confirmed.snapID]?.notes = "Reviewed notes"
+        package.mergeAutoSegments(review)
+        precondition(package.workingSnapEvents.count == 1 && package.autoSegmentReview?.pending.isEmpty == true)
+        precondition(package.snapEventLabels[confirmed.snapID]?.notes == "Reviewed notes")
+        try loader.saveLabel(package: package)
+        let reviewed = loader.loadPackage(folderURL: folder)!
+        precondition(reviewed.autoSegmentReview?.candidates == package.autoSegmentReview?.candidates)
+        precondition(abs(reviewed.autoSegmentReview!.analyzedAt!.timeIntervalSince(package.autoSegmentReview!.analyzedAt!)) < 1)
+        precondition(reviewed.workingSnapEvents.first?.sourceType == .autoSegment)
+        let reviewedArchive = root.appendingPathComponent("Reviewed.watchmotion")
+        _ = try ReceiverProjectPackageService.exportProject(recordingsRootURL: recordings, foldersRootURL: recordings,
+            workspaceName: "Reviewed", folders: [], outputURL: reviewedArchive)
+        let reviewedWorkspace = try ReceiverProjectPackageService.openProjectWorkspace(packageURL: reviewedArchive,
+            projectsRootURL: root.appendingPathComponent("reviewed-opened"))
+        let reopened = loader.loadPackages(rootURL: reviewedWorkspace.recordingsRootURL).first!
+        precondition(reopened.autoSegmentReview == reviewed.autoSegmentReview)
+        precondition(reopened.workingSnapEvents.first?.notes == "Reviewed notes")
+        let csvAfterReview = try Data(contentsOf: folder.appendingPathComponent("recording.csv"))
+        precondition(csvAfterReview == originalCSV)
         let anotherCatalog = try ProjectLabelCatalog.load(root: otherRoot)
         precondition(anotherCatalog.resolve(.success).displayName == "Successful Motion")
         let suite = "WatchMotionSettingsSmoke.\(UUID())"

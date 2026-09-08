@@ -8,6 +8,7 @@ import Foundation
 nonisolated enum SnapEventSourceType: String, Codable, Equatable {
     case automatic
     case manual
+    case autoSegment
 
     var displayName: String {
         switch self {
@@ -15,6 +16,8 @@ nonisolated enum SnapEventSourceType: String, Codable, Equatable {
             return "Automatic"
         case .manual:
             return "Manual"
+        case .autoSegment:
+            return "Auto · Confirmed"
         }
     }
 }

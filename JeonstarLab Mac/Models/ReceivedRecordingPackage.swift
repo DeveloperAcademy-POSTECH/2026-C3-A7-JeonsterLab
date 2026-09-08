@@ -26,6 +26,7 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     var editedSnapEvents: [String: WorkingSnapEvent]
     var deletedSnapEventIDs: Set<String>
     var parseMessages: [String]
+    var autoSegmentReview: AutoSegmentReview? = nil
 
     var displayTitle: String {
         if !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -176,6 +177,43 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
         )
     }
 
+    mutating func mergeAutoSegments(_ result: AutoSegmentReview) {
+        var filtered = result
+        let saved = workingSnapEvents
+        filtered.candidates.removeAll { candidate in
+            saved.contains { event in
+                guard let start = event.startTime, let end = event.endTime else { return false }
+                return candidate.overlaps(start: start, end: end)
+            }
+        }
+        var review = autoSegmentReview ?? AutoSegmentReview()
+        review.merge(filtered)
+        autoSegmentReview = review
+    }
+
+    /// Save the reviewed range and its decision together in label.json. Raw files are untouched.
+    mutating func confirmAutoSegment(id: String, draft: ManualSnapDraft) -> WorkingSnapEvent? {
+        guard draft.canSave,
+              let index = autoSegmentReview?.candidates.firstIndex(where: { $0.id == id && $0.status == .pending }),
+              !workingSnapEvents.contains(where: { event in
+                  guard let start = event.startTime, let end = event.endTime else { return false }
+                  return draft.selection.normalized.startTime < end && draft.selection.normalized.endTime > start
+              }) else { return nil }
+        var event = WorkingSnapEvent.manual(recordingID: metadata?.recordingID ?? snapAnalysis?.recordingID,
+                                           draft: draft, packageFolderName: folderURL.lastPathComponent)
+        event.sourceType = .autoSegment
+        manualSnapEvents.append(event)
+        snapEventLabels[event.snapID] = .empty
+        autoSegmentReview?.candidates[index].status = .confirmed
+        autoSegmentReview?.candidates[index].confirmedSnapID = event.snapID
+        return event
+    }
+
+    mutating func dismissAutoSegment(id: String) {
+        guard let index = autoSegmentReview?.candidates.firstIndex(where: { $0.id == id && $0.status == .pending }) else { return }
+        autoSegmentReview?.candidates[index].status = .dismissed
+    }
+
     mutating func deleteSnapEvent(id snapID: String) {
         if manualSnapEvents.contains(where: { $0.snapID == snapID }) {
             manualSnapEvents.removeAll { $0.snapID == snapID }
@@ -315,6 +353,7 @@ struct RecordingPackageLabelPayload: Codable {
     let editedSnapEvents: [String: WorkingSnapEvent]
     let deletedSnapEventIDs: Set<String>
     let updatedAt: Date
+    let autoSegmentReview: AutoSegmentReview?
 
     init(
         displayName: String?,
@@ -328,7 +367,8 @@ struct RecordingPackageLabelPayload: Codable {
         manualSnapEvents: [WorkingSnapEvent] = [],
         editedSnapEvents: [String: WorkingSnapEvent] = [:],
         deletedSnapEventIDs: Set<String> = [],
-        updatedAt: Date
+        updatedAt: Date,
+        autoSegmentReview: AutoSegmentReview? = nil
     ) {
         self.displayName = displayName
         self.isPinned = isPinned
@@ -342,6 +382,7 @@ struct RecordingPackageLabelPayload: Codable {
         self.editedSnapEvents = editedSnapEvents
         self.deletedSnapEventIDs = deletedSnapEventIDs
         self.updatedAt = updatedAt
+        self.autoSegmentReview = autoSegmentReview
     }
 
     enum CodingKeys: String, CodingKey {
@@ -357,6 +398,7 @@ struct RecordingPackageLabelPayload: Codable {
         case editedSnapEvents
         case deletedSnapEventIDs
         case updatedAt
+        case autoSegmentReview
     }
 
     init(from decoder: Decoder) throws {
@@ -390,6 +432,7 @@ struct RecordingPackageLabelPayload: Codable {
         ) ?? [:]
         deletedSnapEventIDs = try container.decodeIfPresent(Set<String>.self, forKey: .deletedSnapEventIDs) ?? []
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
+        autoSegmentReview = try container.decodeIfPresent(AutoSegmentReview.self, forKey: .autoSegmentReview)
     }
 }
 

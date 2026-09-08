@@ -92,7 +92,8 @@ final class ReceivedRecordingPackageLoader {
             manualSnapEvents: labelPayload?.manualSnapEvents ?? [],
             editedSnapEvents: labelPayload?.editedSnapEvents ?? [:],
             deletedSnapEventIDs: labelPayload?.deletedSnapEventIDs ?? [],
-            parseMessages: messages
+            parseMessages: messages,
+            autoSegmentReview: labelPayload?.autoSegmentReview
         )
         do {
             let catalog = try ProjectLabelCatalog.load(root: folderURL.deletingLastPathComponent())
@@ -131,7 +132,8 @@ final class ReceivedRecordingPackageLoader {
             manualSnapEvents: package.manualSnapEvents,
             editedSnapEvents: package.editedSnapEvents,
             deletedSnapEventIDs: package.deletedSnapEventIDs,
-            updatedAt: Date()
+            updatedAt: Date(),
+            autoSegmentReview: package.autoSegmentReview
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
