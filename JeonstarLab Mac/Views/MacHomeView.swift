@@ -76,6 +76,8 @@ struct MacHomeView: View {
                                                 .foregroundStyle(Color.white.opacity(0.65))
                                         }
                                     }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
                                 .listRowBackground(viewModel.selectedFolder?.id == folder.id ? EditorPalette.accent.opacity(0.24) : Color.clear)
