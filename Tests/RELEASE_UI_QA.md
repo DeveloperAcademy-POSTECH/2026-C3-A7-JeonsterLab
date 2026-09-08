@@ -1,5 +1,10 @@
 # Release UI verification
 
+Latest: see [2026-09-08 release hardening verification](RELEASE_READINESS_2026-09-08.md).
+The entries below are historical UI passes, not evidence that the latest changes
+have completed interactive or physical-device QA. The latest pass supersedes the
+old Watch background-recording and storage-warning notes below.
+
 Scope: English interface copy on Mac, iPhone, and Watch; adaptive Mac workspace,
 recording inspector, dataset folders, and CSV export options.
 

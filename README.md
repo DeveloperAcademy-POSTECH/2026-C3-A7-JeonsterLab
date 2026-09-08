@@ -1,6 +1,15 @@
-# JeonstarLab
+# WatchMotion Editor
 
 > Apple Watch에서 손목 모션 데이터를 기록하고, iPhone을 거쳐 Mac에서 라벨링·분석·데이터셋 내보내기까지 수행하는 iOS / watchOS / macOS 통합 프로젝트입니다.
+
+## v1.0 출시 준비
+
+- 지원 범위: iPhone(iOS 18.6 이상), Apple Watch(watchOS 11.6 이상), Mac(macOS 15 이상). iPad 네이티브 지원은 제외합니다.
+- Watch 녹화는 앱을 열어 둔 상태에서 사용합니다. 앱이 백그라운드로 이동하면 저장하고 녹화를 멈춥니다.
+- Watch 원본은 약 1초마다 영구 저장하고, iPhone 가져오기 확인 전까지 보존합니다. 강제 종료 시 마지막 미저장 구간(최대 약 1초)은 손실될 수 있습니다.
+- iPhone → Mac 전송은 Mac에서 연결을 승인해야 하며, 파일 3개를 검증·저장한 뒤 완료로 표시합니다. 양쪽 모두 최신 빌드가 필요합니다.
+- Mac 앱은 App Sandbox를 사용합니다. 개발 버전에서 컨테이너 바깥에 저장한 파일은 삭제하지 않으며, 기존 프로젝트는 내보내기/열기를 통해 가져와야 합니다.
+- 상세 테스트 결과와 남은 실기기·심사 준비 항목은 [출시 검증 기록](Tests/RELEASE_READINESS_2026-09-08.md)을 확인하세요.
 
 # 주요 기능
 
@@ -42,7 +51,7 @@
 4. iPhone은 SwiftData에 녹화 메타데이터를 저장하고, 원본 WMTF 파일은 Documents/Recordings에 보관합니다.
 5. iPhone은 선택한 녹화를 `recording.csv`, `metadata.json`, `snap_analysis.json`으로 내보냅니다.
 6. iPhone은 내보낸 파일을 공유 시트 또는 MultipeerConnectivity로 Mac에 전달합니다.
-7. Mac은 수신 패키지를 `~/Documents/JeonstarLab/ReceivedRecordings/` 아래에 저장합니다.
+7. Mac은 앱 컨테이너의 Documents/WatchMotion Editor/ReceivedRecordings 아래에 전송별 폴더로 저장합니다. 같은 컨테이너 안에 기존 JeonstarLab 폴더가 있으면 계속 사용합니다.
 8. Mac에서 스냅 라벨링, 사용자 정보 기록, 폴더 분류, 데이터셋 CSV 내보내기를 수행합니다.
 
 # 프로젝트 폴더링
