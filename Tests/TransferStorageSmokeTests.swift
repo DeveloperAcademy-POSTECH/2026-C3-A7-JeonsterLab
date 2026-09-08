@@ -1,6 +1,9 @@
 import Foundation
 
 @main struct TransferStorageSmokeTests {
+    static func requireThrows(_ action: () throws -> Void) {
+        do { try action(); fatalError("Invalid transfer accepted") } catch {}
+    }
     static func main() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("transfer-storage-test-\(UUID())")
         let source = root.appendingPathComponent("source")
@@ -28,6 +31,19 @@ import Foundation
             _ = try store.saveReceivedFile(temporaryURL: source.appendingPathComponent("metadata.json"), resourceName: UUID().uuidString + "__../../outside.json")
             fatalError("Unsafe name accepted")
         } catch {}
-        print("PASS: transfer isolation, out-of-order files, atomic completion, size/type validation, unsafe names")
+        let empty = source.appendingPathComponent("empty")
+        try Data().write(to: empty)
+        let symlink = source.appendingPathComponent("link")
+        try FileManager.default.createSymbolicLink(at: symlink, withDestinationURL: source.appendingPathComponent("metadata.json"))
+        let oversized = source.appendingPathComponent("oversized")
+        try Data().write(to: oversized)
+        let handle = try FileHandle(forWritingTo: oversized)
+        try handle.truncate(atOffset: 17 * 1024 * 1024)
+        try handle.close()
+        for file in [empty, symlink, oversized, source] {
+            requireThrows { _ = try store.saveReceivedFile(temporaryURL: file,
+                resourceName: UUID().uuidString + "__metadata.json") }
+        }
+        print("PASS: transfer isolation, out-of-order files, atomic completion, empty/oversized/symlink/directory rejection, unsafe names")
     }
 }

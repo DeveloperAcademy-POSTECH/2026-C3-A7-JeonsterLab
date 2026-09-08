@@ -44,13 +44,13 @@ final class RecordingRepository: RecordingRepositoryProtocol {
             if entity.memo.isEmpty {
                 entity.memo = session.memo
             }
-            try modelContext.save()
+            try persistChanges()
             return
         }
 
         let entity = RecordingEntity(session: session)
         modelContext.insert(entity)
-        try modelContext.save()
+        try persistChanges()
     }
 
     func delete(sessionID: UUID) throws {
@@ -59,9 +59,16 @@ final class RecordingRepository: RecordingRepositoryProtocol {
             predicate: #Predicate { $0.id == id }
         )
         guard let entity = try modelContext.fetch(descriptor).first else { return }
-        try fileStore.delete(fileName: entity.fileName)
+        let snapshot = entity.asRecordingSession
         modelContext.delete(entity)
-        try modelContext.save()
+        do { try modelContext.save() }
+        catch { modelContext.rollback(); throw error }
+        do { try fileStore.delete(fileName: snapshot.fileName) }
+        catch {
+            modelContext.insert(RecordingEntity(session: snapshot))
+            try? modelContext.save()
+            throw error
+        }
     }
 
     func loadSamples(for sessionID: UUID) throws -> [MotionSample] {
@@ -88,13 +95,18 @@ final class RecordingRepository: RecordingRepositoryProtocol {
     func updateSnapDetectionMode(for sessionID: UUID, mode: SnapDetectionMode) throws {
         let entity = try entity(for: sessionID)
         entity.snapDetectionModeRawValue = mode.rawValue
-        try modelContext.save()
+        try persistChanges()
     }
 
     func updateMemo(for sessionID: UUID, memo: String) throws {
         let entity = try entity(for: sessionID)
         entity.memo = memo
-        try modelContext.save()
+        try persistChanges()
+    }
+
+    private func persistChanges() throws {
+        do { try modelContext.save() }
+        catch { modelContext.rollback(); throw error }
     }
 
     private func entity(for sessionID: UUID) throws -> RecordingEntity {

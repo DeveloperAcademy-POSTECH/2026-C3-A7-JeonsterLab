@@ -7,8 +7,10 @@ enum PendingRecordingInbox {
     }
 
     // Copy synchronously before the system removes the received temporary file.
-    nonisolated static func stage(_ source: URL, metadata: [String: Any]) throws -> URL {
-        let folder = root.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    nonisolated static func stage(_ source: URL, metadata: [String: Any], directory: URL = root) throws -> URL {
+        let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        guard size > 0, size <= 256 * 1024 * 1024 else { throw CocoaError(.fileReadTooLarge) }
+        let folder = directory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         do {
             let info = try JSONSerialization.data(withJSONObject: metadata)
@@ -22,8 +24,8 @@ enum PendingRecordingInbox {
         }
     }
 
-    nonisolated static func pending() -> [(URL, [String: Any])] {
-        let folders = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
+    nonisolated static func pending(directory: URL = root) -> [(URL, [String: Any])] {
+        let folders = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
         return folders.compactMap { folder in
             let file = folder.appendingPathComponent("recording.bin")
             guard FileManager.default.fileExists(atPath: file.path),
@@ -33,9 +35,9 @@ enum PendingRecordingInbox {
         }
     }
 
-    nonisolated static func complete(_ file: URL) throws {
+    nonisolated static func complete(_ file: URL, directory: URL = root) throws {
         let folder = file.deletingLastPathComponent().standardizedFileURL
-        guard folder.deletingLastPathComponent() == root.standardizedFileURL else { return }
+        guard folder.deletingLastPathComponent() == directory.standardizedFileURL else { return }
         try FileManager.default.removeItem(at: folder)
     }
 }

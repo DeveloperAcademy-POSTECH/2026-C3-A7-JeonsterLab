@@ -18,12 +18,12 @@ final class RecordingFileStore: RecordingFileStoreProtocol {
 
     private let directory: URL
 
-    init() {
-        directory = FileManager.default
+    init(directory: URL? = nil) {
+        self.directory = directory ?? FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Recordings", isDirectory: true)
         try? FileManager.default.createDirectory(
-            at: directory,
+            at: self.directory,
             withIntermediateDirectories: true
         )
     }
@@ -31,8 +31,13 @@ final class RecordingFileStore: RecordingFileStoreProtocol {
     func moveToDocuments(from tempURL: URL, fileName: String) throws {
         let dest = directory.appendingPathComponent(fileName)
         // Duplicate delivery must not replace an imported original.
-        if FileManager.default.fileExists(atPath: dest.path) { return }
         let data = try Data(contentsOf: tempURL, options: .mappedIfSafe)
+        if FileManager.default.fileExists(atPath: dest.path) {
+            guard try Data(contentsOf: dest, options: .mappedIfSafe) == data else {
+                throw CocoaError(.fileWriteFileExists)
+            }
+            return
+        }
         try data.write(to: dest, options: .atomic)
     }
 
