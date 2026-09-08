@@ -30,10 +30,10 @@ final class RecordingFileStore: RecordingFileStoreProtocol {
 
     func moveToDocuments(from tempURL: URL, fileName: String) throws {
         let dest = directory.appendingPathComponent(fileName)
-        if FileManager.default.fileExists(atPath: dest.path) {
-            try FileManager.default.removeItem(at: dest)
-        }
-        try FileManager.default.moveItem(at: tempURL, to: dest)
+        // Duplicate delivery must not replace an imported original.
+        if FileManager.default.fileExists(atPath: dest.path) { return }
+        let data = try Data(contentsOf: tempURL, options: .mappedIfSafe)
+        try data.write(to: dest, options: .atomic)
     }
 
     func delete(fileName: String) throws {

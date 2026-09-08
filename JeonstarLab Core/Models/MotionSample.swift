@@ -45,10 +45,12 @@ enum MotionSampleSerializer {
 
     static func read(from url: URL) throws -> [MotionSample] {
         let data = try Data(contentsOf: url, options: .mappedIfSafe)
+        guard data.count <= 256 * 1024 * 1024 else { throw SerializerError.tooLarge }
         guard data.count >= headerSize else { throw SerializerError.invalidHeader }
 
-        let readMagic = data.withUnsafeBytes { $0.load(as: UInt32.self) }
-        guard readMagic == magic else { throw SerializerError.invalidHeader }
+        let readMagic = data.withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
+        let readVersion = data.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 4, as: UInt32.self) }
+        guard readMagic == magic, readVersion == version else { throw SerializerError.invalidHeader }
 
         let payload = data.dropFirst(headerSize)
         let sampleSize = MemoryLayout<MotionSample>.stride
@@ -56,12 +58,13 @@ enum MotionSampleSerializer {
 
         let count = payload.count / sampleSize
         return payload.withUnsafeBytes { ptr in
-            Array(ptr.bindMemory(to: MotionSample.self).prefix(count))
+            (0..<count).map { ptr.loadUnaligned(fromByteOffset: $0 * sampleSize, as: MotionSample.self) }
         }
     }
 
     enum SerializerError: Error {
         case invalidHeader
         case truncated
+        case tooLarge
     }
 }

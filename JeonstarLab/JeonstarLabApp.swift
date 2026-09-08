@@ -8,20 +8,21 @@
 import SwiftUI
 import SwiftData
 
-@main
-struct Wrist_MotionApp: App {
+@MainActor
+final class PhoneAppRuntime {
 
     // MARK: - SwiftData 컨테이너
 
-    private let container: ModelContainer = {
+    let container: ModelContainer
+    private static func makeContainer() throws -> ModelContainer {
         let schema = Schema([RecordingEntity.self])
         var isPreview = false
         #if DEBUG && targetEnvironment(simulator)
         isPreview = PhoneUIPreviewData.isEnabled
         #endif
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: isPreview)
-        return try! ModelContainer(for: schema, configurations: [config])
-    }()
+        return try ModelContainer(for: schema, configurations: [config])
+    }
 
     // MARK: - DI 구성
 
@@ -30,11 +31,14 @@ struct Wrist_MotionApp: App {
     private let importUseCase:   ImportRecordingUseCase
     private let fileReceiver:    FileReceiveService
 
-    @State private var listViewModel:    RecordingListViewModel
-    @State private var watchControlVM:   WatchControlViewModel
+    let listViewModel: RecordingListViewModel
+    let watchControlVM: WatchControlViewModel
+    var onImportError: ((String) -> Void)?
 
     @MainActor
-    init() {
+    init() throws {
+        let container = try Self.makeContainer()
+        self.container = container
         let sm        = WatchSessionManager()
         let fileStore: RecordingFileStoreProtocol
         #if DEBUG && targetEnvironment(simulator)
@@ -57,8 +61,8 @@ struct Wrist_MotionApp: App {
         let listVM    = RecordingListViewModel(repository: repo)
 
         // WCSession 파일 수신 → FileReceiveService 연결
-        sm.onFileReceived = { file in
-            Task { @MainActor in receiver.handle(file: file) }
+        sm.onFileReceived = { file, metadata in
+            receiver.handle(file: file, metadata: metadata)
         }
 
         // 녹화 저장 완료 → 목록 자동 갱신
@@ -76,14 +80,59 @@ struct Wrist_MotionApp: App {
         repository      = repo
         importUseCase   = importUC
         fileReceiver    = receiver
-        _listViewModel    = State(wrappedValue: listVM)
-        _watchControlVM   = State(wrappedValue: WatchControlViewModel(sessionManager: sm))
+        listViewModel = listVM
+        watchControlVM = WatchControlViewModel(sessionManager: sm)
+        sm.onFileReceiveError = { [weak self] message in self?.onImportError?(message) }
     }
 
+    func retryImports() { fileReceiver.retryPending() }
+}
+
+@main
+struct Wrist_MotionApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView(viewModel: listViewModel, watchControlVM: watchControlVM)
+            PhoneStartupView()
         }
-        .modelContainer(container)
+    }
+}
+
+private struct PhoneStartupView: View {
+    @State private var runtime: PhoneAppRuntime?
+    @State private var startupError: String?
+    @State private var importError: String?
+
+    var body: some View {
+        Group {
+            if let runtime {
+                ContentView(viewModel: runtime.listViewModel, watchControlVM: runtime.watchControlVM)
+                    .modelContainer(runtime.container)
+            } else if let startupError {
+                ContentUnavailableView {
+                    Label("Unable to Open Recordings", systemImage: "externaldrive.badge.exclamationmark")
+                } description: {
+                    Text("Your saved files have not been deleted. Free some storage if needed, then retry.\n\(startupError)")
+                } actions: {
+                    Button("Retry", action: load)
+                }
+            } else { ProgressView("Opening Recordings") }
+        }
+        .task { if runtime == nil { load() } }
+        .alert("Recording Not Imported", isPresented: Binding(
+            get: { importError != nil }, set: { if !$0 { importError = nil } }
+        )) {
+            Button("Retry") { runtime?.retryImports() }
+            Button("Later", role: .cancel) {}
+        } message: { Text(importError ?? "") }
+    }
+
+    private func load() {
+        do {
+            let ready = try PhoneAppRuntime()
+            ready.onImportError = { importError = $0 }
+            runtime = ready
+            startupError = nil
+            ready.retryImports()
+        } catch { startupError = error.localizedDescription }
     }
 }

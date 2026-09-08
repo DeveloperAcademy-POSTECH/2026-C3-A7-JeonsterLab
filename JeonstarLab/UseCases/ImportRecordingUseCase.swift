@@ -39,7 +39,12 @@ final class ImportRecordingUseCase {
             throw ImportRecordingError.malformedMetadata
         }
 
-        logger.debug("▶︎ [8a] 파싱 성공 — id: \(idString), samples: \(sampleCount), duration: \(duration)s")
+        guard duration.isFinite, duration >= 0, startedAtTS.isFinite,
+              sampleCount > 0, rate > 0, rate <= 1000 else {
+            throw ImportRecordingError.malformedMetadata
+        }
+        let samples = try MotionSampleSerializer.read(from: tempFileURL)
+        guard samples.count == sampleCount else { throw ImportRecordingError.malformedMetadata }
 
         let session = RecordingSession(
             id:          id,

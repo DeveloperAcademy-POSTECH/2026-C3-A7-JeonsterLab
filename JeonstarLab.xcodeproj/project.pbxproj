@@ -42,6 +42,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AABB00012FBE10000098CE69 /* Exceptions for "JeonstarLab Core" folder in "JeonstarLab Mac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Views/GettingStartedGuideView.swift,
+			);
+			target = D37ECF052FBE00000098CE69 /* JeonstarLab Mac */;
+		};
 		D37ECF122FBE10000098CE69 /* Exceptions for "JeonstarLab" folder in "JeonstarLab" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -68,13 +75,6 @@
 				WatchSessionManager.swift,
 			);
 			target = D37ECEBF2FBD9E350098CE69 /* JeonstarLab */;
-		};
-		AABB00012FBE10000098CE69 /* Shared guide in Mac target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Views/GettingStartedGuideView.swift,
-			);
-			target = D37ECF052FBE00000098CE69 /* JeonstarLab Mac */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -104,7 +104,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				D37ECF4B2FBDA5F50098CE69 /* Exceptions for "JeonstarLab Core" folder in "JeonstarLab" target */,
-				AABB00012FBE10000098CE69 /* Shared guide in Mac target */,
+				AABB00012FBE10000098CE69 /* Exceptions for "JeonstarLab Core" folder in "JeonstarLab Mac" target */,
 			);
 			path = "JeonstarLab Core";
 			sourceTree = "<group>";
@@ -476,7 +476,9 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 			};
 			name = Debug;
 		};
@@ -508,7 +510,9 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 			};
 			name = Release;
 		};
