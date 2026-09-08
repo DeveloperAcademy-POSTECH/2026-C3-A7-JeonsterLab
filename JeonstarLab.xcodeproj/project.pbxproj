@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D37ECEDC2FBD9EB80098CE69 /* JeonstarLab Watch App Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D37ECEDC2FBD9EB80098CE69 /* WatchMotion Editor.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D37ECED22FBD9EB70098CE69 /* WatchMotion Editor.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,7 +27,7 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				D37ECEDC2FBD9EB80098CE69 /* JeonstarLab Watch App Watch App.app in Embed Watch Content */,
+				D37ECEDC2FBD9EB80098CE69 /* WatchMotion Editor.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -36,9 +36,9 @@
 
 /* Begin PBXFileReference section */
 		C0528BC72FC96F7800F84FBD /* JeonstarLab-Watch-App-Watch-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "JeonstarLab-Watch-App-Watch-App-Info.plist"; sourceTree = "<group>"; };
-		D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D37ECEC02FBD9E350098CE69 /* WatchMotion Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D37ECED22FBD9EB70098CE69 /* WatchMotion Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D37ECF002FBE00000098CE69 /* WatchMotion Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -142,9 +142,9 @@
 		D37ECEC12FBD9E350098CE69 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */,
-				D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */,
-				D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */,
+				D37ECEC02FBD9E350098CE69 /* WatchMotion Editor.app */,
+				D37ECED22FBD9EB70098CE69 /* WatchMotion Editor.app */,
+				D37ECF002FBE00000098CE69 /* WatchMotion Editor.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -173,7 +173,7 @@
 			packageProductDependencies = (
 			);
 			productName = "WatchMotion Editor";
-			productReference = D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */;
+			productReference = D37ECEC02FBD9E350098CE69 /* WatchMotion Editor.app */;
 			productType = "com.apple.product-type.application";
 		};
 		D37ECED12FBD9EB70098CE69 /* JeonstarLab Watch App Watch App */ = {
@@ -196,7 +196,7 @@
 			packageProductDependencies = (
 			);
 			productName = "WatchMotion Editor";
-			productReference = D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */;
+			productReference = D37ECED22FBD9EB70098CE69 /* WatchMotion Editor.app */;
 			productType = "com.apple.product-type.application";
 		};
 		D37ECF052FBE00000098CE69 /* JeonstarLab Mac */ = {
@@ -218,7 +218,7 @@
 			packageProductDependencies = (
 			);
 			productName = "WatchMotion Editor";
-			productReference = D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */;
+			productReference = D37ECF002FBE00000098CE69 /* WatchMotion Editor.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
