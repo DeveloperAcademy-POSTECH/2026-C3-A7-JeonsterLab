@@ -1,0 +1,28 @@
+{
+  "identifier" : "E4C39255-CC76-481D-87EE-FDA1A3939AE5",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "19.99",
+      "familyShareable" : false,
+      "internalID" : "4613798245",
+      "localizations" : [
+        {
+          "description" : "Unlock unlimited Mac editing and dataset exports. One-time purchase, no subscription.",
+          "displayName" : "WatchMotion Editor Full Unlock",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.Jeonster.WatchMotionEditor.mac.full-unlock",
+      "referenceName" : "Mac Full Unlock",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA"
+  },
+  "subscriptionGroups" : [],
+  "version" : { "major" : 3, "minor" : 0 }
+}
