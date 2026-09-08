@@ -6,7 +6,7 @@
 import Foundation
 
 struct ReceiverProjectManifest: Codable {
-    static let currentFormatVersion = 1
+    static let currentFormatVersion = 2
 
     let formatVersion: Int
     let appName: String

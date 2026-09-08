@@ -64,8 +64,12 @@ final class MacReceivedFileStore {
             in: .userDomainMask
         )[0]
 
+        let legacyRoot = documents.appendingPathComponent("JeonstarLab", isDirectory: true)
+            .appendingPathComponent("ReceivedRecordings", isDirectory: true)
+        // Keep existing recordings in place; new installations use the release name.
+        if fileManager.fileExists(atPath: legacyRoot.path) { return legacyRoot }
         return documents
-            .appendingPathComponent("JeonstarLab", isDirectory: true)
+            .appendingPathComponent("WatchMotion Editor", isDirectory: true)
             .appendingPathComponent("ReceivedRecordings", isDirectory: true)
     }
 

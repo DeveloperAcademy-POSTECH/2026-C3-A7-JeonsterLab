@@ -25,7 +25,7 @@ final class ReceiverWorkspaceManager {
     var projectsRootURL: URL {
         let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         return documents
-            .appendingPathComponent("JeonstarLab", isDirectory: true)
+            .appendingPathComponent("WatchMotion Editor", isDirectory: true)
             .appendingPathComponent("Projects", isDirectory: true)
     }
 

@@ -36,7 +36,7 @@ enum ReceiverProjectPackageService {
     private static let foldersFileName = "folders.json"
 
     static func defaultFileName() -> String {
-        "jeonstarlab_receiver_\(fileNameFormatter.string(from: Date())).jeonstarlab"
+        ProjectExportPreferences.fileName()
     }
 
     static func exportProject(
@@ -50,9 +50,9 @@ enum ReceiverProjectPackageService {
         try fileManager.createDirectory(at: recordingsRootURL, withIntermediateDirectories: true)
 
         let stagingURL = fileManager.temporaryDirectory
-            .appendingPathComponent("jeonstarlab-project-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("watchmotion-project-\(UUID().uuidString)", isDirectory: true)
         let archiveURL = fileManager.temporaryDirectory
-            .appendingPathComponent("jeonstarlab-project-\(UUID().uuidString).zip")
+            .appendingPathComponent("watchmotion-project-\(UUID().uuidString).zip")
 
         defer {
             try? fileManager.removeItem(at: stagingURL)
@@ -76,13 +76,9 @@ enum ReceiverProjectPackageService {
             )
         }
 
-        let globalFoldersURL = foldersRootURL.appendingPathComponent(foldersFileName)
-        if fileManager.fileExists(atPath: globalFoldersURL.path) {
-            try fileManager.copyItem(
-                at: globalFoldersURL,
-                to: foldersURL.appendingPathComponent(foldersFileName)
-            )
-        }
+        try writeJSON(folders, to: foldersURL.appendingPathComponent(foldersFileName))
+        let labels = try ProjectLabelCatalog.load(root: recordingsRootURL)
+        try writeJSON(labels, to: recordingsURL.appendingPathComponent(ProjectLabelCatalog.fileName))
 
         let manifest = ReceiverProjectManifest(
             recordingCount: recordingURLs.count,
@@ -119,7 +115,7 @@ enum ReceiverProjectPackageService {
     ) throws -> ReceiverWorkspace {
         let fileManager = FileManager.default
         let extractionURL = fileManager.temporaryDirectory
-            .appendingPathComponent("jeonstarlab-open-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("watchmotion-open-\(UUID().uuidString)", isDirectory: true)
 
         defer {
             try? fileManager.removeItem(at: extractionURL)
@@ -134,7 +130,7 @@ enum ReceiverProjectPackageService {
         }
 
         let manifest = try readJSON(ReceiverProjectManifest.self, from: manifestURL)
-        guard manifest.formatVersion == ReceiverProjectManifest.currentFormatVersion else {
+        guard (1...ReceiverProjectManifest.currentFormatVersion).contains(manifest.formatVersion) else {
             throw ReceiverProjectPackageError.unsupportedVersion(manifest.formatVersion)
         }
 
@@ -199,7 +195,7 @@ enum ReceiverProjectPackageService {
     ) throws -> (report: ReceiverProjectPackageReport, folders: [SnapFolder]) {
         let fileManager = FileManager.default
         let extractionURL = fileManager.temporaryDirectory
-            .appendingPathComponent("jeonstarlab-import-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("watchmotion-import-\(UUID().uuidString)", isDirectory: true)
 
         defer {
             try? fileManager.removeItem(at: extractionURL)
@@ -214,7 +210,7 @@ enum ReceiverProjectPackageService {
         }
 
         let manifest = try readJSON(ReceiverProjectManifest.self, from: manifestURL)
-        guard manifest.formatVersion == ReceiverProjectManifest.currentFormatVersion else {
+        guard (1...ReceiverProjectManifest.currentFormatVersion).contains(manifest.formatVersion) else {
             throw ReceiverProjectPackageError.unsupportedVersion(manifest.formatVersion)
         }
 
@@ -222,6 +218,23 @@ enum ReceiverProjectPackageService {
         guard fileManager.fileExists(atPath: recordingsURL.path) else {
             throw ReceiverProjectPackageError.missingRecordingsDirectory
         }
+
+        // Do not silently reinterpret annotations when merging projects with conflicting label IDs.
+        var mergedLabels = try ProjectLabelCatalog.load(root: destinationRootURL)
+        let incomingLabels = try ProjectLabelCatalog.load(root: recordingsURL)
+        for item in incomingLabels.labels {
+            if let current = mergedLabels.labels.first(where: { $0.id == item.id }) {
+                guard current.label.displayName == item.label.displayName,
+                      current.label.colorHex == item.label.colorHex else {
+                    throw ProjectLabelCatalog.CatalogError.invalid("Label definitions conflict. Open this project in a separate workspace instead.")
+                }
+            } else {
+                var imported = item
+                imported.shortcut = nil
+                mergedLabels.labels.append(imported)
+            }
+        }
+        try mergedLabels.validate()
 
         try fileManager.createDirectory(at: destinationRootURL, withIntermediateDirectories: true)
 
@@ -249,6 +262,7 @@ enum ReceiverProjectPackageService {
             existingFolders: existingFolders
         )
         let mergedFolders = existingFolders + importedFolders
+        try mergedLabels.save(root: destinationRootURL)
 
         return (
             ReceiverProjectPackageReport(
@@ -359,14 +373,14 @@ enum ReceiverProjectPackageService {
         let name = url.lastPathComponent
         if name.hasPrefix(".") || name == "__MACOSX" { return true }
         if name == "DerivedData" || name == "Caches" { return true }
-        if name.hasSuffix(".jeonstarlab") || name.hasSuffix(".zip") { return true }
+        if ["watchmotion", "jeonstarlab", "zip"].contains(url.pathExtension.lowercased()) { return true }
         return false
     }
 
     private static func normalizedProjectPackageURL(_ url: URL) -> URL {
-        url.pathExtension == "jeonstarlab"
+        ["watchmotion", "zip"].contains(url.pathExtension.lowercased())
             ? url
-            : url.deletingPathExtension().appendingPathExtension("jeonstarlab")
+            : url.deletingPathExtension().appendingPathExtension(ProjectExportPreferences.format.rawValue)
     }
 
     private static func uniqueDirectoryName(baseName: String, in rootURL: URL) -> String {
