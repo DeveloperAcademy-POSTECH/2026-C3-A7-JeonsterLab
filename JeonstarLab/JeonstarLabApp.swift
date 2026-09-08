@@ -15,7 +15,11 @@ struct Wrist_MotionApp: App {
 
     private let container: ModelContainer = {
         let schema = Schema([RecordingEntity.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        var isPreview = false
+        #if DEBUG && targetEnvironment(simulator)
+        isPreview = PhoneUIPreviewData.isEnabled
+        #endif
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: isPreview)
         return try! ModelContainer(for: schema, configurations: [config])
     }()
 
@@ -32,12 +36,23 @@ struct Wrist_MotionApp: App {
     @MainActor
     init() {
         let sm        = WatchSessionManager()
-        let fileStore = RecordingFileStore()
+        let fileStore: RecordingFileStoreProtocol
+        #if DEBUG && targetEnvironment(simulator)
+        fileStore = PhoneUIPreviewData.isEnabled ? PhoneUIPreviewFileStore() : RecordingFileStore()
+        #else
+        fileStore = RecordingFileStore()
+        #endif
         let repo      = RecordingRepository(
             modelContext: ModelContext(container),
             fileStore:    fileStore
         )
         let importUC  = ImportRecordingUseCase(repository: repo)
+        #if DEBUG && targetEnvironment(simulator)
+        if PhoneUIPreviewData.isEnabled {
+            do { try PhoneUIPreviewData.seed(repo) }
+            catch { assertionFailure("UI fixture failed: \(error)") }
+        }
+        #endif
         let receiver  = FileReceiveService(importUseCase: importUC, sessionManager: sm)
         let listVM    = RecordingListViewModel(repository: repo)
 
