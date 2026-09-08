@@ -38,6 +38,8 @@ final class RecordingViewModel {
     }
 
     func startRecording() {
+        // Duplicate iPhone commands must not discard an active recording buffer.
+        guard canStartRecording else { return }
         do {
             let id = try startUseCase.execute()
             state = .recording(startedAt: Date(), sessionID: id)
@@ -70,6 +72,8 @@ final class RecordingViewModel {
     /// 파일 전송 완료 후 idle로 복귀.
     /// 전송 성공/실패 여부에 따라 다른 햅틱을 줄 수 있음.
     func transferDidComplete(error: Error? = nil) {
+        // An older file callback must not replace a newer recording's UI state.
+        guard case .transferring = state else { return }
         if let error {
             state = .error(error.localizedDescription)
             hapticManager.playError()
@@ -103,6 +107,10 @@ final class RecordingViewModel {
     }
 
     var canResendRetainedFile: Bool {
+        canStartRecording
+    }
+
+    var canStartRecording: Bool {
         switch state {
         case .idle, .error:
             return true
