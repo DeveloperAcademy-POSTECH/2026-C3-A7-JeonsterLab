@@ -257,8 +257,8 @@ struct MacRecordingDetailView: View {
     }
 
     private var participantInfoCard: some View {
-        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
-            GridRow {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Name or Nickname")
                     .foregroundStyle(.secondary)
                 TextField("Not set", text: $package.participantInfo.nameOrNickname)
@@ -268,7 +268,7 @@ struct MacRecordingDetailView: View {
                     }
             }
 
-            GridRow {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Gender")
                     .foregroundStyle(.secondary)
                 Picker("Gender", selection: $package.participantInfo.gender) {
@@ -282,7 +282,7 @@ struct MacRecordingDetailView: View {
                 }
             }
 
-            GridRow {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Age Group")
                     .foregroundStyle(.secondary)
                 Picker("Age Group", selection: $package.participantInfo.ageGroup) {
@@ -296,7 +296,7 @@ struct MacRecordingDetailView: View {
                 }
             }
 
-            GridRow {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Height (cm)")
                     .foregroundStyle(.secondary)
                 TextField("e.g. 174", text: heightBinding)
@@ -304,7 +304,7 @@ struct MacRecordingDetailView: View {
                     .frame(maxWidth: 180)
             }
 
-            GridRow {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Dominant Hand")
                     .foregroundStyle(.secondary)
                 Picker("Dominant Hand", selection: $package.participantInfo.dominantHand) {
@@ -318,7 +318,7 @@ struct MacRecordingDetailView: View {
                 }
             }
 
-            GridRow {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Experience")
                     .foregroundStyle(.secondary)
                 Picker("Experience", selection: $package.participantInfo.skillLevel) {
@@ -332,7 +332,7 @@ struct MacRecordingDetailView: View {
                 }
             }
 
-            GridRow(alignment: .top) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Notes")
                     .foregroundStyle(.secondary)
                     .padding(.top, 6)
@@ -427,7 +427,7 @@ struct MacRecordingDetailView: View {
 
     private func focusedSnapPanel(_ editDraft: SnapEditDraft) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
+            VStack(alignment: .leading, spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Selected Snap")
                         .font(.headline)
@@ -435,7 +435,6 @@ struct MacRecordingDetailView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
                 Button("Clear Selection") {
                     clearFocusedSnap()
                 }
@@ -459,7 +458,6 @@ struct MacRecordingDetailView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
                 Button("Cancel Edit") {
                     clearFocusedSnap()
                 }

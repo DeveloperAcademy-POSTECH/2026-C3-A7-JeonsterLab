@@ -90,7 +90,7 @@ struct MacMotionChartsView: View {
                         xStart: .value("Saved Snap Start", range.startTime),
                         xEnd: .value("Saved Snap End", range.endTime)
                     )
-                    .foregroundStyle(range.label.backgroundColor)
+                    .foregroundStyle(range.label.backgroundColor.opacity(0.35))
 
                     RuleMark(x: .value("Saved Snap Start", range.startTime))
                         .foregroundStyle(.gray.opacity(0.55))
@@ -137,17 +137,11 @@ struct MacMotionChartsView: View {
                     .lineStyle(.init(lineWidth: 1.2, dash: [4, 3]))
             }
         }
-        .chartForegroundStyleScale([
-            "X": .blue,
-            "Y": .green,
-            "Z": .orange,
-            "Roll": .blue,
-            "Pitch": .green,
-            "Yaw": .orange
-        ])
+        .chartForegroundStyleScale(domain: values.map(\.name), range: values.map(\.color))
         .chartXScale(domain: visibleTimeRange.range)
         .chartYScale(domain: yDomain)
-        .chartXAxisLabel("relativeTime")
+        .chartXAxisLabel("Time (s)")
+        .chartPlotStyle { plot in plot.clipped() }
         .chartOverlay { proxy in
             GeometryReader { geometry in
                 ChartInteractionOverlay(

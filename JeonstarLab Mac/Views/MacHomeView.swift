@@ -40,15 +40,15 @@ struct MacHomeView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(viewModel.workspaceTitle)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
 
                     Text(viewModel.workspaceSubtitle)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                 }
 
                 List(selection: viewModel.packageSelectionBinding()) {
-                    Section("Folders") {
+                    Section {
                         Button {
                             viewModel.addFolder()
                         } label: {
@@ -57,7 +57,7 @@ struct MacHomeView: View {
 
                         if viewModel.snapFolders.isEmpty {
                             Text("No folders yet.")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.white.opacity(0.65))
                         } else {
                             ForEach(viewModel.snapFolders) { folder in
                                 Button {
@@ -65,17 +65,19 @@ struct MacHomeView: View {
                                 } label: {
                                     HStack {
                                         Image(systemName: "folder")
+                                            .foregroundStyle(Color.white.opacity(0.7))
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(folder.name)
+                                                .foregroundStyle(.white)
                                                 .lineLimit(1)
                                             Text("\(folder.items.count) snaps")
                                                 .font(.caption)
-                                                .foregroundStyle(.secondary)
+                                                .foregroundStyle(Color.white.opacity(0.65))
                                         }
                                     }
                                 }
                                 .buttonStyle(.plain)
-                                .listRowBackground(viewModel.selectedFolder?.id == folder.id ? Color.accentColor.opacity(0.24) : Color.clear)
+                                .listRowBackground(viewModel.selectedFolder?.id == folder.id ? EditorPalette.accent.opacity(0.24) : Color.clear)
                                 .contextMenu {
                                     Button("Delete", role: .destructive) {
                                         viewModel.deleteFolder(folder)
@@ -83,13 +85,17 @@ struct MacHomeView: View {
                                 }
                             }
                         }
+                    } header: {
+                        Text("Folders")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(0.55))
                     }
 
-                    Section("Pinned Recordings") {
+                    Section {
                         if viewModel.filteredPinnedPackages.isEmpty {
                             Text("No pinned recordings.")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.white.opacity(0.65))
                         } else {
                             ForEach(viewModel.filteredPinnedPackages) { package in
                                 receivedPackageRow(package)
@@ -99,12 +105,16 @@ struct MacHomeView: View {
                                     }
                             }
                         }
+                    } header: {
+                        Text("Pinned Recordings")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(0.55))
                     }
 
-                    Section("Received Recordings") {
+                    Section {
                         if viewModel.filteredReceivedPackages.isEmpty {
                             Text("No recordings yet.")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.white.opacity(0.65))
                         } else {
                             ForEach(viewModel.filteredReceivedPackages) { package in
                                 receivedPackageRow(package)
@@ -114,6 +124,10 @@ struct MacHomeView: View {
                                     }
                             }
                         }
+                    } header: {
+                        Text("Received Recordings")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(0.55))
                     }
                 }
                 .scrollContentBackground(.hidden)
@@ -121,7 +135,7 @@ struct MacHomeView: View {
                 Divider().overlay(Color.white.opacity(0.12))
                 Label(viewModel.connectedPeerText, systemImage: "iphone")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
                     .padding(.bottom, 4)
             }
             .padding(14)
@@ -216,22 +230,23 @@ struct MacHomeView: View {
         HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(package.displayTitle)
+                    .foregroundStyle(.white)
                     .lineLimit(1)
                 if package.isPinned {
                     Label("Pinned", systemImage: "pin.fill")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                         .labelStyle(.titleAndIcon)
                 }
                 Text(package.recordingDateText)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
                 Text("\(package.resultSummaryText) · Received \(package.receivedAtText)")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
                 Text("\(package.sampleCountText) samples · \(package.snapEventCountText) snaps · \(package.completenessText)")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
             }
 
             Spacer(minLength: 8)
@@ -317,7 +332,7 @@ struct MacHomeView: View {
                     Image(systemName: "laptopcomputer")
                 }
                 .font(.system(size: 40, weight: .light))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(EditorPalette.accent)
                 .accessibilityLabel("Apple Watch to iPhone to Mac")
                 VStack(spacing: 10) {
                     Text("Your motion. Ready to explore.")
@@ -363,8 +378,8 @@ struct MacHomeView: View {
         HStack(alignment: .top, spacing: 14) {
             Text(number).font(.caption.bold())
                 .frame(width: 26, height: 26)
-                .background(Color.accentColor.opacity(0.12), in: Circle())
-                .foregroundStyle(Color.accentColor)
+                .background(EditorPalette.accent.opacity(0.12), in: Circle())
+                .foregroundStyle(EditorPalette.accent)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).fontWeight(.medium)
                 Text(detail).font(.callout).foregroundStyle(.secondary)

@@ -69,7 +69,7 @@ struct MacSnapEventListView: View {
             .help("Delete snap")
         }
         .padding(10)
-        .background(selectedSnapID == event.snapID ? Color.accentColor.opacity(0.13) : Color.clear,
+        .background(selectedSnapID == event.snapID ? EditorPalette.accent.opacity(0.13) : Color.clear,
                     in: RoundedRectangle(cornerRadius: 7))
         .overlay(alignment: .bottom) { Divider().opacity(0.5) }
     }
