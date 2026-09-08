@@ -13,6 +13,14 @@ struct ContentView: View {
     var storage: WatchRecordingStorage
 
     var body: some View {
+        #if DEBUG && targetEnvironment(simulator)
+        if WatchUIPreview.isEnabled {
+            WatchUIPreview()
+        } else {
+            RecordingView(viewModel: viewModel, storage: storage)
+        }
+        #else
         RecordingView(viewModel: viewModel, storage: storage)
+        #endif
     }
 }

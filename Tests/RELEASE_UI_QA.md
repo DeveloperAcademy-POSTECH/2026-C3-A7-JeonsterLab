@@ -25,7 +25,8 @@ recording inspector, dataset folders, and CSV export options.
 
 - No on-device Watch recording or Watch → iPhone → Mac transfer test in this pass.
 - No distribution signing, archive upload, or App Store submission.
-- Watch English changes are build-verified; Watch small-screen visual QA remains.
+- Watch ready/recording/transfer presentation has been checked on a 40mm simulator;
+  real-device checks and accessibility-size interaction remain.
 - Dark folder/export views use the shared adaptive surfaces; their final interactive
   inspection was interrupted by concurrent user interaction.
 - Existing `nonisolated(unsafe)` warnings in WatchRecordingStorage remain unchanged.
@@ -61,3 +62,29 @@ minimum window width. Confirm iPhone/Watch text at larger accessibility sizes.
 - Accessibility layouts use a menu sensor picker and vertical Watch controls/row
   metadata at accessibility sizes; final large-text visual QA and real-device transfer
   (including automatic transfer and retry) remain manual follow-up items.
+
+## Watch recording UI redesign
+
+- The primary screen now emphasizes recording status, elapsed time from the real
+  session start date, sample count, and a full-width Record/Stop button.
+- A separate Saved Files screen contains retained recordings, file details,
+  resend controls, and the existing explicit delete confirmation. Binary storage,
+  transfer metadata, and import-acknowledgment cleanup are unchanged.
+- Transfer progress remains indeterminate: queued transfer is not presented as a
+  percentage or proof of iPhone import. Saved files explain acknowledgment semantics.
+- Black system surfaces and red recording controls are used on Watch; no forced
+  light theme is introduced. Semantic fonts and scrolling support longer content.
+- Apple Watch SE 3 (40mm), watchOS 26.5: ready and recording screenshots inspected.
+  Timer/button spacing was reduced after the first capture to keep Stop fully visible.
+  Transfer presentation was inspected; the redundant disabled action was then removed.
+- DEBUG simulator argument `--watch-ui-preview` renders a sample recording state;
+  append `sending`, `error`, or `large-text` for visual fixtures. Fixture callbacks
+  are no-ops: no sensor recording, file writes, or transfers. This mode is excluded
+  from Release and physical-device builds.
+- `bash Tests/run-watch-ui-smoke.sh` verifies production start/stop/state logic using
+  fake recorder/storage/transfer/haptics: duplicate starts do not clear the buffer,
+  late transfer callbacks do not overwrite recording, repeat resends are blocked,
+  and failure states remain actionable. No real recording files are created or deleted.
+- Manual follow-up: retained-file expansion/resend/delete/cancel on disposable
+  recordings, large-text interaction, physical-device haptics/background recording,
+  and Watch → iPhone import acknowledgment → Mac transfer end to end.
