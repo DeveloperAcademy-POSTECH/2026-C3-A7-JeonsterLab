@@ -18,13 +18,20 @@ struct RecordingView: View {
           NavigationLink {
             SavedWatchRecordingsView(viewModel: viewModel, storage: storage)
           } label: {
-            HStack {
-              Image(systemName: "tray")
-              Text("Saved on Watch")
-              Spacer(minLength: 2)
-              Text(storage.retainedFiles.count.formatted()).monospacedDigit()
+            HStack(spacing: 12) {
+              Text("Saved Files")
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+              Spacer(minLength: 0)
+              Text(storage.retainedFiles.count.formatted())
+                .monospacedDigit()
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(.white.opacity(0.12), in: Capsule())
+                .fixedSize()
             }
             .font(.caption)
+            .padding(.horizontal, 4)
           }
           .buttonStyle(.bordered)
           .accessibilityLabel("Saved on Watch, \(storage.retainedFiles.count) recordings")
