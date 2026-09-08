@@ -20,19 +20,18 @@ final class MacConnectionViewModel {
     var connectedMacName: String?
     var discoveredMacs: [MCPeerID] = []
     var transferStatus: MacTransferStatus = .idle
+    private(set) var transferSessionID: UUID?
     var errorMessage: String?
     var isAutomaticTransferEnabled: Bool {
-        get {
-            UserDefaults.standard.bool(forKey: Self.autoTransferDefaultsKey)
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: Self.autoTransferDefaultsKey)
+        didSet {
+            UserDefaults.standard.set(isAutomaticTransferEnabled, forKey: Self.autoTransferDefaultsKey)
         }
     }
 
     private static let autoTransferDefaultsKey = "macAutoTransferEnabled"
 
     init() {
+        isAutomaticTransferEnabled = UserDefaults.standard.bool(forKey: Self.autoTransferDefaultsKey)
         browser.onStatusChanged = { [weak self] status in
             self?.connectionStatus = status
             if status == .connected {
@@ -64,10 +63,6 @@ final class MacConnectionViewModel {
     }
 
     var guidanceText: String {
-        if transferStatus == .completed {
-            return "Transfer complete."
-        }
-
         switch connectionStatus {
         case .idle:
             return "Choose Start Receiving in the Mac app first."
@@ -93,12 +88,26 @@ final class MacConnectionViewModel {
     }
 
     var canSendToMac: Bool {
-        connectedMacName != nil && transferStatus.isTransferring == false
+        connectionStatus == .connected && connectedMacName != nil && !isTransferring
+    }
+
+    var isTransferring: Bool { transferStatus.isTransferring }
+
+    var canSearch: Bool {
+        guard !isTransferring else { return false }
+        if case .found = connectionStatus { return false }
+        return true
+    }
+
+    func transferStatus(for sessionID: UUID) -> MacTransferStatus? {
+        transferSessionID == sessionID ? transferStatus : nil
     }
 
     func startSearching() {
+        guard canSearch else { return }
         errorMessage = nil
         transferStatus = .idle
+        transferSessionID = nil
         browser.startSearching()
         searchTimeoutTask?.cancel()
         searchTimeoutTask = Task { [weak self] in
@@ -124,7 +133,9 @@ final class MacConnectionViewModel {
         session: RecordingSession,
         repository: RecordingRepositoryProtocol
     ) {
+        guard canSendToMac else { return }
         errorMessage = nil
+        transferSessionID = session.id
         transferService.sendRecording(
             session: session,
             repository: repository,

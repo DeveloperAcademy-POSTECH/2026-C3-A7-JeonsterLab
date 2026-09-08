@@ -1,5 +1,4 @@
 import SwiftUI
-import MultipeerConnectivity
 
 struct RecordingDetailView: View {
     @State var viewModel: RecordingDetailViewModel
@@ -8,6 +7,7 @@ struct RecordingDetailView: View {
     @State private var isExporting = false
     @State private var exportErrorMessage: String?
     @State private var isEditingMemo = false
+    @State private var isShowingConnectionSettings = false
     @State private var macConnectionViewModel = MacConnectionViewModel.shared
 
     var body: some View {
@@ -53,6 +53,9 @@ struct RecordingDetailView: View {
                 .disabled(isExporting)
                 .accessibilityLabel("Share Original Files")
             }
+        }
+        .sheet(isPresented: $isShowingConnectionSettings) {
+            MacConnectionSettingsView(viewModel: macConnectionViewModel)
         }
         .sheet(isPresented: $isShareSheetPresented) { ShareSheet(activityItems: exportURLs) }
         .alert("Export failed", isPresented: Binding(
@@ -117,60 +120,47 @@ struct RecordingDetailView: View {
     }
 
     private var transferSection: some View {
-            Section("Transfer to Mac") {
-                LabeledContent("Mac Connection", value: macConnectionViewModel.connectionStatusText)
-                LabeledContent("Mac", value: macConnectionViewModel.connectedMacText)
-                LabeledContent("Transfer", value: macConnectionViewModel.transferStatusText)
-
-                Text(macConnectionViewModel.guidanceText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                if !macConnectionViewModel.discoveredMacs.isEmpty,
-                   macConnectionViewModel.connectionStatus == .searching {
-                    ForEach(macConnectionViewModel.discoveredMacs, id: \.self) { mac in
-                        HStack {
-                            Label(mac.displayName, systemImage: "desktopcomputer")
-                            Spacer()
-                            Button("Connect") {
-                                macConnectionViewModel.selectMac(mac)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                        }
-                    }
-                }
-
-                Toggle("Automatically Send to Mac", isOn: Binding(
-                    get: { macConnectionViewModel.isAutomaticTransferEnabled },
-                    set: { macConnectionViewModel.isAutomaticTransferEnabled = $0 }
-                ))
-
-                Text(macConnectionViewModel.automaticTransferGuidanceText)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                if let errorMessage = macConnectionViewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-
-                HStack {
-                    Button("Find Mac") {
-                        macConnectionViewModel.startSearching()
-                    }
-
-                    Button("Send to Mac") {
-                        macConnectionViewModel.sendRecording(
-                            session: viewModel.currentSession,
-                            repository: viewModel.recordingRepository
-                        )
-                    }
-                    .disabled(!macConnectionViewModel.canSendToMac)
-                }
+        Section {
+            MacConnectionControls(viewModel: macConnectionViewModel)
+            if let status = macConnectionViewModel.transferStatus(for: viewModel.currentSession.id) {
+                transferStatusView(status)
+            } else if macConnectionViewModel.isTransferring {
+                Label("Sending another recording…", systemImage: "arrow.up.doc")
+                    .font(.callout).foregroundStyle(.secondary)
             }
+            Button {
+                macConnectionViewModel.sendRecording(
+                    session: viewModel.currentSession,
+                    repository: viewModel.recordingRepository
+                )
+            } label: {
+                Label("Send to Mac", systemImage: "arrow.up.right")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!macConnectionViewModel.canSendToMac)
+            Button("Connection Settings") { isShowingConnectionSettings = true }
+                .font(.callout)
+        } header: {
+            Text("Transfer to Mac")
+        } footer: {
+            Text("You can also use the share button to export the original files.")
+        }
+    }
 
+    private func transferStatusView(_ status: MacTransferStatus) -> some View {
+        HStack(spacing: 10) {
+            switch status {
+            case .preparing, .sending: ProgressView()
+            case .completed: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            case .failed: Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+            case .idle: Image(systemName: "arrow.up.doc")
+            }
+            Text(status.displayText)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private func exportRecording() {

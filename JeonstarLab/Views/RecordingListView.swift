@@ -12,6 +12,8 @@ struct RecordingListView: View {
     @State var viewModel:        RecordingListViewModel
     @State var watchControlVM:   WatchControlViewModel
 
+    @State private var isShowingConnectionSettings = false
+
     var body: some View {
         List {
             watchControlSection
@@ -36,6 +38,16 @@ struct RecordingListView: View {
             }
         }
         .navigationTitle("Recordings")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { isShowingConnectionSettings = true } label: {
+                    Label("Connection Settings", systemImage: "laptopcomputer")
+                }
+            }
+        }
+        .sheet(isPresented: $isShowingConnectionSettings) {
+            MacConnectionSettingsView(viewModel: .shared)
+        }
         .navigationDestination(for: RecordingSession.self) { session in
             RecordingDetailView(
                 viewModel: RecordingDetailViewModel(
