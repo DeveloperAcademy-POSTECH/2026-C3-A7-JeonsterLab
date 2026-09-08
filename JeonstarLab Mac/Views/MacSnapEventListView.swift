@@ -209,6 +209,7 @@ struct MacSnapEventListView: View {
     }
 
     private func title(for event: WorkingSnapEvent) -> String {
+        if event.sourceType == .autoSegment { return "Auto" }
         if let eventIndex = event.eventIndex {
             return "#\(eventIndex + 1)"
         }

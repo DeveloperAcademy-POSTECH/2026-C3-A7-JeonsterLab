@@ -26,6 +26,10 @@ struct MacRecordingDetailView: View {
     @State private var editErrorMessage: String?
     @State private var isEditingTitle = false
     @State private var draftDisplayName = ""
+    @State private var selectedAutoSegmentID: String?
+    @State private var analysisTask: Task<Void, Never>?
+    @State private var analysisRunID: UUID?
+    @State private var analysisMessage: String?
 
     private var manualSnapDraft: ManualSnapDraft? {
         guard let chartSelection else { return nil }
@@ -110,6 +114,7 @@ struct MacRecordingDetailView: View {
         .onChange(of: package.folderURL) {
             resetTransientStateForPackageSwitch()
         }
+        .onDisappear { cancelAnalysis() }
         .alert("Update this snap range?", isPresented: $showsEditConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Update", role: .destructive) {
@@ -137,6 +142,12 @@ struct MacRecordingDetailView: View {
 
     private var chartWorkspace: some View {
         VStack(alignment: .leading, spacing: 14) {
+            AutoSegmentSuggestionsView(
+                review: package.autoSegmentReview, selectedID: selectedAutoSegmentID,
+                isAnalyzing: analysisTask != nil, canAnalyze: !samples.isEmpty,
+                message: analysisMessage, onAnalyze: suggestSegments, onCancel: cancelAnalysis,
+                onSelect: selectAutoSegment, onDismiss: dismissAutoSegment
+            )
             ViewThatFits(in: .horizontal) {
                 HStack {
                     chartPreviewToggle
@@ -165,9 +176,11 @@ struct MacRecordingDetailView: View {
                     showsCandidateSelection: editDraft == nil || hasFocusedSnapRangeChange,
                     fullTimeRange: fullTimeRange,
                     selection: $chartSelection,
-                    visibleTimeRange: $visibleTimeRange
+                    visibleTimeRange: $visibleTimeRange,
+                    autoCandidates: package.autoSegmentReview?.pending ?? [],
+                    onSelectCandidate: selectAutoSegment
                 )
-                Text("Drag to select · Drag handles to resize · Hold Space and drag to pan")
+                Text("Click a suggestion to review · Drag to select or resize · Space-drag to pan")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -383,8 +396,12 @@ struct MacRecordingDetailView: View {
 
     private var manualSelectionPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Selected Range")
+            Text(selectedAutoSegmentID == nil ? "Selected Range" : "Suggested Segment")
                 .font(.headline)
+            if selectedAutoSegmentID != nil {
+                Text("Adjust the boundaries if needed, then confirm. The segment starts without a label.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
 
             if let editMessage {
                 Text(editMessage)
@@ -409,13 +426,15 @@ struct MacRecordingDetailView: View {
                 conflictWarning
 
                 HStack {
-                    Button("Save Snap") {
-                        saveManualSnap()
+                    Button(selectedAutoSegmentID == nil ? "Save Snap" : "Confirm Segment") {
+                        if selectedAutoSegmentID != nil { confirmAutoSegment() }
+                        else { saveManualSnap() }
                     }
                     .disabled(draft?.canSave != true || hasSelectionConflict)
 
                     Button("Clear Selection") {
                         self.chartSelection = nil
+                        selectedAutoSegmentID = nil
                     }
                 }
             } else {
@@ -624,6 +643,7 @@ struct MacRecordingDetailView: View {
 
     private func selectSnapEvent(_ event: WorkingSnapEvent) {
         guard let selection = selection(for: event) else { return }
+        selectedAutoSegmentID = nil
         editDraft = SnapEditDraft(originalEvent: event)
         chartSelection = selection
         focusVisibleRange(on: selection)
@@ -632,6 +652,9 @@ struct MacRecordingDetailView: View {
     }
 
     private func resetTransientStateForPackageSwitch() {
+        cancelAnalysis()
+        selectedAutoSegmentID = nil
+        analysisMessage = nil
         chartSelection = nil
         editDraft = nil
         showsEditConfirmation = false
@@ -645,11 +668,85 @@ struct MacRecordingDetailView: View {
     }
 
     private func clearFocusedSnap() {
+        selectedAutoSegmentID = nil
         editDraft = nil
         chartSelection = nil
         resetVisibleRangeToFull()
         editMessage = nil
         editErrorMessage = nil
+    }
+
+    private func cancelAnalysis() {
+        analysisRunID = nil
+        analysisTask?.cancel()
+        analysisTask = nil
+    }
+
+    private func suggestSegments() {
+        guard analysisTask == nil, !samples.isEmpty else { return }
+        let snapshot = samples
+        let folderURL = package.folderURL
+        let runID = UUID()
+        analysisRunID = runID
+        analysisMessage = nil
+        analysisTask = Task {
+            let worker = Task.detached(priority: .userInitiated) {
+                try AutoSegmentDetector.analyze(snapshot)
+            }
+            do {
+                let result = try await withTaskCancellationHandler {
+                    try await worker.value
+                } onCancel: { worker.cancel() }
+                guard !Task.isCancelled, analysisRunID == runID, package.folderURL == folderURL else { return }
+                var updated = package
+                updated.mergeAutoSegments(result)
+                if persistAutoSegments(updated) {
+                    analysisMessage = "Existing snaps and review decisions were preserved."
+                }
+            } catch is CancellationError {
+                // Explicit cancellation leaves the current review unchanged.
+            } catch {
+                if analysisRunID == runID { analysisMessage = "Analysis failed: \(error.localizedDescription)" }
+            }
+            if analysisRunID == runID { analysisTask = nil; analysisRunID = nil }
+        }
+    }
+
+    private func selectAutoSegment(_ candidate: AutoSegmentCandidate) {
+        editDraft = nil
+        editMessage = nil
+        editErrorMessage = nil
+        selectedAutoSegmentID = candidate.id
+        chartSelection = ChartTimeSelection(startTime: candidate.startTime, endTime: candidate.endTime)
+        focusVisibleRange(on: chartSelection)
+    }
+
+    private func dismissAutoSegment(_ candidate: AutoSegmentCandidate) {
+        var updated = package
+        updated.dismissAutoSegment(id: candidate.id)
+        if persistAutoSegments(updated), selectedAutoSegmentID == candidate.id { clearFocusedSnap() }
+    }
+
+    private func confirmAutoSegment() {
+        guard let id = selectedAutoSegmentID, let draft = manualSnapDraft, !hasSelectionConflict else { return }
+        var updated = package
+        guard let event = updated.confirmAutoSegment(id: id, draft: draft) else { return }
+        if persistAutoSegments(updated) {
+            selectSnapEvent(event)
+            analysisMessage = "Segment confirmed. Set its label and folder in the inspector."
+        }
+    }
+
+    private func persistAutoSegments(_ updated: ReceivedRecordingPackage) -> Bool {
+        do {
+            try ReceivedRecordingPackageLoader().saveLabel(package: updated)
+            package = updated
+            onSaveLabel(updated)
+            return true
+        } catch {
+            analysisMessage = "Could not save segment review: \(error.localizedDescription)"
+            return false
+        }
     }
 
     private func applySnapEdit() {

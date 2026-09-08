@@ -13,6 +13,7 @@ struct ChartInteractionOverlay: NSViewRepresentable {
     var onMouseMoved: (CGPoint?) -> Void
     var onDragChanged: (CGPoint, CGPoint) -> Void
     var onDragEnded: () -> Void
+    var onClick: ((CGPoint) -> Void)? = nil
 
     func makeNSView(context: Context) -> InteractionView {
         let view = InteractionView()
@@ -22,6 +23,7 @@ struct ChartInteractionOverlay: NSViewRepresentable {
         view.onMouseMoved = onMouseMoved
         view.onDragChanged = onDragChanged
         view.onDragEnded = onDragEnded
+        view.onClick = onClick
         return view
     }
 
@@ -32,6 +34,7 @@ struct ChartInteractionOverlay: NSViewRepresentable {
         nsView.onMouseMoved = onMouseMoved
         nsView.onDragChanged = onDragChanged
         nsView.onDragEnded = onDragEnded
+        nsView.onClick = onClick
     }
 
     final class InteractionView: NSView {
@@ -41,6 +44,8 @@ struct ChartInteractionOverlay: NSViewRepresentable {
         var onMouseMoved: ((CGPoint?) -> Void)?
         var onDragChanged: ((CGPoint, CGPoint) -> Void)?
         var onDragEnded: (() -> Void)?
+        var onClick: ((CGPoint) -> Void)?
+        private var didDrag = false
 
         private var keyDownMonitor: Any?
         private var keyUpMonitor: Any?
@@ -102,12 +107,15 @@ struct ChartInteractionOverlay: NSViewRepresentable {
         override func mouseDown(with event: NSEvent) {
             let location = convert(event.locationInWindow, from: nil)
             dragStart = location
+            didDrag = false
             lastDragX = isSpacePressed ? location.x : nil
             window?.makeFirstResponder(self)
         }
 
         override func mouseDragged(with event: NSEvent) {
             let location = convert(event.locationInWindow, from: nil)
+            if let dragStart, hypot(location.x - dragStart.x, location.y - dragStart.y) > 3 { didDrag = true }
+            guard didDrag else { return }
             guard isSpacePressed else {
                 onDragChanged?(dragStart ?? location, location)
                 return
@@ -120,6 +128,7 @@ struct ChartInteractionOverlay: NSViewRepresentable {
         }
 
         override func mouseUp(with event: NSEvent) {
+            if !didDrag && !isSpacePressed { onClick?(convert(event.locationInWindow, from: nil)) }
             dragStart = nil
             lastDragX = nil
             onDragEnded?()

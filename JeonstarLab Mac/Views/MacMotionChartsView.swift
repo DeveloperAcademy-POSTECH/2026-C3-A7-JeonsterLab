@@ -18,6 +18,8 @@ struct MacMotionChartsView: View {
     let fullTimeRange: ClosedRange<Double>
     @Binding var selection: ChartTimeSelection?
     @Binding var visibleTimeRange: ChartVisibleTimeRange
+    var autoCandidates: [AutoSegmentCandidate] = []
+    var onSelectCandidate: ((AutoSegmentCandidate) -> Void)? = nil
 
     @State private var activeDragMode: ChartSelectionDragMode?
     @State private var isSpacePressed = false
@@ -73,6 +75,17 @@ struct MacMotionChartsView: View {
         yDomain: ClosedRange<Double>
     ) -> some View {
         Chart {
+            ForEach(autoCandidates) { candidate in
+                RectangleMark(xStart: .value("Suggested Start", candidate.startTime),
+                              xEnd: .value("Suggested End", candidate.endTime))
+                    .foregroundStyle(.secondary.opacity(0.08))
+                RuleMark(x: .value("Suggested Start", candidate.startTime))
+                    .foregroundStyle(.secondary.opacity(0.6))
+                    .lineStyle(.init(lineWidth: 1, dash: [4, 3]))
+                RuleMark(x: .value("Suggested End", candidate.endTime))
+                    .foregroundStyle(.secondary.opacity(0.6))
+                    .lineStyle(.init(lineWidth: 1, dash: [4, 3]))
+            }
             ForEach(values, id: \.name) { axis in
                 ForEach(samples) { sample in
                     LineMark(
@@ -93,12 +106,12 @@ struct MacMotionChartsView: View {
                     .foregroundStyle(range.label.backgroundColor.opacity(0.35))
 
                     RuleMark(x: .value("Saved Snap Start", range.startTime))
-                        .foregroundStyle(.gray.opacity(0.55))
-                        .lineStyle(.init(lineWidth: 0.8, dash: [2, 3]))
+                        .foregroundStyle(range.label.backgroundColor)
+                        .lineStyle(.init(lineWidth: 1))
 
                     RuleMark(x: .value("Saved Snap End", range.endTime))
-                        .foregroundStyle(.gray.opacity(0.55))
-                        .lineStyle(.init(lineWidth: 0.8, dash: [2, 3]))
+                        .foregroundStyle(range.label.backgroundColor)
+                        .lineStyle(.init(lineWidth: 1))
                 }
             }
 
@@ -185,6 +198,13 @@ struct MacMotionChartsView: View {
                     },
                     onDragEnded: {
                         activeDragMode = nil
+                    },
+                    onClick: { location in
+                        guard let frame = proxy.plotFrame, geometry[frame].contains(location) else { return }
+                        let time = timeValue(for: location.x, plotRect: geometry[frame])
+                        if let candidate = autoCandidates.first(where: { $0.startTime <= time && $0.endTime >= time }) {
+                            onSelectCandidate?(candidate)
+                        }
                     }
                 )
                 .contentShape(Rectangle())
