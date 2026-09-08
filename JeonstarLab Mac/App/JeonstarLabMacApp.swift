@@ -57,6 +57,8 @@ struct JeonstarLabMacApp: App {
         }
 
         Settings { EditorSettingsView() }
+        Window("Getting Started", id: "getting-started") { MacTutorialWindow() }
+            .windowResizability(.contentSize)
 
         WindowGroup("Project Settings", for: ProjectSettingsRequest.self) { $request in
             if let request { ProjectLabelSettingsView(request: request) }

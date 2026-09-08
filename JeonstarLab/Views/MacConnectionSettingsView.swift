@@ -4,10 +4,14 @@ import MultipeerConnectivity
 struct MacConnectionSettingsView: View {
     @Bindable var viewModel: MacConnectionViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showsTutorial = false
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("Help") {
+                    Button("Show Tutorial", systemImage: "questionmark.circle") { showsTutorial = true }
+                }
                 Section("Mac Connection") {
                     MacConnectionControls(viewModel: viewModel)
                 }
@@ -33,6 +37,10 @@ struct MacConnectionSettingsView: View {
             }
         }
         .mobileEditorStyle()
+        .sheet(isPresented: $showsTutorial) {
+            GettingStartedGuideView(audience: .phone) { showsTutorial = false }
+                .mobileEditorStyle()
+        }
     }
 }
 

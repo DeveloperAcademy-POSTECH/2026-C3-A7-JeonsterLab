@@ -9,6 +9,7 @@ struct MacHomeView: View {
     @Bindable var viewModel: MacHomeViewModel
     @Environment(\.openWindow) private var openWindow
     @State private var pendingDeletePackage: ReceivedRecordingPackage?
+    @AppStorage("WatchMotionEditor.hasSeenMacTutorial.v1") private var hasSeenTutorial = false
 
     var body: some View {
         NavigationSplitView {
@@ -216,6 +217,7 @@ struct MacHomeView: View {
                                                                  title: viewModel.workspaceTitle))
                     }
                     SettingsLink { Text("App Settings…") }
+                    Button("Show Tutorial") { openWindow(id: "getting-started") }
                 } label: { Label("Settings", systemImage: "gearshape") }
             }
             ToolbarItem { EditorAppearanceMenu() }
@@ -235,7 +237,16 @@ struct MacHomeView: View {
                 openWindow(value: ProjectSettingsRequest(recordingsPath: viewModel.rootReceivedFolderURL.path,
                                                          title: viewModel.workspaceTitle))
             }
+            if ProcessInfo.processInfo.arguments.contains("--show-tutorial") {
+                openWindow(id: "getting-started")
+                return
+            }
+            if ProcessInfo.processInfo.arguments.contains("--ui-workspace") { return }
             #endif
+            if !hasSeenTutorial {
+                hasSeenTutorial = true
+                openWindow(id: "getting-started")
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .projectLabelsDidChange)) { notification in
             guard notification.object as? String == viewModel.rootReceivedFolderURL.standardizedFileURL.path else { return }

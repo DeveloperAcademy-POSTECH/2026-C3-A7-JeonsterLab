@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct EditorSettingsView: View {
+    @Environment(\.openWindow) private var openWindow
     @AppStorage("WatchMotionEditor.appearance") private var appearance = EditorAppearance.system
     @AppStorage(ProjectExportPreferences.nameKey) private var projectName = ProjectExportPreferences.defaultName
     @AppStorage(ProjectExportPreferences.formatKey) private var archiveFormat = ProjectArchiveFormat.watchmotion
@@ -9,6 +10,7 @@ struct EditorSettingsView: View {
     var body: some View {
         TabView {
             Form {
+                Button("Show Tutorial", systemImage: "questionmark.circle") { openWindow(id: "getting-started") }
                 Picker("Appearance", selection: $appearance) {
                     ForEach(EditorAppearance.allCases) { Text($0.title).tag($0) }
                 }
