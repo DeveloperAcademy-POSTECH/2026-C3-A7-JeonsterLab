@@ -39,7 +39,8 @@ final class ImportRecordingUseCase {
             throw ImportRecordingError.malformedMetadata
         }
 
-        guard duration.isFinite, duration >= 0, startedAtTS.isFinite,
+        guard duration.isFinite, (0...2_678_400).contains(duration),
+              startedAtTS.isFinite, (0...4_102_444_800).contains(startedAtTS),
               sampleCount > 0, rate > 0, rate <= 1000 else {
             throw ImportRecordingError.malformedMetadata
         }

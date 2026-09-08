@@ -140,6 +140,7 @@ struct RecordingRowView: View {
     }
 
     private var durationText: String {
+        guard session.duration.isFinite, (0...2_678_400).contains(session.duration) else { return "—" }
         let total = Int(session.duration)
         let m = total / 60
         let s = total % 60

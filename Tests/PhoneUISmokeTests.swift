@@ -59,6 +59,11 @@ struct PhoneUISmokeTests {
                                        sampleCount: 3, fileName: "original.bin", samplingRate: 50,
                                        memo: repository.savedMemo)
         let model = RecordingDetailViewModel(session: session, repository: repository)
+        for invalidDuration in [Double.nan, .infinity, .greatestFiniteMagnitude, -1] {
+            let invalidSession = RecordingSession(id: UUID(), startedAt: Date(), duration: invalidDuration,
+                sampleCount: 3, fileName: "invalid.bin", samplingRate: 50)
+            precondition(RecordingDetailViewModel(session: invalidSession, repository: repository).durationText == "—")
+        }
         precondition(repository.detectionReads == 0, "Preview must not run activity-specific analysis")
         repository.failLoad = true
         await model.loadSamples()
