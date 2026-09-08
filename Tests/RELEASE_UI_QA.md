@@ -25,7 +25,7 @@ recording inspector, dataset folders, and CSV export options.
 
 - No on-device Watch recording or Watch → iPhone → Mac transfer test in this pass.
 - No distribution signing, archive upload, or App Store submission.
-- iPhone/Watch English changes are build-verified; small-screen visual QA remains.
+- Watch English changes are build-verified; Watch small-screen visual QA remains.
 - Dark folder/export views use the shared adaptive surfaces; their final interactive
   inspection was interrupted by concurrent user interaction.
 - Existing `nonisolated(unsafe)` warnings in WatchRecordingStorage remain unchanged.
@@ -37,3 +37,27 @@ recording inspector, dataset folders, and CSV export options.
 Before submission, test receiving on real devices, create/edit/delete a disposable
 snap, exercise folder membership and both exporters, and inspect both themes at
 minimum window width. Confirm iPhone/Watch text at larger accessibility sizes.
+
+## iPhone recording-review redesign
+
+- Removed activity-specific detection settings, flip analysis, automatic peak overlays,
+  and 3D visualizations from the detail UI. Legacy detection identifiers and export
+  fields remain intact; existing recordings are not migrated or discarded.
+- Retained three-axis 2D acceleration, gyroscope, and attitude previews, sensor units,
+  real elapsed timestamps, recording information, notes, original export, and Mac transfer.
+- Shared Mac connection controls and a single automatic-transfer setting replace
+  duplicate settings. Transfer feedback is associated with its recording, and sending
+  is disabled until the peer is actually connected.
+- iPhone 17e / iOS 26.5 simulator: light/dark detail preview, attitude switch, notes
+  editor/cancel, disconnected transfer button, and connection settings visually checked.
+- Unsigned Debug simulator build and Release generic iOS build (including Watch) pass.
+- `bash Tests/run-phone-ui-smoke.sh` passes: elapsed-time gaps and invalid timestamps,
+  all nine sensor axes and units, failed-load retry, memo save/cancel/failure, 15-column
+  CSV, original notes, and legacy `jeonFlip` metadata in the three-file export.
+- `bash Tests/run-release-ui-smoke.sh` still passes for the Mac models.
+- DEBUG simulator launch argument `--ui-preview` seeds isolated, in-memory sample
+  recordings with temporary binary files. Omit the argument for normal persistence.
+  This fixture is excluded from physical-device and Release builds.
+- Accessibility layouts use a menu sensor picker and vertical Watch controls/row
+  metadata at accessibility sizes; final large-text visual QA and real-device transfer
+  (including automatic transfer and retry) remain manual follow-up items.
