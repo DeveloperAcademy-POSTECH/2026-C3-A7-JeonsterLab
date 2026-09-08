@@ -13,8 +13,22 @@ struct ProjectSettingsSmokeTests {
         let recordings = root.appendingPathComponent("source")
         let folder = recordings.appendingPathComponent("recording-fixture")
         try fm.createDirectory(at: folder, withIntermediateDirectories: true)
-        let csv = "index,timestamp,relativeTime,attitudeRoll,attitudePitch,attitudeYaw,rotationRateX,rotationRateY,rotationRateZ,gravityX,gravityY,gravityZ,userAccX,userAccY,userAccZ\n0,100,0,0,0,0,0,0,0,0,0,1,0,0,0\n"
+        let header = "index,timestamp,relativeTime,attitudeRoll,attitudePitch,attitudeYaw,rotationRateX,rotationRateY,rotationRateZ,gravityX,gravityY,gravityZ,userAccX,userAccY,userAccZ\n"
+        let rows = (0..<1000).map { index -> String in
+            let time = Double(index) / 50
+            let wave = sin(time * 3)
+            let values = [Double(index), 100 + time, time, wave * 0.4, cos(time) * 0.3, wave * 0.2,
+                          wave * 1.2, cos(time * 2), sin(time), 0, 0, 1, wave * 0.3, cos(time * 3) * 0.2, sin(time * 5) * 0.1]
+            return String(index) + "," + values.dropFirst().map { String($0) }.joined(separator: ",")
+        }
+        let csv = header + rows.joined(separator: "\n") + "\n"
         try Data(csv.utf8).write(to: folder.appendingPathComponent("recording.csv"))
+        let fixtureID = UUID().uuidString
+        try JSONSerialization.data(withJSONObject: ["recordingID": fixtureID, "duration": 20, "startedAt": "2026-09-08T12:00:00Z",
+            "sampleCount": 1000, "samplingRate": 50, "recordingMemo": "Synthetic UI verification data"])
+            .write(to: folder.appendingPathComponent("metadata.json"))
+        try JSONSerialization.data(withJSONObject: ["recordingID": fixtureID, "eventCount": 0, "snapEvents": []])
+            .write(to: folder.appendingPathComponent("snap_analysis.json"))
         let decoder = JSONDecoder()
         let legacy = try decoder.decode(RecordingPackageLabel.self, from: Data("\"partialSuccess\"".utf8))
         precondition(legacy == .partialFlipped && legacy.datasetValue == "partial_flipped")
