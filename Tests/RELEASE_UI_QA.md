@@ -88,3 +88,42 @@ minimum window width. Confirm iPhone/Watch text at larger accessibility sizes.
 - Manual follow-up: retained-file expansion/resend/delete/cancel on disposable
   recordings, large-text interaction, physical-device haptics/background recording,
   and Watch → iPhone import acknowledgment → Mac transfer end to end.
+
+## Project settings and export naming
+
+- Added project-scoped label names, colors, ordering, optional numeric shortcuts,
+  and archiving. Existing label IDs and annotations are preserved; archived labels
+  remain on saved annotations but are hidden from selection menus.
+- App Settings contains appearance and default project export name, date suffix,
+  and `.watchmotion` / `.zip` format. Legacy `.jeonstarlab` projects still open.
+- Project format v2 includes the label catalog. Opening v1 archives preserves
+  default labels. New project locations use WatchMotion Editor; existing receiver
+  data stays at its old location when present.
+- `bash Tests/run-project-settings-smoke.sh` passes: stable label identity, legacy
+  decoding, unknown IDs, validation, custom-label persistence, workspace isolation,
+  current/legacy archive round trips, original CSV bytes, and safe export naming.
+- Mac UI: temporary workspace only; rename/save, duplicate-name rejection, and
+  Reload verified. Project Labels inspected in light and dark; Export settings
+  and its filename preview inspected in light. No user recordings were modified.
+- Watch Saved Files button now omits the tray icon and gives the count its own
+  padded badge. Its simulator build passes; final 40mm visual recheck remains.
+
+## First-run guides
+
+- Mac and iPhone each present a three-page English guide once per installation's
+  defaults. Presentation is remembered even when skipped or closed; all pages
+  remain accessible through Show Tutorial in Mac Settings and iPhone Connection
+  Settings. Mac also exposes the guide in the workspace menu and Window menu.
+- Guidance follows existing controls: Watch recording, iPhone motion review and
+  transfer, Mac receiving, snap labeling, project labels, and dataset/project export.
+  The guide itself starts no recording, transfer, or permission request.
+- Shared scrollable content keeps navigation buttons separate from long text.
+  Mac dark UI: all three steps, Back, Skip, and reopening at page one verified.
+  iPhone 17e / iOS 26.5: first-page dark screenshot inspected without clipping.
+- DEBUG `--show-tutorial` forces presentation without changing the persisted
+  first-run flag. Combine with iPhone `--ui-preview` or Mac `--ui-workspace PATH`
+  for isolated UI inspection. The normal path uses versioned AppStorage flags.
+- Unsigned Mac and iPhone simulator Debug builds pass; Mac Release and generic
+  iOS Release (including Watch) builds also pass. Full iPhone button-flow,
+  clean-install/relaunch persistence, light-mode guide, and larger accessibility
+  text remain manual follow-up checks; real-device transfer is still unverified.
