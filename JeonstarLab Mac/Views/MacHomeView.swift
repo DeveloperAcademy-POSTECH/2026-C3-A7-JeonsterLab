@@ -14,8 +14,12 @@ struct MacHomeView: View {
         NavigationSplitView {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text("WatchMotion Editor")
-                        .font(.title2)
+                    Image(nsImage: NSApplication.shared.applicationIconImage)
+                        .resizable()
+                        .frame(width: 34, height: 34)
+                        .accessibilityHidden(true)
+                    Text("WatchMotion\nEditor")
+                        .font(.headline)
                         .fontWeight(.semibold)
 
                     Spacer()
@@ -40,7 +44,7 @@ struct MacHomeView: View {
 
                     Text(viewModel.workspaceSubtitle)
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                 }
 
                 List(selection: viewModel.packageSelectionBinding()) {
@@ -71,6 +75,7 @@ struct MacHomeView: View {
                                     }
                                 }
                                 .buttonStyle(.plain)
+                                .listRowBackground(viewModel.selectedFolder?.id == folder.id ? Color.accentColor.opacity(0.24) : Color.clear)
                                 .contextMenu {
                                     Button("Delete", role: .destructive) {
                                         viewModel.deleteFolder(folder)
@@ -111,15 +116,22 @@ struct MacHomeView: View {
                         }
                     }
                 }
+                .scrollContentBackground(.hidden)
+                .listStyle(.sidebar)
+                Divider().overlay(Color.white.opacity(0.12))
+                Label(viewModel.connectedPeerText, systemImage: "iphone")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.bottom, 4)
             }
-            .padding()
-            .navigationSplitViewColumnWidth(min: 260, ideal: 300)
+            .padding(14)
+            .background(EditorPalette.sidebar)
+            .environment(\.colorScheme, .dark)
+            .navigationSplitViewColumnWidth(min: 230, ideal: 260, max: 340)
         } detail: {
             VStack(spacing: 0) {
                 connectionSection
-                    .padding(.top, 22)
-                    .padding(.horizontal, 28)
-                    .padding(.bottom, 0)
+                Divider()
 
                 if let folderBinding = viewModel.bindingForSelectedFolder() {
                     SnapFolderDetailView(
@@ -149,7 +161,7 @@ struct MacHomeView: View {
                     emptyState
                 }
             }
-            .background(Color(nsColor: .windowBackgroundColor))
+            .background(EditorPalette.background)
         }
         .alert(
             "Delete this recording?",
@@ -183,6 +195,7 @@ struct MacHomeView: View {
             Text(viewModel.projectPackageMessage ?? "")
         }
         .toolbar {
+            ToolbarItem { EditorAppearanceMenu() }
             ToolbarItem {
                 Button {
                     viewModel.exportReceiverProjectPackage()
@@ -257,152 +270,108 @@ struct MacHomeView: View {
     }
 
     private var connectionSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 18) {
-                Text("Connection Status")
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(viewModel.isAdvertising ? Color.green : Color.secondary)
+                    .frame(width: 7, height: 7)
+                Text(viewModel.statusText).fontWeight(.medium)
+                Text(viewModel.connectedPeerText).foregroundStyle(.secondary)
                     .lineLimit(1)
-
-                Divider()
-                    .frame(height: 30)
-
-                connectionStatusItem(
-                    title: "Status",
-                    value: viewModel.statusText,
-                    systemImage: viewModel.isAdvertising
-                        ? "antenna.radiowaves.left.and.right"
-                        : "pause.circle"
-                )
-
-                connectionStatusItem(
-                    title: "Device",
-                    value: viewModel.connectedPeerText,
-                    systemImage: "iphone"
-                )
-
-                connectionStatusItem(
-                    title: "Automatic Transfer",
-                    value: "Disabled",
-                    systemImage: "arrow.triangle.2.circlepath"
-                )
-
-                Spacer(minLength: 12)
-
-                HStack(spacing: 8) {
-                    Button("Show in Finder") {
-                        viewModel.openReceivedFolder()
-                    }
-
-                    Button("Refresh") {
-                        viewModel.reloadPackages()
-                    }
-
-                    if viewModel.isAdvertising {
-                        Button("Stop Receiving") {
-                            viewModel.stopReceiver()
-                        }
-                    } else {
-                        Button("Start Receiving") {
-                            viewModel.startReceiver()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
+                Spacer(minLength: 8)
+                Button { viewModel.openReceivedFolder() } label: {
+                    Label("Show in Finder", systemImage: "folder")
                 }
-            }
-
-            Group {
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                } else {
-                    Text(viewModel.guidanceText)
-                        .foregroundStyle(.secondary)
+                .labelStyle(.iconOnly)
+                .help("Show received recordings in Finder")
+                Button { viewModel.reloadPackages() } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
                 }
+                .labelStyle(.iconOnly)
+                .help("Refresh recordings")
+                Button(viewModel.isAdvertising ? "Stop Receiving" : "Start Receiving") {
+                    if viewModel.isAdvertising { viewModel.stopReceiver() }
+                    else { viewModel.startReceiver() }
+                }
+                .buttonStyle(.borderedProminent)
             }
-            .font(.caption)
-            .lineLimit(1)
+            .controlSize(.small)
+            Text(viewModel.errorMessage ?? viewModel.guidanceText)
+                .font(.caption)
+                .foregroundStyle(viewModel.errorMessage == nil ? Color.secondary : Color.red)
+                .textSelection(.enabled)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color(nsColor: .controlBackgroundColor).opacity(0.56))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                }
-        }
-        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
-    }
-
-    private func connectionStatusItem(
-        title: String,
-        value: String,
-        systemImage: String
-    ) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Text(value)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-            }
-        }
-        .frame(minWidth: 96, alignment: .leading)
+        .padding(.vertical, 12)
+        .background(EditorPalette.surface)
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Text("No recordings yet.")
-                .font(.title3)
-            Text("Start receiving on this Mac, then open a recording on your iPhone to find this Mac and send the files.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+        ScrollView {
+            VStack(spacing: 24) {
+                HStack(spacing: 22) {
+                    Image(systemName: "applewatch")
+                    Image(systemName: "arrow.right").font(.title3).foregroundStyle(.secondary)
+                    Image(systemName: "iphone")
+                    Image(systemName: "arrow.right").font(.title3).foregroundStyle(.secondary)
+                    Image(systemName: "laptopcomputer")
+                }
+                .font(.system(size: 40, weight: .light))
+                .foregroundStyle(Color.accentColor)
+                .accessibilityLabel("Apple Watch to iPhone to Mac")
+                VStack(spacing: 10) {
+                    Text("Your motion. Ready to explore.")
+                        .font(.system(size: 28, weight: .semibold))
+                    Text("Receive recordings from your iPhone, select motion segments,\nand turn them into labeled datasets.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                HStack(spacing: 12) {
+                    Button(viewModel.isAdvertising ? "Receiving…" : "Start Receiving") {
+                        viewModel.startReceiver()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.isAdvertising)
+                    if viewModel.canOpenProjectPackage {
+                        Button("Open Project…") {
+                            if let request = viewModel.makeProjectWindowRequest() { openWindow(value: request) }
+                        }
+                    }
+                }
+                .controlSize(.large)
+                VStack(alignment: .leading, spacing: 16) {
+                    receiveStep("1", title: "Record on Apple Watch", detail: "Save a motion recording and transfer it to your paired iPhone.")
+                    receiveStep("2", title: "Send from iPhone", detail: "Open the recording, find this Mac, and send the files.")
+                    receiveStep("3", title: "Edit and export", detail: "Review all three motion axes, label snaps, and export a dataset.")
+                }
+                .padding(24)
+                .editorSurface()
+                .frame(maxWidth: 550)
+                Text("Keep Wi-Fi and Bluetooth enabled. Allow local network access on both devices.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 32)
+            .padding(.vertical, 64)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
     }
 
-    private func sectionCard<Content: View>(
-        title: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(title)
-                .font(.headline)
-            content()
+    private func receiveStep(_ number: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            Text(number).font(.caption.bold())
+                .frame(width: 26, height: 26)
+                .background(Color.accentColor.opacity(0.12), in: Circle())
+                .foregroundStyle(Color.accentColor)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).fontWeight(.medium)
+                Text(detail).font(.callout).foregroundStyle(.secondary)
+            }
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color(nsColor: .controlBackgroundColor).opacity(0.72))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                }
-        }
-        .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
-        .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
     }
+
 }
 
 #Preview {
