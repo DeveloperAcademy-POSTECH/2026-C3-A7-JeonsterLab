@@ -616,7 +616,8 @@ final class MacHomeViewModel {
             }
             cancelProjectWork = { worker.cancel() }
             let workspace = try await worker.value
-            projectPackageMessage = "Opened project in a new window.\n\(workspace.displayName)"
+            // The new window is the success feedback. A sheet on the source
+            // window steals focus and hides the workspace we just opened.
             return ReceiverProjectWindowRequest(workspace: workspace)
         } catch is CancellationError {
             projectPackageMessage = "Open canceled. Existing projects were kept."
