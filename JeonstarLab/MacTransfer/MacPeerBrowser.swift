@@ -129,7 +129,7 @@ extension MacPeerBrowser: MCSessionDelegate {
                 onConnectedPeerChanged?(nil)
                 onStatusChanged?(.disconnected)
             @unknown default:
-                onStatusChanged?(.failed("알 수 없는 연결 상태입니다."))
+                onStatusChanged?(.failed("Unknown connection state."))
             }
         }
     }

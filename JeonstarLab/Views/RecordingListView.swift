@@ -18,9 +18,9 @@ struct RecordingListView: View {
 
             if viewModel.recordings.isEmpty {
                 ContentUnavailableView(
-                    "녹화 없음",
+                    "No Recordings",
                     systemImage: "waveform.slash",
-                    description: Text("Watch 또는 아래 버튼으로 녹화를 시작하세요.")
+                    description: Text("Start a recording on your Watch or use the button below.")
                 )
             } else {
                 ForEach(viewModel.recordings) { session in
@@ -35,7 +35,7 @@ struct RecordingListView: View {
                 }
             }
         }
-        .navigationTitle("녹화 목록")
+        .navigationTitle("Recordings")
         .navigationDestination(for: RecordingSession.self) { session in
             RecordingDetailView(
                 viewModel: RecordingDetailViewModel(
@@ -56,7 +56,7 @@ struct RecordingListView: View {
             HStack {
                 // 연결 상태 표시
                 Label(
-                    watchControlVM.isReachable ? "Watch 연결됨" : "Watch 연결 안 됨",
+                    watchControlVM.isReachable ? "Watch Connected" : "Watch Not Connected",
                     systemImage: watchControlVM.isReachable ? "applewatch" : "applewatch.slash"
                 )
                 .foregroundStyle(watchControlVM.isReachable ? .green : .secondary)
@@ -70,7 +70,7 @@ struct RecordingListView: View {
                     Button {
                         watchControlVM.stopRecording()
                     } label: {
-                        Label("중지", systemImage: "stop.circle.fill")
+                        Label("Stop", systemImage: "stop.circle.fill")
                             .foregroundStyle(.red)
                     }
                     .buttonStyle(.bordered)
@@ -78,7 +78,7 @@ struct RecordingListView: View {
                     Button {
                         watchControlVM.startRecording()
                     } label: {
-                        Label("녹화", systemImage: "record.circle")
+                        Label("Record", systemImage: "record.circle")
                             .foregroundStyle(.red)
                     }
                     .buttonStyle(.bordered)
@@ -86,10 +86,10 @@ struct RecordingListView: View {
                 }
             }
         } header: {
-            Text("Watch 제어")
+            Text("Watch Controls")
         } footer: {
             if !watchControlVM.isReachable {
-                Text("Watch 앱을 실행하고 iPhone과 가까이 두세요.")
+                Text("Open the Watch app and keep it near your iPhone.")
                     .font(.caption2)
             }
         }
@@ -108,7 +108,7 @@ struct RecordingRowView: View {
                 .font(.headline)
             HStack(spacing: 8) {
                 Label(durationText, systemImage: "clock")
-                Label("\(session.sampleCount)개", systemImage: "waveform")
+                Label("\(session.sampleCount) samples", systemImage: "waveform")
             }
             .font(.caption)
             .foregroundStyle(.secondary)

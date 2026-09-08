@@ -43,7 +43,7 @@ final class RecordingDetailViewModel {
     }
 
     var sampleCountText: String {
-        "\(session.sampleCount)개 (\(session.samplingRate)Hz)"
+        "\(session.sampleCount) samples (\(session.samplingRate) Hz)"
     }
 
     var currentSession: RecordingSession {

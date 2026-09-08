@@ -39,7 +39,7 @@ final class WatchSessionManager: NSObject {
     override init() {
         super.init()
         guard WCSession.isSupported() else {
-            fatalError("Watch Connectivity가 지원되지 않는 기기입니다.")
+            fatalError("Watch Connectivity is not supported on this device.")
         }
         WCSession.default.delegate = self
         WCSession.default.activate()

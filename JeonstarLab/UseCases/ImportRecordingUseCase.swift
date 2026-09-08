@@ -61,6 +61,6 @@ enum ImportRecordingError: LocalizedError {
     case malformedMetadata
 
     var errorDescription: String? {
-        "Watch로부터 전달받은 메타데이터 형식이 올바르지 않습니다."
+        "The metadata received from Apple Watch is invalid."
     }
 }

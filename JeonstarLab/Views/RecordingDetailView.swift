@@ -25,23 +25,23 @@ struct RecordingDetailView: View {
     var body: some View {
         List {
             // MARK: 정보 섹션
-            Section("정보") {
-                LabeledContent("날짜", value: viewModel.title)
-                LabeledContent("길이", value: viewModel.durationText)
-                LabeledContent("샘플", value: viewModel.sampleCountText)
+            Section("Information") {
+                LabeledContent("Date", value: viewModel.title)
+                LabeledContent("Duration", value: viewModel.durationText)
+                LabeledContent("Samples", value: viewModel.sampleCountText)
             }
 
-            Section("메모") {
+            Section("Notes") {
                 if isEditingMemo {
                     TextField(
-                        "녹화 당시의 특이사항을 기록하세요.",
+                        "Add notes about this recording.",
                         text: $viewModel.recordingMemo,
                         axis: .vertical
                     )
                     .lineLimit(3...6)
 
                     HStack {
-                        Button("저장") {
+                        Button("Save") {
                             viewModel.updateRecordingMemo(viewModel.recordingMemo)
                             if viewModel.memoErrorMessage == nil {
                                 isEditingMemo = false
@@ -49,7 +49,7 @@ struct RecordingDetailView: View {
                         }
                         .disabled(!viewModel.hasRecordingMemoChanges)
 
-                        Button("취소") {
+                        Button("Cancel") {
                             viewModel.resetRecordingMemoDraft()
                             isEditingMemo = false
                         }
@@ -60,7 +60,7 @@ struct RecordingDetailView: View {
                         isEditingMemo = true
                     } label: {
                         HStack(alignment: .top) {
-                            Text(viewModel.savedRecordingMemo.isEmpty ? "녹화 당시의 특이사항을 기록하세요." : viewModel.savedRecordingMemo)
+                            Text(viewModel.savedRecordingMemo.isEmpty ? "Add notes about this recording." : viewModel.savedRecordingMemo)
                                 .foregroundStyle(viewModel.savedRecordingMemo.isEmpty ? .secondary : .primary)
                                 .multilineTextAlignment(.leading)
                             Spacer()
@@ -69,23 +69,23 @@ struct RecordingDetailView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Button("메모 편집") {
+                    Button("Edit Notes") {
                         viewModel.resetRecordingMemoDraft()
                         isEditingMemo = true
                     }
                 }
 
                 if let memoErrorMessage = viewModel.memoErrorMessage {
-                    Text("메모 저장 실패: \(memoErrorMessage)")
+                    Text("Failed to save notes: \(memoErrorMessage)")
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
             }
 
-            Section("Mac 전송") {
-                LabeledContent("Mac 연결 상태", value: macConnectionViewModel.connectionStatusText)
+            Section("Transfer to Mac") {
+                LabeledContent("Mac Connection", value: macConnectionViewModel.connectionStatusText)
                 LabeledContent("Mac", value: macConnectionViewModel.connectedMacText)
-                LabeledContent("전송", value: macConnectionViewModel.transferStatusText)
+                LabeledContent("Transfer", value: macConnectionViewModel.transferStatusText)
 
                 Text(macConnectionViewModel.guidanceText)
                     .font(.caption)
@@ -97,7 +97,7 @@ struct RecordingDetailView: View {
                         HStack {
                             Label(mac.displayName, systemImage: "desktopcomputer")
                             Spacer()
-                            Button("연결") {
+                            Button("Connect") {
                                 macConnectionViewModel.selectMac(mac)
                             }
                             .buttonStyle(.borderedProminent)
@@ -106,7 +106,7 @@ struct RecordingDetailView: View {
                     }
                 }
 
-                Toggle("Mac 연결 시 자동 전송", isOn: Binding(
+                Toggle("Automatically Send to Mac", isOn: Binding(
                     get: { macConnectionViewModel.isAutomaticTransferEnabled },
                     set: { macConnectionViewModel.isAutomaticTransferEnabled = $0 }
                 ))
@@ -122,11 +122,11 @@ struct RecordingDetailView: View {
                 }
 
                 HStack {
-                    Button("Mac 찾기") {
+                    Button("Find Mac") {
                         macConnectionViewModel.startSearching()
                     }
 
-                    Button("Mac으로 전송") {
+                    Button("Send to Mac") {
                         macConnectionViewModel.sendRecording(
                             session: viewModel.currentSession,
                             repository: viewModel.recordingRepository
@@ -136,12 +136,12 @@ struct RecordingDetailView: View {
                 }
             }
 
-            Section("스냅 감지 기준") {
-                Text("이 녹화 기록에서 어떤 동작 기준으로 스냅을 분석할지 선택하세요.")
+            Section("Snap Detection Mode") {
+                Text("Choose the motion type used to analyze snaps in this recording.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Picker("감지 기준", selection: $viewModel.pendingSnapDetectionMode) {
+                Picker("Detection Mode", selection: $viewModel.pendingSnapDetectionMode) {
                     ForEach(viewModel.availableSnapDetectionModes) { mode in
                         Text(mode.displayName)
                             .tag(mode)
@@ -149,7 +149,7 @@ struct RecordingDetailView: View {
                 }
                 .pickerStyle(.segmented)
 
-                Button("감지 기준 적용") {
+                Button("Apply Detection Mode") {
                     isSnapDetectionModeConfirmationPresented = true
                 }
                 .disabled(!viewModel.canApplySnapDetectionMode)
@@ -160,7 +160,7 @@ struct RecordingDetailView: View {
                 Section {
                     HStack {
                         Spacer()
-                        ProgressView("로딩 중…")
+                        ProgressView("Loading…")
                         Spacer()
                     }
                     .padding(.vertical)
@@ -175,7 +175,7 @@ struct RecordingDetailView: View {
                 let snapResult = viewModel.snapAnalysisResult
                 let selectedEvent = snapResult?.event(at: selectedSnapEventIndex)
 
-                Section("스냅 분석 요약") {
+                Section("Snap Analysis") {
                     if let snapResult {
                         SnapAnalysisSummaryView(
                             result: snapResult,
@@ -183,40 +183,40 @@ struct RecordingDetailView: View {
                         )
                     } else {
                         ContentUnavailableView(
-                            "감지된 스냅 없음",
+                            "No Snaps Detected",
                             systemImage: "waveform.slash",
-                            description: Text("스냅 감지 기준이 없음으로 설정되어 있습니다.")
+                            description: Text("Snap detection is set to None.")
                         )
                     }
                 }
 
-                Section("사용자 가속도") {
+                Section("User Acceleration") {
                     accelerationChart(selectedEvent: selectedEvent)
                 }
 
-                Section("자이로스코프") {
+                Section("Gyroscope") {
                     gyroChart(selectedEvent: selectedEvent)
                 }
 
-                Section("자세 (Attitude)") {
+                Section("Attitude") {
                     attitudeChart(selectedEvent: selectedEvent)
                 }
 
-                Section("3D 사용자 가속도") {
+                Section("3D User Acceleration") {
                     MotionTrajectory3DView(
                         samples: viewModel.samples,
                         kind: .userAcceleration
                     )
                 }
 
-                Section("3D 자이로스코프") {
+                Section("3D Gyroscope") {
                     MotionTrajectory3DView(
                         samples: viewModel.samples,
                         kind: .gyroscope
                     )
                 }
 
-                Section("3D 자세") {
+                Section("3D Attitude") {
                     MotionTrajectory3DView(
                         samples: viewModel.samples,
                         kind: .attitude
@@ -224,7 +224,7 @@ struct RecordingDetailView: View {
                 }
             }
         }
-        .navigationTitle("녹화 상세")
+        .navigationTitle("Recording Detail")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -243,27 +243,27 @@ struct RecordingDetailView: View {
         .sheet(isPresented: $isShareSheetPresented) {
             ShareSheet(activityItems: exportURLs)
         }
-        .alert("내보내기 실패", isPresented: exportErrorBinding) {
-            Button("확인", role: .cancel) {
+        .alert("Export failed", isPresented: exportErrorBinding) {
+            Button("OK", role: .cancel) {
                 exportErrorMessage = nil
             }
         } message: {
-            Text(exportErrorMessage ?? "알 수 없는 오류가 발생했습니다.")
+            Text(exportErrorMessage ?? "An unknown error occurred.")
         }
         .alert(snapDetectionModeConfirmationTitle, isPresented: $isSnapDetectionModeConfirmationPresented) {
-            Button("취소", role: .cancel) { }
-            Button("적용") {
+            Button("Cancel", role: .cancel) { }
+            Button("Apply") {
                 applySnapDetectionMode()
             }
         } message: {
             Text(snapDetectionModeConfirmationMessage)
         }
-        .alert("감지 기준 저장 실패", isPresented: snapDetectionModeErrorBinding) {
-            Button("확인", role: .cancel) {
+        .alert("Failed to save detection mode", isPresented: snapDetectionModeErrorBinding) {
+            Button("OK", role: .cancel) {
                 snapDetectionModeErrorMessage = nil
             }
         } message: {
-            Text(snapDetectionModeErrorMessage ?? "알 수 없는 오류가 발생했습니다.")
+            Text(snapDetectionModeErrorMessage ?? "An unknown error occurred.")
         }
         .task {
             await viewModel.loadSamples()
@@ -298,18 +298,18 @@ struct RecordingDetailView: View {
     private var snapDetectionModeConfirmationTitle: String {
         switch viewModel.pendingSnapDetectionMode {
         case .none:
-            return "스냅 감지를 사용하지 않을까요?"
+            return "Turn off snap detection?"
         case .jeonFlip:
-            return "전 부치기를 스냅 감지 기준으로 설정할까요?"
+            return "Use Jeon Flipping for snap detection?"
         }
     }
 
     private var snapDetectionModeConfirmationMessage: String {
         switch viewModel.pendingSnapDetectionMode {
         case .none:
-            return "그래프는 그대로 볼 수 있지만, 자동 감지된 스냅 분석은 표시하지 않습니다."
+            return "Charts remain available, but automatically detected snap analysis will be hidden."
         case .jeonFlip:
-            return "이 녹화 기록의 스냅 분석이 전 부치기 동작 기준으로 표시됩니다."
+            return "This recording will be analyzed using the Jeon Flipping motion criteria."
         }
     }
 
@@ -341,11 +341,11 @@ struct RecordingDetailView: View {
     private func accelerationChart(selectedEvent: SnapEventSummary?) -> some View {
         Chart(Array(viewModel.samples.enumerated()), id: \.offset) { i, s in
             LineMark(x: .value("t", i), y: .value("X", s.userAccX))
-                .foregroundStyle(by: .value("축", "X"))
+                .foregroundStyle(by: .value("Axis", "X"))
             LineMark(x: .value("t", i), y: .value("Y", s.userAccY))
-                .foregroundStyle(by: .value("축", "Y"))
+                .foregroundStyle(by: .value("Axis", "Y"))
             LineMark(x: .value("t", i), y: .value("Z", s.userAccZ))
-                .foregroundStyle(by: .value("축", "Z"))
+                .foregroundStyle(by: .value("Axis", "Z"))
 
             if let selectedEvent {
                 snapRangeMarks(for: selectedEvent)
@@ -358,11 +358,11 @@ struct RecordingDetailView: View {
     private func gyroChart(selectedEvent: SnapEventSummary?) -> some View {
         Chart(Array(viewModel.samples.enumerated()), id: \.offset) { i, s in
             LineMark(x: .value("t", i), y: .value("X", s.rotationRateX))
-                .foregroundStyle(by: .value("축", "X"))
+                .foregroundStyle(by: .value("Axis", "X"))
             LineMark(x: .value("t", i), y: .value("Y", s.rotationRateY))
-                .foregroundStyle(by: .value("축", "Y"))
+                .foregroundStyle(by: .value("Axis", "Y"))
             LineMark(x: .value("t", i), y: .value("Z", s.rotationRateZ))
-                .foregroundStyle(by: .value("축", "Z"))
+                .foregroundStyle(by: .value("Axis", "Z"))
 
             if let selectedEvent {
                 snapRangeMarks(for: selectedEvent)
@@ -375,11 +375,11 @@ struct RecordingDetailView: View {
     private func attitudeChart(selectedEvent: SnapEventSummary?) -> some View {
         Chart(Array(viewModel.samples.enumerated()), id: \.offset) { i, s in
             LineMark(x: .value("t", i), y: .value("Roll", s.attitudeRoll))
-                .foregroundStyle(by: .value("축", "Roll"))
+                .foregroundStyle(by: .value("Axis", "Roll"))
             LineMark(x: .value("t", i), y: .value("Pitch", s.attitudePitch))
-                .foregroundStyle(by: .value("축", "Pitch"))
+                .foregroundStyle(by: .value("Axis", "Pitch"))
             LineMark(x: .value("t", i), y: .value("Yaw", s.attitudeYaw))
-                .foregroundStyle(by: .value("축", "Yaw"))
+                .foregroundStyle(by: .value("Axis", "Yaw"))
 
             if let selectedEvent {
                 snapRangeMarks(for: selectedEvent)

@@ -27,7 +27,7 @@
 		<string>_jeonstar-data._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>근처 Mac 앱으로 녹화 데이터를 전송하기 위해 로컬 네트워크를 사용합니다.</string>
+	<string>Local network access is used to send motion recordings to the nearby Mac app.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

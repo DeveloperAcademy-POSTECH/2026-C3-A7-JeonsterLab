@@ -16,9 +16,9 @@ struct SnapAnalysisSummaryView: View {
     var body: some View {
         if result.events.isEmpty {
             ContentUnavailableView(
-                "스냅 없음",
+                "No Snaps",
                 systemImage: "waveform.slash",
-                description: Text("뒤집기 스냅으로 보이는 구간을 찾지 못했습니다.")
+                description: Text("No possible flipping snaps were found.")
             )
         } else if let selectedEvent {
             VStack(alignment: .leading, spacing: 12) {
@@ -26,54 +26,54 @@ struct SnapAnalysisSummaryView: View {
 
                 HStack(alignment: .top, spacing: 12) {
                     SnapMetricCard(
-                        title: "스냅 발생 시점",
+                        title: "Snap Time",
                         value: selectedEvent.snapPeakTimeText,
-                        caption: "녹화 시작 기준"
+                        caption: "Since recording started"
                     )
 
                     SnapMetricCard(
-                        title: "스냅 신뢰도",
+                        title: "Snap Confidence",
                         value: selectedEvent.confidenceText,
-                        caption: "초기 추정값"
+                        caption: "Initial estimate"
                     )
                 }
 
                 HStack(alignment: .top, spacing: 12) {
                     SnapMetricCard(
-                        title: "최대 가속도",
+                        title: "Peak Acceleration",
                         value: selectedEvent.peakAccelerationText,
-                        caption: "스냅 강도"
+                        caption: "Snap intensity"
                     )
 
                     SnapMetricCard(
-                        title: "최대 회전속도",
+                        title: "Peak Rotation",
                         value: selectedEvent.peakGyroText,
-                        caption: "손목 회전"
+                        caption: "Wrist rotation"
                     )
                 }
 
                 HStack(alignment: .top, spacing: 12) {
                     SnapMetricCard(
-                        title: "피크 시간차",
+                        title: "Peak Delay",
                         value: selectedEvent.peakDelayText,
-                        caption: "힘-회전 타이밍"
+                        caption: "Acceleration–rotation timing"
                     )
 
                     SnapMetricCard(
-                        title: "스냅 지속시간",
+                        title: "Snap Duration",
                         value: selectedEvent.snapDurationText,
-                        caption: "핵심 구간 길이"
+                        caption: "Core range duration"
                     )
                 }
 
                 Divider()
 
                 VStack(alignment: .leading, spacing: 8) {
-                    LabeledContent("스냅 구간", value: selectedEvent.snapRangeText)
-                    LabeledContent("주 회전축", value: selectedEvent.dominantAxisText)
-                    LabeledContent("Roll 변화량", value: selectedEvent.rollRangeText)
-                    LabeledContent("Pitch 변화량", value: selectedEvent.pitchRangeText)
-                    LabeledContent("Yaw 변화량", value: selectedEvent.yawRangeText)
+                    LabeledContent("Snap Range", value: selectedEvent.snapRangeText)
+                    LabeledContent("Dominant Axis", value: selectedEvent.dominantAxisText)
+                    LabeledContent("Roll Range", value: selectedEvent.rollRangeText)
+                    LabeledContent("Pitch Range", value: selectedEvent.pitchRangeText)
+                    LabeledContent("Yaw Range", value: selectedEvent.yawRangeText)
                 }
                 .font(.subheadline)
 
@@ -99,11 +99,11 @@ struct SnapAnalysisSummaryView: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("감지된 뒤집기")
+                Text("Detected Flips")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text("\(result.events.count)개 스냅 후보")
+                Text("\(result.events.count) possible snaps")
                     .font(.subheadline)
                     .bold()
             }

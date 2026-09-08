@@ -15,7 +15,7 @@ final class MacTransferService {
         statusHandler: @escaping (MacTransferStatus) -> Void
     ) {
         guard let peerID = browser.connectedPeerID else {
-            statusHandler(.failed("연결된 Mac이 없습니다."))
+            statusHandler(.failed("No Mac connected."))
             return
         }
 
@@ -37,7 +37,7 @@ final class MacTransferService {
         statusHandler: @escaping (MacTransferStatus) -> Void
     ) throws {
         guard !fileURLs.isEmpty else {
-            statusHandler(.failed("전송할 파일이 없습니다."))
+            statusHandler(.failed("No files to send."))
             return
         }
 
@@ -98,15 +98,15 @@ enum MacTransferStatus: Equatable {
     var displayText: String {
         switch self {
         case .idle:
-            return "전송 대기"
+            return "Ready to Send"
         case .preparing:
-            return "전송 파일 준비 중"
+            return "Preparing Files"
         case .sending(let current, let total):
-            return "전송 중 \(current)/\(total)"
+            return "Sending \(current)/\(total)"
         case .completed:
-            return "전송 완료"
+            return "Transfer Complete"
         case .failed(let message):
-            return "전송 실패: \(message)"
+            return "Transfer failed: \(message)"
         }
     }
 }

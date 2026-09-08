@@ -82,7 +82,7 @@ final class RecordingViewModel {
     func resendRetainedFile(_ file: RetainedWatchRecordingFile) {
         guard canResendRetainedFile else { return }
         guard let sessionID = file.sessionID else {
-            state = .error("세션 ID를 확인할 수 없습니다.")
+            state = .error("The session ID could not be verified.")
             hapticManager.playError()
             return
         }

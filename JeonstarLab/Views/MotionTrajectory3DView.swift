@@ -27,7 +27,7 @@ struct MotionTrajectory3DView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text("화면을 드래그하면 3D 그래프를 회전해서 볼 수 있습니다.")
+                Text("Drag to rotate the 3D chart.")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -55,11 +55,11 @@ enum MotionTrajectoryKind {
     var description: String {
         switch self {
         case .userAcceleration:
-            return "X/Y/Z 사용자 가속도 값을 3D 공간의 궤적으로 표현합니다."
+            return "Shows X/Y/Z user acceleration as a trajectory in 3D space."
         case .gyroscope:
-            return "X/Y/Z 회전 속도 값을 3D 공간의 궤적으로 표현합니다."
+            return "Shows X/Y/Z rotation rate as a trajectory in 3D space."
         case .attitude:
-            return "Roll/Pitch/Yaw 자세 값을 3D 공간의 궤적으로 표현합니다."
+            return "Shows roll, pitch, and yaw as a trajectory in 3D space."
         }
     }
 

@@ -57,8 +57,8 @@ enum RecordingRepositoryError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .notFound:     return "녹화 세션을 찾을 수 없습니다."
-        case .fileNotFound: return "녹화 파일을 찾을 수 없습니다."
+        case .notFound:     return "The recording session could not be found."
+        case .fileNotFound: return "The recording file could not be found."
         }
     }
 }

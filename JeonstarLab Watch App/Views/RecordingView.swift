@@ -24,22 +24,22 @@ struct RecordingView: View {
             .padding()
         }
         .alert(
-            "보관된 기록을 삭제할까요?",
+            "Delete this saved recording?",
             isPresented: Binding(
                 get: { pendingDeleteFile != nil },
                 set: { if !$0 { pendingDeleteFile = nil } }
             ),
             presenting: pendingDeleteFile
         ) { file in
-            Button("삭제", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 storage.deleteRetainedFile(file)
                 pendingDeleteFile = nil
             }
-            Button("취소", role: .cancel) {
+            Button("Cancel", role: .cancel) {
                 pendingDeleteFile = nil
             }
         } message: { _ in
-            Text("삭제하면 Watch에 보관된 녹화 파일이 사라집니다. iPhone으로 아직 저장되지 않은 기록이라면 복구할 수 없습니다.")
+            Text("This removes the recording from your Watch. If it has not been saved on your iPhone, it cannot be recovered.")
         }
     }
 
@@ -49,17 +49,17 @@ struct RecordingView: View {
     private var statusView: some View {
         switch viewModel.state {
         case .idle:
-            Text("준비")
+            Text("Ready")
                 .foregroundStyle(.secondary)
         case .recording:
-            Text("녹화 중")
+            Text("Recording")
                 .foregroundStyle(.red)
                 .bold()
         case .transferring:
             HStack(spacing: 6) {
                 ProgressView()
                     .controlSize(.mini)
-                Text("전송 중…")
+                Text("Sending…")
             }
             .foregroundStyle(.orange)
         case .error(let message):
@@ -90,9 +90,9 @@ struct RecordingView: View {
         } label: {
             switch viewModel.state {
             case .recording:
-                Label("중지", systemImage: "stop.circle.fill")
+                Label("Stop", systemImage: "stop.circle.fill")
             default:
-                Label("녹화", systemImage: "record.circle")
+                Label("Record", systemImage: "record.circle")
             }
         }
         .tint(recordingButtonTint)
@@ -116,7 +116,7 @@ struct RecordingView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("전송 확인 대기")
+                Text("Awaiting Confirmation")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -142,7 +142,7 @@ struct RecordingView: View {
                         .buttonStyle(.bordered)
                         .controlSize(.mini)
                         .disabled(!viewModel.canResendRetainedFile || file.sessionID == nil)
-                        .accessibilityLabel("보관 파일 재전송")
+                        .accessibilityLabel("Resend Saved Recording")
 
                         Button {
                             pendingDeleteFile = file
@@ -153,7 +153,7 @@ struct RecordingView: View {
                         .controlSize(.mini)
                         .tint(.red)
                         .disabled(!canDeleteRetainedFiles)
-                        .accessibilityLabel("보관 파일 삭제")
+                        .accessibilityLabel("Delete Saved Recording")
                     }
                 }
             }

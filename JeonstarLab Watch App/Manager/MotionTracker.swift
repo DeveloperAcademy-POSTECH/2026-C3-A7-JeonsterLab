@@ -164,7 +164,7 @@ enum MotionTrackerError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .hardwareUnavailable:
-            return "이 기기에서 모션 센서를 사용할 수 없습니다."
+            return "Motion sensors are not available on this device."
         }
     }
 }

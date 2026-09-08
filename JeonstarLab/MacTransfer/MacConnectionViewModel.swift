@@ -56,7 +56,7 @@ final class MacConnectionViewModel {
     }
 
     var connectedMacText: String {
-        connectedMacName ?? "연결된 Mac 없음"
+        connectedMacName ?? "No Mac connected"
     }
 
     var transferStatusText: String {
@@ -65,31 +65,31 @@ final class MacConnectionViewModel {
 
     var guidanceText: String {
         if transferStatus == .completed {
-            return "전송이 완료되었습니다."
+            return "Transfer complete."
         }
 
         switch connectionStatus {
         case .idle:
-            return "Mac 앱에서 [수신 시작]을 먼저 눌러주세요."
+            return "Choose Start Receiving in the Mac app first."
         case .searching:
             if discoveredMacs.isEmpty {
-                return "같은 Wi-Fi 또는 근처 Bluetooth 환경에서 Mac을 찾는 중입니다."
+                return "Looking for a Mac on the same Wi-Fi network or nearby over Bluetooth."
             } else {
-                return "연결할 Mac을 선택해주세요."
+                return "Choose a Mac to connect."
             }
         case .found:
-            return "Mac을 찾았습니다. 연결을 시도하는 중입니다."
+            return "Mac found. Connecting…"
         case .connected:
-            return "Mac이 연결되었습니다."
+            return "Mac connected."
         case .disconnected:
-            return "Mac 연결이 끊겼습니다. Mac 수신 상태를 확인한 뒤 다시 찾아주세요."
+            return "Mac disconnected. Check that it is ready to receive, then search again."
         case .failed:
-            return "Mac을 찾지 못했습니다. 로컬 네트워크 권한, Wi-Fi, Bluetooth를 확인하세요."
+            return "No Mac found. Check local network permissions, Wi-Fi, and Bluetooth."
         }
     }
 
     var automaticTransferGuidanceText: String {
-        "켜두면 Mac이 연결된 상태에서 새 녹화가 저장될 때 자동으로 전송됩니다."
+        "Automatically sends new recordings when they are saved while a Mac is connected."
     }
 
     var canSendToMac: Bool {
@@ -105,8 +105,8 @@ final class MacConnectionViewModel {
             try? await Task.sleep(for: .seconds(15))
             await MainActor.run {
                 guard let self, self.connectionStatus == .searching else { return }
-                self.connectionStatus = .failed("Mac을 찾지 못했습니다.")
-                self.errorMessage = "Mac을 찾지 못했습니다. 로컬 네트워크 권한, Wi-Fi, Bluetooth를 확인하세요."
+                self.connectionStatus = .failed("No Mac found.")
+                self.errorMessage = "No Mac found. Check local network permissions, Wi-Fi, and Bluetooth."
             }
         }
     }
@@ -143,7 +143,7 @@ final class MacConnectionViewModel {
     ) {
         guard isAutomaticTransferEnabled else { return }
         guard canSendToMac else {
-            errorMessage = "자동 전송 대기: 연결된 Mac이 없습니다."
+            errorMessage = "Automatic transfer paused: no Mac connected."
             return
         }
         guard !autoTransferAttemptedSessionIDs.contains(session.id) else { return }
@@ -164,17 +164,17 @@ enum MacConnectionStatus: Equatable {
     var displayText: String {
         switch self {
         case .idle:
-            return "Mac 검색 대기"
+            return "Ready to Find Mac"
         case .searching:
-            return "Mac 검색 중"
+            return "Searching for Mac"
         case .found(let name):
-            return "\(name) 연결 시도 중"
+            return "Connecting to \(name)"
         case .connected:
-            return "Mac 연결됨"
+            return "Mac Connected"
         case .disconnected:
-            return "Mac 연결 끊김"
+            return "Mac Disconnected"
         case .failed(let message):
-            return "연결 실패: \(message)"
+            return "Connection failed: \(message)"
         }
     }
 }
