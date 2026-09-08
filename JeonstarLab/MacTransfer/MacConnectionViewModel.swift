@@ -111,7 +111,11 @@ final class MacConnectionViewModel {
         browser.startSearching()
         searchTimeoutTask?.cancel()
         searchTimeoutTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(15))
+            do {
+                try await Task.sleep(for: .seconds(15))
+            } catch {
+                return // A cancelled search must not time out the next search.
+            }
             await MainActor.run {
                 guard let self, self.connectionStatus == .searching else { return }
                 self.connectionStatus = .failed("No Mac found.")
