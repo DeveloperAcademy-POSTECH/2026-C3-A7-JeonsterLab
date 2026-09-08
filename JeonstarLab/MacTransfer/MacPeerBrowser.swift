@@ -12,6 +12,7 @@ final class MacPeerBrowser: NSObject {
     var onConnectedPeerChanged: ((String?) -> Void)?
     var onDiscoveredPeersChanged: (([MCPeerID]) -> Void)?
     var onError: ((String) -> Void)?
+    var onTransferAcknowledged: ((UUID, Bool, String?) -> Void)?
 
     private let peerID = MCPeerID(displayName: UIDevice.current.name)
     private let session: MCSession
@@ -126,6 +127,7 @@ extension MacPeerBrowser: MCSessionDelegate {
                 onConnectedPeerChanged?(peerID.displayName)
                 onStatusChanged?(.found(peerID.displayName))
             case .notConnected:
+                invitedPeerIDs.remove(peerID)
                 onConnectedPeerChanged?(nil)
                 onStatusChanged?(.disconnected)
             @unknown default:
@@ -138,7 +140,16 @@ extension MacPeerBrowser: MCSessionDelegate {
         _ session: MCSession,
         didReceive data: Data,
         fromPeer peerID: MCPeerID
-    ) {}
+    ) {
+        guard data.count <= 8192,
+            let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+            let text = json["transferID"] as? String, let id = UUID(uuidString: text),
+            let success = json["success"] as? Bool else { return }
+        Task { @MainActor in
+            guard self.connectedPeerID == peerID else { return }
+            self.onTransferAcknowledged?(id, success, json["message"] as? String)
+        }
+    }
 
     func session(
         _ session: MCSession,
@@ -164,5 +175,5 @@ extension MacPeerBrowser: MCSessionDelegate {
 }
 
 enum MacTransferPeerServiceConfig {
-    static let serviceType = "jeonstar-data"
+    static let serviceType = "wm-editor-v1"
 }

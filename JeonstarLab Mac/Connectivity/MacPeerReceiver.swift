@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import AppKit
 import MultipeerConnectivity
 
 final class MacPeerReceiver: NSObject {
@@ -12,6 +13,8 @@ final class MacPeerReceiver: NSObject {
     var onReceivedFiles: (([URL]) -> Void)?
     var onError: ((String) -> Void)?
 
+    private var isAdvertising = false
+    private var isApproving = false
     private let peerID = MCPeerID(displayName: Host.current().localizedName ?? "WatchMotion Editor")
     private let session: MCSession
     private let advertiser: MCNearbyServiceAdvertiser
@@ -35,11 +38,13 @@ final class MacPeerReceiver: NSObject {
     }
 
     func startAdvertising() {
+        isAdvertising = true
         advertiser.startAdvertisingPeer()
         onStatusChanged?(.advertising)
     }
 
     func stopAdvertising() {
+        isAdvertising = false
         advertiser.stopAdvertisingPeer()
         session.disconnect()
         onConnectedPeerChanged?(nil)
@@ -60,7 +65,21 @@ extension MacPeerReceiver: MCNearbyServiceAdvertiserDelegate {
         withContext context: Data?,
         invitationHandler: @escaping (Bool, MCSession?) -> Void
     ) {
-        invitationHandler(true, session)
+        Task { @MainActor in
+            guard isAdvertising, !isApproving, session.connectedPeers.isEmpty else {
+                invitationHandler(false, nil); return
+            }
+            isApproving = true
+            let alert = NSAlert()
+            alert.messageText = "Connect to iPhone?"
+            alert.informativeText = "\(peerID.displayName) wants to send recordings. Only allow a device you recognize."
+            alert.addButton(withTitle: "Allow")
+            alert.addButton(withTitle: "Decline")
+            NSApp.activate(ignoringOtherApps: true)
+            let allowed = alert.runModal() == .alertFirstButtonReturn
+            isApproving = false
+            invitationHandler(allowed && isAdvertising, allowed && isAdvertising ? session : nil)
+        }
     }
 
     func advertiser(
@@ -118,40 +137,41 @@ extension MacPeerReceiver: MCSessionDelegate {
         }
     }
 
-    func session(
+    nonisolated func session(
         _ session: MCSession,
         didFinishReceivingResourceWithName resourceName: String,
         fromPeer peerID: MCPeerID,
         at localURL: URL?,
         withError error: Error?
     ) {
-        Task { @MainActor in
-            if let error {
-                handleError(error)
-                return
+        // This must run synchronously before MultipeerConnectivity deletes localURL.
+        do {
+            if let error { throw error }
+            guard let localURL else { throw CocoaError(.fileNoSuchFile) }
+            let receipt = try fileStore.saveReceivedFile(temporaryURL: localURL, resourceName: resourceName)
+            if let files = receipt.completedFiles {
+                let ack = try JSONSerialization.data(withJSONObject: [
+                    "transferID": receipt.transferID.uuidString, "success": true
+                ])
+                try session.send(ack, toPeers: [peerID], with: .reliable)
+                Task { @MainActor in
+                    self.onReceivedFiles?(files)
+                    self.onStatusChanged?(.completed)
+                }
             }
-
-            guard let localURL else {
-                let message = "The received file could not be located."
-                onStatusChanged?(.failed(message))
-                onError?(message)
-                return
+        } catch {
+            if let id = MacReceivedFileStore.transferID(from: resourceName),
+                let ack = try? JSONSerialization.data(withJSONObject: [
+                    "transferID": id.uuidString, "success": false, "message": error.localizedDescription
+                ]) {
+                try? session.send(ack, toPeers: [peerID], with: .reliable)
             }
-
-            do {
-                let savedURL = try fileStore.saveReceivedFile(
-                    temporaryURL: localURL,
-                    resourceName: resourceName
-                )
-                onReceivedFiles?([savedURL])
-                onStatusChanged?(.completed)
-            } catch {
-                handleError(error)
-            }
+            Task { @MainActor in self.handleError(error) }
         }
     }
+
 }
 
 enum MacPeerServiceConfig {
-    static let serviceType = "jeonstar-data"
+    static let serviceType = "wm-editor-v1"
 }

@@ -48,7 +48,7 @@
 	<string>public.app-category.utilities</string>
 	<key>NSBonjourServices</key>
 	<array>
-		<string>_jeonstar-data._tcp</string>
+		<string>_wm-editor-v1._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Local network access is used to receive motion recordings from the nearby iPhone app.</string>

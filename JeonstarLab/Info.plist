@@ -24,7 +24,7 @@
 	<true/>
 	<key>NSBonjourServices</key>
 	<array>
-		<string>_jeonstar-data._tcp</string>
+		<string>_wm-editor-v1._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Local network access is used to send motion recordings to the nearby Mac app.</string>

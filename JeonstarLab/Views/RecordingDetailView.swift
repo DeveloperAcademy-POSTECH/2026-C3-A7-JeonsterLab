@@ -157,7 +157,7 @@ struct RecordingDetailView: View {
     private func transferStatusView(_ status: MacTransferStatus) -> some View {
         HStack(spacing: 10) {
             switch status {
-            case .preparing, .sending: ProgressView()
+            case .preparing, .sending, .verifying: ProgressView()
             case .completed: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
             case .failed: Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
             case .idle: Image(systemName: "arrow.up.doc")

@@ -34,6 +34,7 @@ final class MacConnectionViewModel {
         isAutomaticTransferEnabled = UserDefaults.standard.bool(forKey: Self.autoTransferDefaultsKey)
         browser.onStatusChanged = { [weak self] status in
             self?.connectionStatus = status
+            if status == .disconnected { self?.transferService.cancel() }
             if status == .connected {
                 self?.searchTimeoutTask?.cancel()
                 self?.discoveredMacs = []
@@ -197,7 +198,7 @@ enum MacConnectionStatus: Equatable {
 private extension MacTransferStatus {
     var isTransferring: Bool {
         switch self {
-        case .preparing, .sending:
+        case .preparing, .sending, .verifying:
             return true
         case .idle, .completed, .failed:
             return false
