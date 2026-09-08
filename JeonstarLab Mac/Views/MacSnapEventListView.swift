@@ -17,86 +17,112 @@ struct MacSnapEventListView: View {
     let onSelect: (WorkingSnapEvent) -> Void
     let onDelete: (WorkingSnapEvent) -> Void
 
+    var isInspector = false
+    var selectedSnapID: String?
+
     var body: some View {
         if events.isEmpty {
-            Text("No snaps to display.")
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("No snaps yet.").fontWeight(.medium)
+                Text("Select a range on a chart, then save it as a snap.")
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 12)
         } else {
-            VStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: 6) {
                 ForEach(events) { event in
-                    let key = event.snapID
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(alignment: .top, spacing: 14) {
-                            Button {
-                                onSelect(event)
-                            } label: {
-                                HStack(alignment: .top, spacing: 14) {
-                                    Text(title(for: event))
-                                        .font(.headline)
-                                        .frame(width: 46, alignment: .leading)
-                                    sourceBadge(event.sourceType)
-                                    metric("Start", event.startTime, suffix: "s")
-                                    metric("End", event.endTime, suffix: "s")
-                                    metric("Peak", event.peakTime, suffix: "s")
-                                    metric("Peak Delay", event.peakDelay, suffix: "s")
-                                    metric("Duration", event.snapDuration, suffix: "s")
-                                    metric("Acceleration", event.peakAcceleration, suffix: "g")
-                                    metric("Rotation", event.peakGyro, suffix: "rad/s")
-                                    Text(event.confidence ?? "-")
-                                        .foregroundStyle(.secondary)
-                                        .frame(minWidth: 56, alignment: .leading)
-                                    Spacer()
-                                    segmentStatusDot(for: event)
-                                }
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .help("Show this snap on the chart")
-
-                            Button(role: .destructive) {
-                                onDelete(event)
-                            } label: {
-                                Image(systemName: "trash")
-                            }
-                            .buttonStyle(.borderless)
-                            .help("Remove Snap")
-                        }
-
-                        HStack(alignment: .top, spacing: 10) {
-                            HStack(spacing: 6) {
-                                Text("Label")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 28, alignment: .leading)
-
-                                NumberShortcutMenuButton(
-                                    title: currentLabel(for: event).displayName,
-                                    labelStyle: currentLabel(for: event),
-                                    options: labelShortcutOptions(for: key)
-                                )
-                                .frame(width: 132)
-                            }
-                            .padding(.top, 1)
-
-                            TextField("Snap notes", text: notesBinding(for: key), axis: .vertical)
-                                .textFieldStyle(.roundedBorder)
-                        }
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Folder")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            folderMembershipControls(for: event)
-                        }
+                    if isInspector {
+                        inspector(for: event)
+                    } else {
+                        summaryRow(for: event)
                     }
-                    .padding(.vertical, 6)
-
-                    Divider()
                 }
             }
         }
+    }
+
+    private func summaryRow(for event: WorkingSnapEvent) -> some View {
+        HStack(spacing: 8) {
+            Button { onSelect(event) } label: {
+                HStack(spacing: 12) {
+                    Text(title(for: event)).font(.callout.weight(.semibold))
+                        .frame(width: 48, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(currentLabel(for: event).displayName).fontWeight(.medium)
+                        Text(event.sourceType.displayName).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 4)
+                    Text(rangeText(for: event)).monospacedDigit().font(.callout)
+                    segmentStatusDot(for: event)
+                }
+                .frame(maxWidth: .infinity, minHeight: 36)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Select this snap to edit its label, notes, and range")
+            .accessibilityLabel("Select snap \(title(for: event)), \(currentLabel(for: event).displayName)")
+            Button(role: .destructive) { onDelete(event) } label: {
+                Label("Delete Snap", systemImage: "trash")
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            .help("Delete snap")
+        }
+        .padding(10)
+        .background(selectedSnapID == event.snapID ? Color.accentColor.opacity(0.13) : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 7))
+        .overlay(alignment: .bottom) { Divider().opacity(0.5) }
+    }
+
+    private func inspector(for event: WorkingSnapEvent) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Snap \(title(for: event))").font(.headline)
+                Spacer()
+                sourceBadge(event.sourceType)
+            }
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Label").font(.caption).foregroundStyle(.secondary)
+                NumberShortcutMenuButton(
+                    title: currentLabel(for: event).displayName,
+                    labelStyle: currentLabel(for: event),
+                    options: labelShortcutOptions(for: event.snapID)
+                )
+                .frame(maxWidth: .infinity)
+            }
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Notes").font(.caption).foregroundStyle(.secondary)
+                TextField("Add snap notes…", text: notesBinding(for: event.snapID), axis: .vertical)
+                    .lineLimit(3...6)
+                    .textFieldStyle(.roundedBorder)
+            }
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Folder").font(.caption).foregroundStyle(.secondary)
+                folderMembershipControls(for: event)
+            }
+            Text("Labels and notes are saved automatically.")
+                .font(.caption2).foregroundStyle(.secondary)
+            Divider()
+            HStack {
+                metric("Peak Delay", event.peakDelay, suffix: "s")
+                Spacer()
+                VStack(alignment: .leading) {
+                    Text("Confidence").font(.caption).foregroundStyle(.secondary)
+                    Text(event.confidence ?? "–")
+                }
+            }
+            HStack {
+                Text("Segment File").foregroundStyle(.secondary)
+                Spacer()
+                segmentStatusDot(for: event)
+            }
+            .font(.caption)
+        }
+    }
+
+    private func rangeText(for event: WorkingSnapEvent) -> String {
+        guard let start = event.startTime, let end = event.endTime else { return "No range" }
+        return String(format: "%.2f – %.2f s", start, end)
     }
 
     private func labelBinding(for key: Int) -> Binding<RecordingPackageLabel> {
@@ -129,7 +155,7 @@ struct MacSnapEventListView: View {
     private func folderMembershipControls(for event: WorkingSnapEvent) -> some View {
         let assignedFolder = folderForEvent(event)
         let label = currentLabel(for: event)
-        HStack(alignment: .center, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             if let assignedFolder {
                 Text("In \(assignedFolder.name)")
                     .font(.callout)
@@ -154,7 +180,7 @@ struct MacSnapEventListView: View {
                         emptyMessage: "No folders available.",
                         options: folderShortcutOptions(for: event)
                     )
-                    .frame(width: 104)
+                    .frame(maxWidth: .infinity)
                 }
             }
         }

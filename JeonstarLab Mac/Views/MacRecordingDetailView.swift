@@ -56,123 +56,54 @@ struct MacRecordingDetailView: View {
     }
 
     var body: some View {
-        ScrollViewReader { scrollProxy in
+        HStack(alignment: .top, spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     titleHeader
-
-                    Text("\(package.recordingDateText) · Received \(package.receivedAtText)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text("Summary: \(package.resultSummaryText)")
+                    Text("\(package.recordingDateText) · \(package.sampleCountText) samples")
                         .font(.callout)
                         .foregroundStyle(.secondary)
-
-                    sectionCard(title: "Recording Information") {
-                        MacRecordingInfoPanel(package: package)
+                    chartWorkspace
+                    sectionCard(title: "Motion Snaps · \(package.workingSnapEvents.count)") {
+                        snapList(package.workingSnapEvents, inspector: false)
                     }
-
-                    sectionCard(title: "Participant Information") {
-                        participantInfoCard
-                    }
-
-                    if !package.parseMessages.isEmpty {
-                        sectionCard(title: "File Status") {
-                            VStack(alignment: .leading, spacing: 6) {
-                                ForEach(package.parseMessages, id: \.self) { message in
-                                    Text(message)
-                                        .foregroundStyle(.orange)
-                                }
-                            }
-                        }
-                    }
-
-                    sectionCard(title: "Snap Events") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            MacSnapEventListView(
-                                events: package.workingSnapEvents,
-                                snapEventLabels: $package.snapEventLabels,
-                                folders: folders,
-                                folderForEvent: { event in
-                                    folderForEvent(package, event)
-                                },
-                                hasSegment: hasSegment(for:),
-                                onAddToFolder: { event, folder in
-                                    onAddSnapToFolder(event, package, folder)
-                                },
-                                onRemoveFromFolder: { event, folder in
-                                    onRemoveSnapFromFolder(event, package, folder)
-                                },
-                                onSelect: { event in
-                                    selectSnapEvent(event)
-                                    withAnimation {
-                                        scrollProxy.scrollTo(Self.graphSectionID, anchor: .top)
-                                    }
-                                },
-                                onDelete: requestDeleteSnapEvent(_:)
-                            )
-                            .onChange(of: package.snapEventLabels) {
-                                onSaveLabel(package)
-                            }
-                        }
-                    }
-
-                    sectionCard(title: "Motion Viewer") {
-                        if let csvErrorMessage {
-                            Text(csvErrorMessage)
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-                        } else if samples.isEmpty {
-                            ProgressView("Loading CSV")
-                                .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-                        } else {
-                            VStack(alignment: .leading, spacing: 16) {
-                                HStack(spacing: 12) {
-                                    Toggle("Show Saved Snaps", isOn: $showsSavedSnapPreviews)
-                                        .toggleStyle(.switch)
-
-                                    Spacer()
-
-                                    Button("Fit All") {
-                                        resetVisibleRangeToFull()
-                                    }
-
-                                    Button("Fit Selection") {
-                                        focusVisibleRange(on: chartSelection)
-                                    }
-                                    .disabled(chartSelection == nil)
-
-                                    Button("Zoom Out") {
-                                        zoomVisibleRange(scale: 0.8)
-                                    }
-
-                                    Button("Zoom In") {
-                                        zoomVisibleRange(scale: 1.25)
-                                    }
-                                }
-                                selectionPanel
-                                MacMotionChartsView(
-                                    samples: samples,
-                                    savedSnapEvents: package.workingSnapEvents,
-                                    showSavedSnapPreviews: showsSavedSnapPreviews,
-                                    hasSelectionConflict: hasSelectionConflict,
-                                    editingSnapID: editDraft?.snapID,
-                                    editingOriginalSelection: editDraft?.originalSelection,
-                                    showsCandidateSelection: editDraft == nil || hasFocusedSnapRangeChange,
-                                    fullTimeRange: fullTimeRange,
-                                    selection: $chartSelection,
-                                    visibleTimeRange: $visibleTimeRange
-                                )
-                            }
-                        }
-                    }
-                    .id(Self.graphSectionID)
                 }
-                .frame(maxWidth: 920, alignment: .leading)
-                .padding(28)
+                .padding(20)
             }
+            .frame(minWidth: 500, maxWidth: .infinity)
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    selectionPanel
+                    if let event = package.workingSnapEvents.first(where: { $0.snapID == editDraft?.snapID }) {
+                        snapList([event], inspector: true)
+                            .padding(.horizontal, 14)
+                    }
+                    Divider()
+                    DisclosureGroup("Recording Information") {
+                        MacRecordingInfoPanel(package: package)
+                            .padding(.top, 12)
+                    }
+                    DisclosureGroup("Participant Information") {
+                        participantInfoCard.padding(.top, 12)
+                    }
+                    if !package.parseMessages.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label("File Status", systemImage: "exclamationmark.triangle")
+                                .font(.headline)
+                            ForEach(package.parseMessages, id: \.self) { message in
+                                Text(message).font(.caption).foregroundStyle(.orange)
+                            }
+                        }
+                    }
+                }
+                .padding(16)
+            }
+            .frame(width: 310)
+            .background(EditorPalette.surface)
         }
+        .background(EditorPalette.background)
+        .onChange(of: package.snapEventLabels) { onSaveLabel(package) }
         .task(id: package.folderURL) {
             loadCSV()
         }
@@ -204,6 +135,86 @@ struct MacRecordingDetailView: View {
         }
     }
 
+    private var chartWorkspace: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    chartPreviewToggle
+                    Spacer()
+                    chartNavigation
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    chartPreviewToggle
+                    chartNavigation
+                }
+            }
+            if let csvErrorMessage {
+                ContentUnavailableView("Motion Data Unavailable", systemImage: "waveform",
+                                       description: Text(csvErrorMessage))
+            } else if samples.isEmpty {
+                ProgressView("Loading CSV")
+                    .frame(maxWidth: .infinity, minHeight: 180)
+            } else {
+                MacMotionChartsView(
+                    samples: samples,
+                    savedSnapEvents: package.workingSnapEvents,
+                    showSavedSnapPreviews: showsSavedSnapPreviews,
+                    hasSelectionConflict: hasSelectionConflict,
+                    editingSnapID: editDraft?.snapID,
+                    editingOriginalSelection: editDraft?.originalSelection,
+                    showsCandidateSelection: editDraft == nil || hasFocusedSnapRangeChange,
+                    fullTimeRange: fullTimeRange,
+                    selection: $chartSelection,
+                    visibleTimeRange: $visibleTimeRange
+                )
+                Text("Drag to select · Drag handles to resize · Hold Space and drag to pan")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var chartPreviewToggle: some View {
+        Toggle("Show Saved Snaps", isOn: $showsSavedSnapPreviews)
+            .toggleStyle(.checkbox)
+            .controlSize(.small)
+    }
+
+    private var chartNavigation: some View {
+        HStack(spacing: 8) {
+            Button("Fit All") { resetVisibleRangeToFull() }
+            Button("Fit Selection") { focusVisibleRange(on: chartSelection) }
+                .disabled(chartSelection == nil)
+            Button { zoomVisibleRange(scale: 0.8) } label: {
+                Label("Zoom Out", systemImage: "minus.magnifyingglass")
+            }
+            .labelStyle(.iconOnly)
+            .help("Zoom out")
+            Button { zoomVisibleRange(scale: 1.25) } label: {
+                Label("Zoom In", systemImage: "plus.magnifyingglass")
+            }
+            .labelStyle(.iconOnly)
+            .help("Zoom in")
+        }
+        .controlSize(.small)
+    }
+
+    private func snapList(_ events: [WorkingSnapEvent], inspector: Bool) -> some View {
+        MacSnapEventListView(
+            events: events,
+            snapEventLabels: $package.snapEventLabels,
+            folders: folders,
+            folderForEvent: { folderForEvent(package, $0) },
+            hasSegment: hasSegment(for:),
+            onAddToFolder: { onAddSnapToFolder($0, package, $1) },
+            onRemoveFromFolder: { onRemoveSnapFromFolder($0, package, $1) },
+            onSelect: selectSnapEvent(_:),
+            onDelete: requestDeleteSnapEvent(_:),
+            isInspector: inspector,
+            selectedSnapID: editDraft?.snapID
+        )
+    }
+
     private static let graphSectionID = "graph-section"
     private static let selectionChangeTolerance = 0.001
 
@@ -228,7 +239,7 @@ struct MacRecordingDetailView: View {
             } else {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(package.displayTitle)
-                        .font(.largeTitle)
+                        .font(.title2)
                         .fontWeight(.semibold)
                         .lineLimit(2)
 
@@ -367,8 +378,7 @@ struct MacRecordingDetailView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background(EditorPalette.background, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var manualSelectionPanel: some View {
@@ -455,7 +465,7 @@ struct MacRecordingDetailView: View {
                 }
             }
 
-            HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 14) {
                 editStatsColumn(
                     title: "Original",
                     event: editDraft.originalEvent,
@@ -502,22 +512,17 @@ struct MacRecordingDetailView: View {
         dominantAxis: String?,
         canSave: Bool
     ) -> some View {
-        Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 6) {
-            GridRow {
-                selectionMetric("Start", formattedSeconds(selection.startTime))
-                selectionMetric("End", formattedSeconds(selection.endTime))
-                selectionMetric("Duration", formattedSeconds(selection.duration))
-            }
-            GridRow {
-                selectionMetric("Samples", sampleCount.map { "\($0)" } ?? "-")
-                selectionMetric("Peak Acceleration", formatted(peakAcceleration, suffix: "g"))
-                selectionMetric("Peak Rotation", formatted(peakGyro, suffix: "rad/s"))
-            }
-            GridRow {
-                selectionMetric("Peak", formatted(peakTime, suffix: "s"))
-                selectionMetric("Dominant Axis", dominantAxis ?? "-")
-                selectionMetric("Can Save", canSave ? "Yes" : "No")
-            }
+        LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading),
+                            GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 12) {
+            selectionMetric("Start", formattedSeconds(selection.startTime))
+            selectionMetric("End", formattedSeconds(selection.endTime))
+            selectionMetric("Duration", formattedSeconds(selection.duration))
+            selectionMetric("Samples", sampleCount.map { "\($0)" } ?? "–")
+            selectionMetric("Peak Acceleration", formatted(peakAcceleration, suffix: "g"))
+            selectionMetric("Peak Rotation", formatted(peakGyro, suffix: "rad/s"))
+            selectionMetric("Peak Time", formatted(peakTime, suffix: "s"))
+            selectionMetric("Dominant Axis", dominantAxis ?? "–")
+            selectionMetric("Can Save", canSave ? "Yes" : "No")
         }
     }
 
@@ -784,7 +789,7 @@ struct MacRecordingDetailView: View {
             Text(value)
                 .font(.callout)
         }
-        .frame(minWidth: 120, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func formattedSeconds(_ value: Double) -> String {
@@ -807,7 +812,6 @@ struct MacRecordingDetailView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .editorSurface()
     }
 }

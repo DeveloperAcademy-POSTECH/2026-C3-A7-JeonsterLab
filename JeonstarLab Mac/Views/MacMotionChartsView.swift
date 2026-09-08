@@ -28,7 +28,7 @@ struct MacMotionChartsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            chartCard(title: "User Acceleration") {
+            chartCard(title: "User Acceleration (g)") {
                 axisChart(values: [
                     ("X", .blue, \.userAccX),
                     ("Y", .green, \.userAccY),
@@ -36,7 +36,7 @@ struct MacMotionChartsView: View {
                 ], yDomain: yDomain(for: [\.userAccX, \.userAccY, \.userAccZ]))
             }
 
-            chartCard(title: "Gyroscope") {
+            chartCard(title: "Gyroscope (rad/s)") {
                 axisChart(values: [
                     ("X", .blue, \.rotationRateX),
                     ("Y", .green, \.rotationRateY),
@@ -44,7 +44,7 @@ struct MacMotionChartsView: View {
                 ], yDomain: yDomain(for: [\.rotationRateX, \.rotationRateY, \.rotationRateZ]))
             }
 
-            chartCard(title: "Attitude") {
+            chartCard(title: "Attitude (rad)") {
                 axisChart(values: [
                     ("Roll", .blue, \.attitudeRoll),
                     ("Pitch", .green, \.attitudePitch),
@@ -62,8 +62,10 @@ struct MacMotionChartsView: View {
             Text(title)
                 .font(.headline)
             content()
-                .frame(height: 220)
+                .frame(height: 160)
         }
+        .padding(14)
+        .editorSurface()
     }
 
     private func axisChart(
