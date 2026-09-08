@@ -15,8 +15,6 @@ final class RecordingDetailViewModel {
     private(set) var isLoading:    Bool = false
     private(set) var errorMessage: String?
     private(set) var memoErrorMessage: String?
-    private(set) var appliedSnapDetectionMode: SnapDetectionMode
-    var pendingSnapDetectionMode: SnapDetectionMode
     var recordingMemo: String
 
     private var session:    RecordingSession
@@ -26,9 +24,6 @@ final class RecordingDetailViewModel {
         self.session    = session
         self.repository = repository
         self.recordingMemo = session.memo
-        let mode = (try? repository.snapDetectionMode(for: session.id)) ?? .none
-        self.appliedSnapDetectionMode = mode
-        self.pendingSnapDetectionMode = mode
     }
 
     var title: String {
@@ -62,19 +57,6 @@ final class RecordingDetailViewModel {
         repository
     }
 
-    var availableSnapDetectionModes: [SnapDetectionMode] {
-        SnapDetectionMode.allCases
-    }
-
-    var canApplySnapDetectionMode: Bool {
-        pendingSnapDetectionMode != appliedSnapDetectionMode
-    }
-
-    var snapAnalysisResult: SnapAnalysisResult? {
-        guard appliedSnapDetectionMode == .jeonFlip else { return nil }
-        return AnalyzeSnapUseCase.execute(samples: samples)
-    }
-
     func exportRecording() throws -> [URL] {
         try RecordingExportService(repository: repository)
             .export(session: session)
@@ -83,19 +65,12 @@ final class RecordingDetailViewModel {
     func loadSamples() async {
         isLoading = true
         defer { isLoading = false }
+        errorMessage = nil
         do {
             samples = try repository.loadSamples(for: session.id)
         } catch {
             errorMessage = error.localizedDescription
         }
-    }
-
-    func applyPendingSnapDetectionMode() throws {
-        try repository.updateSnapDetectionMode(
-            for: session.id,
-            mode: pendingSnapDetectionMode
-        )
-        appliedSnapDetectionMode = pendingSnapDetectionMode
     }
 
     func updateRecordingMemo(_ memo: String) {
