@@ -164,9 +164,9 @@ enum SnapSegmentExporterError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingTimeRange:
-            return "스냅 이벤트의 시작/끝 시간이 없습니다."
+            return "The snap has no start or end time."
         case .noSamplesInRange:
-            return "선택된 스냅 구간 안에 샘플이 없습니다."
+            return "There are no samples in the selected snap range."
         }
     }
 }

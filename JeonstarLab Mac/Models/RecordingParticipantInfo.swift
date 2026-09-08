@@ -85,9 +85,9 @@ enum ParticipantGenderOption: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .unspecified: return "미입력"
-        case .male: return "남성"
-        case .female: return "여성"
+        case .unspecified: return "Not set"
+        case .male: return "Male"
+        case .female: return "Female"
         }
     }
 }
@@ -106,14 +106,14 @@ enum ParticipantAgeGroupOption: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .unspecified: return "미입력"
-        case .under10: return "10대 미만"
-        case .teens: return "10대"
-        case .twenties: return "20대"
-        case .thirties: return "30대"
-        case .forties: return "40대"
-        case .fifties: return "50대"
-        case .sixtiesPlus: return "60대 이상"
+        case .unspecified: return "Not set"
+        case .under10: return "Under 10"
+        case .teens: return "10–19"
+        case .twenties: return "20–29"
+        case .thirties: return "30–39"
+        case .forties: return "40–49"
+        case .fifties: return "50–59"
+        case .sixtiesPlus: return "60+"
         }
     }
 }
@@ -127,9 +127,9 @@ enum ParticipantDominantHandOption: String, Codable, CaseIterable, Identifiable 
 
     var displayName: String {
         switch self {
-        case .unspecified: return "미입력"
-        case .left: return "왼손"
-        case .right: return "오른손"
+        case .unspecified: return "Not set"
+        case .left: return "Left"
+        case .right: return "Right"
         }
     }
 }
@@ -145,11 +145,11 @@ enum ParticipantSkillLevelOption: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .unspecified: return "미입력"
-        case .beginner: return "초보"
-        case .intermediate: return "보통"
-        case .skilled: return "숙련"
-        case .expert: return "전문가"
+        case .unspecified: return "Not set"
+        case .beginner: return "Beginner"
+        case .intermediate: return "Intermediate"
+        case .skilled: return "Skilled"
+        case .expert: return "Expert"
         }
     }
 }

@@ -19,7 +19,7 @@ struct MacSnapEventListView: View {
 
     var body: some View {
         if events.isEmpty {
-            Text("표시할 스냅 이벤트가 없습니다.")
+            Text("No snaps to display.")
                 .foregroundStyle(.secondary)
         } else {
             VStack(alignment: .leading, spacing: 14) {
@@ -36,13 +36,13 @@ struct MacSnapEventListView: View {
                                         .font(.headline)
                                         .frame(width: 46, alignment: .leading)
                                     sourceBadge(event.sourceType)
-                                    metric("시작", event.startTime, suffix: "s")
-                                    metric("끝", event.endTime, suffix: "s")
-                                    metric("피크", event.peakTime, suffix: "s")
-                                    metric("피크 시간차", event.peakDelay, suffix: "s")
-                                    metric("지속시간", event.snapDuration, suffix: "s")
-                                    metric("가속도", event.peakAcceleration, suffix: "g")
-                                    metric("회전", event.peakGyro, suffix: "rad/s")
+                                    metric("Start", event.startTime, suffix: "s")
+                                    metric("End", event.endTime, suffix: "s")
+                                    metric("Peak", event.peakTime, suffix: "s")
+                                    metric("Peak Delay", event.peakDelay, suffix: "s")
+                                    metric("Duration", event.snapDuration, suffix: "s")
+                                    metric("Acceleration", event.peakAcceleration, suffix: "g")
+                                    metric("Rotation", event.peakGyro, suffix: "rad/s")
                                     Text(event.confidence ?? "-")
                                         .foregroundStyle(.secondary)
                                         .frame(minWidth: 56, alignment: .leading)
@@ -52,7 +52,7 @@ struct MacSnapEventListView: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
-                            .help("그래프에서 이 스냅 구간 보기")
+                            .help("Show this snap on the chart")
 
                             Button(role: .destructive) {
                                 onDelete(event)
@@ -60,12 +60,12 @@ struct MacSnapEventListView: View {
                                 Image(systemName: "trash")
                             }
                             .buttonStyle(.borderless)
-                            .help("스냅 이벤트 제거")
+                            .help("Remove Snap")
                         }
 
                         HStack(alignment: .top, spacing: 10) {
                             HStack(spacing: 6) {
-                                Text("라벨")
+                                Text("Label")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .frame(width: 28, alignment: .leading)
@@ -79,12 +79,12 @@ struct MacSnapEventListView: View {
                             }
                             .padding(.top, 1)
 
-                            TextField("스냅 노트", text: notesBinding(for: key), axis: .vertical)
+                            TextField("Snap notes", text: notesBinding(for: key), axis: .vertical)
                                 .textFieldStyle(.roundedBorder)
                         }
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("폴더")
+                            Text("Folder")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
@@ -131,27 +131,27 @@ struct MacSnapEventListView: View {
         let label = currentLabel(for: event)
         HStack(alignment: .center, spacing: 10) {
             if let assignedFolder {
-                Text("\(assignedFolder.name) 폴더에 포함됨")
+                Text("In \(assignedFolder.name)")
                     .font(.callout)
 
-                Button("폴더에서 제거", role: .destructive) {
+                Button("Remove from Folder", role: .destructive) {
                     onRemoveFromFolder(event, assignedFolder)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             } else {
-                Text("아직 폴더에 추가되지 않았습니다.")
+                Text("Not added to a folder.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
                 if label == .unlabeled {
-                    Text("라벨을 먼저 선택해야 폴더에 추가할 수 있습니다.")
+                    Text("Choose a label before adding this snap to a folder.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     NumberShortcutMenuButton(
-                        title: "폴더에 추가",
-                        emptyMessage: "생성된 폴더가 없습니다.",
+                        title: "Add to Folder",
+                        emptyMessage: "No folders available.",
                         options: folderShortcutOptions(for: event)
                     )
                     .frame(width: 104)
@@ -182,9 +182,9 @@ struct MacSnapEventListView: View {
 
     private func title(for event: WorkingSnapEvent) -> String {
         if let eventIndex = event.eventIndex {
-            return "\(eventIndex + 1)번"
+            return "#\(eventIndex + 1)"
         }
-        return "수동"
+        return "Manual"
     }
 
     private func sourceBadge(_ sourceType: SnapEventSourceType) -> some View {
@@ -203,7 +203,7 @@ struct MacSnapEventListView: View {
         return Circle()
             .fill(exists ? Color.green : Color.red)
             .frame(width: 9, height: 9)
-            .help(exists ? "세그먼트 생성됨" : "세그먼트 없음")
+            .help(exists ? "Segment saved" : "Missing Segments")
     }
 
     private func metric(_ title: String, _ value: Double?, suffix: String) -> some View {
@@ -235,7 +235,7 @@ private struct NumberShortcutMenuOption: Identifiable {
 private struct NumberShortcutMenuButton: View {
     let title: String
     var labelStyle: RecordingPackageLabel?
-    var emptyMessage: String = "선택할 항목이 없습니다."
+    var emptyMessage: String = "No options available."
     let options: [NumberShortcutMenuOption]
 
     @State private var isPresented = false

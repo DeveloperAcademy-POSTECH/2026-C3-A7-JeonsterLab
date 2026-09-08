@@ -43,11 +43,11 @@ final class ReceivedRecordingPackageLoader {
                 metadata = try RecordingMetadataJSONParser.parse(url: metadataURL)
             } catch {
                 metadata = nil
-                messages.append("metadata.json 파싱 실패")
+                messages.append("Failed to parse metadata.json")
             }
         } else {
             metadata = nil
-            messages.append("metadata.json 없음")
+            messages.append("Missing metadata.json")
         }
 
         let snapAnalysis: SnapAnalysisExport?
@@ -56,15 +56,15 @@ final class ReceivedRecordingPackageLoader {
                 snapAnalysis = try SnapAnalysisJSONParser.parse(url: snapAnalysisURL)
             } catch {
                 snapAnalysis = nil
-                messages.append("분석 데이터 파싱 실패")
+                messages.append("Failed to parse analysis data")
             }
         } else {
             snapAnalysis = nil
-            messages.append("snap_analysis.json 없음")
+            messages.append("Missing snap_analysis.json")
         }
 
         if csvURL == nil {
-            messages.append("recording.csv 없음")
+            messages.append("Missing recording.csv")
         }
 
         let labelPayload = loadLabelPayload(folderURL: folderURL)

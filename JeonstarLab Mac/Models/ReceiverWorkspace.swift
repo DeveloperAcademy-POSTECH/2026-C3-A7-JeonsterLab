@@ -24,6 +24,6 @@ struct ReceiverWorkspace: Identifiable {
     }
 
     var displayName: String {
-        isDefaultLocal ? "기본 작업공간" : name
+        isDefaultLocal ? "Local Workspace" : name
     }
 }

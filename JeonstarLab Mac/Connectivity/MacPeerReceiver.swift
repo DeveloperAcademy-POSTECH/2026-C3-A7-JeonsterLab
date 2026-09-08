@@ -89,7 +89,7 @@ extension MacPeerReceiver: MCSessionDelegate {
                 onConnectedPeerChanged?(nil)
                 onStatusChanged?(.advertising)
             @unknown default:
-                onStatusChanged?(.failed("알 수 없는 연결 상태입니다."))
+                onStatusChanged?(.failed("Unknown connection state."))
             }
         }
     }
@@ -132,7 +132,7 @@ extension MacPeerReceiver: MCSessionDelegate {
             }
 
             guard let localURL else {
-                let message = "수신 파일 위치를 찾을 수 없습니다."
+                let message = "The received file could not be located."
                 onStatusChanged?(.failed(message))
                 onError?(message)
                 return

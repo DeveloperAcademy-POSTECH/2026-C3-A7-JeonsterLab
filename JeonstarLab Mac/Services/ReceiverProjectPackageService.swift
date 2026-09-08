@@ -15,13 +15,13 @@ enum ReceiverProjectPackageError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingManifest:
-            return "프로젝트 매니페스트를 찾을 수 없습니다."
+            return "The project manifest could not be found."
         case .unsupportedVersion(let version):
-            return "지원하지 않는 프로젝트 패키지 버전입니다: \(version)"
+            return "Unsupported project package version: \(version)"
         case .missingRecordingsDirectory:
-            return "recordings 폴더를 찾을 수 없습니다."
+            return "The recordings folder could not be found."
         case .unsafeDestination(let url):
-            return "안전하지 않은 복사 경로입니다: \(url.lastPathComponent)"
+            return "Unsafe copy path: \(url.lastPathComponent)"
         case .processFailed(let message):
             return message
         }
@@ -109,7 +109,7 @@ enum ReceiverProjectPackageService {
             recordingCount: recordingURLs.count,
             folderCount: folders.count,
             outputURL: finalOutputURL,
-            message: "프로젝트 패키지 내보내기 완료"
+            message: "Project package exported"
         )
     }
 
@@ -255,7 +255,7 @@ enum ReceiverProjectPackageService {
                 recordingCount: importedRecordingCount,
                 folderCount: importedFolders.count,
                 outputURL: nil,
-                message: "프로젝트 패키지 가져오기 완료"
+                message: "Project package imported"
             ),
             mergedFolders
         )
@@ -384,7 +384,7 @@ enum ReceiverProjectPackageService {
         var candidate = baseName
         var index = 1
         while usedNames.contains(candidate) {
-            candidate = "\(baseName) 가져옴 \(index)"
+            candidate = "\(baseName) Imported \(index)"
             index += 1
         }
         usedNames.insert(candidate)
@@ -432,7 +432,7 @@ enum ReceiverProjectPackageService {
 
         guard process.terminationStatus == 0 else {
             let data = errorPipe.fileHandleForReading.readDataToEndOfFile()
-            let message = String(data: data, encoding: .utf8) ?? "ditto 실행에 실패했습니다."
+            let message = String(data: data, encoding: .utf8) ?? "Failed to run ditto."
             throw ReceiverProjectPackageError.processFailed(message)
         }
     }

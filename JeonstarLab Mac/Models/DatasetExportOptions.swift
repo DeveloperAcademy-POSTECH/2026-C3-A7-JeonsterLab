@@ -61,13 +61,13 @@ enum DatasetUserInfoColumn: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .userNickname: return "이름(닉네임)"
-        case .userGender: return "성별"
-        case .userAgeGroup: return "연령대"
-        case .userHeightCM: return "키(cm)"
-        case .userDominantHand: return "주 사용 손"
-        case .userSkillLevel: return "숙련도"
-        case .userMemo: return "메모"
+        case .userNickname: return "Name or Nickname"
+        case .userGender: return "Gender"
+        case .userAgeGroup: return "Age Group"
+        case .userHeightCM: return "Height (cm)"
+        case .userDominantHand: return "Dominant Hand"
+        case .userSkillLevel: return "Experience"
+        case .userMemo: return "Notes"
         }
     }
 

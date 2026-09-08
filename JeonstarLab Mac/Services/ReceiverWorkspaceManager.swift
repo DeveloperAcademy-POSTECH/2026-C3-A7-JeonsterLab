@@ -43,7 +43,7 @@ final class ReceiverWorkspaceManager {
     private static func makeDefaultWorkspace(defaultRecordingsURL: URL) -> ReceiverWorkspace {
         ReceiverWorkspace(
             id: "default-local",
-            name: "기본 작업공간",
+            name: "Local Workspace",
             rootURL: defaultRecordingsURL,
             recordingsRootURL: defaultRecordingsURL,
             foldersRootURL: defaultRecordingsURL,

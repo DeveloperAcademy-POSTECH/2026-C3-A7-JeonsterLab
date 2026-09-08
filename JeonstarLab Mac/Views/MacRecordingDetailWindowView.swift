@@ -24,12 +24,12 @@ struct MacRecordingDetailWindowView: View {
                     onRemoveSnapFromFolder: { _, _, _ in },
                     onSaveLabel: saveLabel(for:)
                 )
-                .navigationTitle(package?.displayTitle ?? "녹화 상세")
+                .navigationTitle(package?.displayTitle ?? "Recording Detail")
             } else {
                 VStack(spacing: 10) {
-                    Text("녹화 기록을 열 수 없습니다.")
+                    Text("Unable to open this recording.")
                         .font(.title3)
-                    Text(errorMessage ?? "선택한 녹화 패키지를 찾을 수 없습니다.")
+                    Text(errorMessage ?? "The selected recording package could not be found.")
                         .foregroundStyle(.secondary)
                 }
                 .frame(minWidth: 520, minHeight: 360)
@@ -60,7 +60,7 @@ struct MacRecordingDetailWindowView: View {
         let folderURL = URL(fileURLWithPath: packagePath)
         guard let loadedPackage = loader.loadPackage(folderURL: folderURL) else {
             package = nil
-            errorMessage = "패키지 폴더가 삭제되었거나 필요한 파일을 찾을 수 없습니다."
+            errorMessage = "The package folder was removed or required files are missing."
             return
         }
         package = loadedPackage
@@ -73,7 +73,7 @@ struct MacRecordingDetailWindowView: View {
             package = updatedPackage
             errorMessage = nil
         } catch {
-            errorMessage = "라벨 저장 실패: \(error.localizedDescription)"
+            errorMessage = "Failed to save labels: \(error.localizedDescription)"
         }
     }
 }

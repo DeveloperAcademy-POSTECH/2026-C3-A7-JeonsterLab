@@ -12,9 +12,9 @@ enum MacSnapDetectionMode: String, Decodable, Equatable {
     var displayName: String {
         switch self {
         case .none:
-            return "없음"
+            return "None"
         case .jeonFlip:
-            return "전 부치기"
+            return "Jeon Flipping"
         }
     }
 }

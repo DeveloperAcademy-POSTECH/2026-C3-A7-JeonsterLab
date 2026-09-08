@@ -26,10 +26,10 @@ struct MacHomeView: View {
                                 openWindow(value: request)
                             }
                         } label: {
-                            Label("프로젝트 열기", systemImage: "plus")
+                            Label("Open Project", systemImage: "plus")
                                 .labelStyle(.iconOnly)
                         }
-                        .help("WatchMotion Editor 프로젝트 열기")
+                        .help("Open WatchMotion Editor Project")
                     }
                 }
 
@@ -48,11 +48,11 @@ struct MacHomeView: View {
                         Button {
                             viewModel.addFolder()
                         } label: {
-                            Label("폴더 추가", systemImage: "folder.badge.plus")
+                            Label("New Folder", systemImage: "folder.badge.plus")
                         }
 
                         if viewModel.snapFolders.isEmpty {
-                            Text("아직 분류 폴더가 없습니다.")
+                            Text("No folders yet.")
                                 .foregroundStyle(.secondary)
                         } else {
                             ForEach(viewModel.snapFolders) { folder in
@@ -64,7 +64,7 @@ struct MacHomeView: View {
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(folder.name)
                                                 .lineLimit(1)
-                                            Text("\(folder.items.count)개 스냅")
+                                            Text("\(folder.items.count) snaps")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -72,7 +72,7 @@ struct MacHomeView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .contextMenu {
-                                    Button("삭제", role: .destructive) {
+                                    Button("Delete", role: .destructive) {
                                         viewModel.deleteFolder(folder)
                                     }
                                 }
@@ -82,7 +82,7 @@ struct MacHomeView: View {
 
                     Section("Pinned Recordings") {
                         if viewModel.filteredPinnedPackages.isEmpty {
-                            Text("고정된 녹화가 없습니다.")
+                            Text("No pinned recordings.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else {
@@ -98,7 +98,7 @@ struct MacHomeView: View {
 
                     Section("Received Recordings") {
                         if viewModel.filteredReceivedPackages.isEmpty {
-                            Text("아직 수신된 녹화 데이터가 없습니다.")
+                            Text("No recordings yet.")
                                 .foregroundStyle(.secondary)
                         } else {
                             ForEach(viewModel.filteredReceivedPackages) { package in
@@ -152,31 +152,31 @@ struct MacHomeView: View {
             .background(Color(nsColor: .windowBackgroundColor))
         }
         .alert(
-            "이 녹화 기록을 삭제할까요?",
+            "Delete this recording?",
             isPresented: Binding(
                 get: { pendingDeletePackage != nil },
                 set: { if !$0 { pendingDeletePackage = nil } }
             ),
             presenting: pendingDeletePackage
         ) { package in
-            Button("취소", role: .cancel) {
+            Button("Cancel", role: .cancel) {
                 pendingDeletePackage = nil
             }
-            Button("삭제", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 viewModel.deleteReceivedRecording(package)
                 pendingDeletePackage = nil
             }
         } message: { _ in
-            Text("삭제하면 Mac에 저장된 이 녹화 패키지가 사라집니다.\n이 작업은 되돌릴 수 없습니다.")
+            Text("This recording package will be removed from this Mac.\nThis action cannot be undone.")
         }
         .alert(
-            "WatchMotion Editor 프로젝트",
+            "WatchMotion Editor Project",
             isPresented: Binding(
                 get: { viewModel.projectPackageMessage != nil },
                 set: { if !$0 { viewModel.projectPackageMessage = nil } }
             )
         ) {
-            Button("확인") {
+            Button("OK") {
                 viewModel.projectPackageMessage = nil
             }
         } message: {
@@ -187,15 +187,15 @@ struct MacHomeView: View {
                 Button {
                     viewModel.exportReceiverProjectPackage()
                 } label: {
-                    Label("프로젝트 내보내기", systemImage: "square.and.arrow.up")
+                    Label("Export Project", systemImage: "square.and.arrow.up")
                 }
-                .help("WatchMotion Editor 프로젝트 내보내기")
+                .help("Export WatchMotion Editor Project")
             }
         }
         .searchable(
             text: $viewModel.searchQuery,
             placement: .toolbar,
-            prompt: "수신 기록 검색"
+            prompt: "Search recordings"
         )
     }
 
@@ -205,7 +205,7 @@ struct MacHomeView: View {
                 Text(package.displayTitle)
                     .lineLimit(1)
                 if package.isPinned {
-                    Label("고정됨", systemImage: "pin.fill")
+                    Label("Pinned", systemImage: "pin.fill")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .labelStyle(.titleAndIcon)
@@ -213,10 +213,10 @@ struct MacHomeView: View {
                 Text(package.recordingDateText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("\(package.resultSummaryText) · 수신 \(package.receivedAtText)")
+                Text("\(package.resultSummaryText) · Received \(package.receivedAtText)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("\(package.sampleCountText)샘플 · 스냅 \(package.snapEventCountText) · \(package.completenessText)")
+                Text("\(package.sampleCountText) samples · \(package.snapEventCountText) snaps · \(package.completenessText)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -230,20 +230,20 @@ struct MacHomeView: View {
         Button {
             openWindow(value: package.folderURL.path)
         } label: {
-            Label("새로운 윈도우에서 열기", systemImage: "rectangle.on.rectangle")
+            Label("Open in New Window", systemImage: "rectangle.on.rectangle")
         }
 
         if package.isPinned {
             Button {
                 viewModel.unpinPackage(package)
             } label: {
-                Label("고정 해제", systemImage: "pin.slash")
+                Label("Unpin Recording", systemImage: "pin.slash")
             }
         } else {
             Button {
                 viewModel.pinPackage(package)
             } label: {
-                Label("기록 고정", systemImage: "pin")
+                Label("Pin Recording", systemImage: "pin")
             }
         }
 
@@ -252,7 +252,7 @@ struct MacHomeView: View {
         Button(role: .destructive) {
             pendingDeletePackage = package
         } label: {
-            Label("삭제하기", systemImage: "trash")
+            Label("Delete", systemImage: "trash")
         }
     }
 
@@ -267,7 +267,7 @@ struct MacHomeView: View {
                     .frame(height: 30)
 
                 connectionStatusItem(
-                    title: "상태",
+                    title: "Status",
                     value: viewModel.statusText,
                     systemImage: viewModel.isAdvertising
                         ? "antenna.radiowaves.left.and.right"
@@ -275,34 +275,34 @@ struct MacHomeView: View {
                 )
 
                 connectionStatusItem(
-                    title: "기기",
+                    title: "Device",
                     value: viewModel.connectedPeerText,
                     systemImage: "iphone"
                 )
 
                 connectionStatusItem(
-                    title: "자동 전송",
-                    value: "비활성화",
+                    title: "Automatic Transfer",
+                    value: "Disabled",
                     systemImage: "arrow.triangle.2.circlepath"
                 )
 
                 Spacer(minLength: 12)
 
                 HStack(spacing: 8) {
-                    Button("저장 폴더") {
+                    Button("Show in Finder") {
                         viewModel.openReceivedFolder()
                     }
 
-                    Button("새로고침") {
+                    Button("Refresh") {
                         viewModel.reloadPackages()
                     }
 
                     if viewModel.isAdvertising {
-                        Button("수신 중지") {
+                        Button("Stop Receiving") {
                             viewModel.stopReceiver()
                         }
                     } else {
-                        Button("수신 시작") {
+                        Button("Start Receiving") {
                             viewModel.startReceiver()
                         }
                         .buttonStyle(.borderedProminent)
@@ -367,9 +367,9 @@ struct MacHomeView: View {
 
     private var emptyState: some View {
         VStack(spacing: 12) {
-            Text("아직 수신된 녹화 데이터가 없습니다.")
+            Text("No recordings yet.")
                 .font(.title3)
-            Text("Mac에서 [수신 시작]을 누른 뒤 iPhone 녹화 상세 화면에서 [Mac 찾기]와 [Mac으로 전송]을 순서대로 눌러주세요.")
+            Text("Start receiving on this Mac, then open a recording on your iPhone to find this Mac and send the files.")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }

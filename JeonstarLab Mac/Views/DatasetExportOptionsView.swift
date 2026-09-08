@@ -12,25 +12,25 @@ struct DatasetExportOptionsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("데이터셋 내보내기 옵션")
+            Text("Export Dataset")
                 .font(.title2.weight(.semibold))
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    optionSection("필수 항목") {
+                    optionSection("Required Columns") {
                         ForEach(DatasetRequiredColumn.allCases) { column in
                             Toggle(column.header, isOn: .constant(true))
                                 .disabled(true)
                         }
                     }
 
-                    optionSection("사용자 정보") {
+                    optionSection("Participant Information") {
                         ForEach(DatasetUserInfoColumn.allCases) { column in
                             Toggle(column.displayName, isOn: userInfoBinding(for: column))
                         }
                     }
 
-                    optionSection("모션 데이터") {
+                    optionSection("Motion Data") {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), alignment: .leading)], alignment: .leading) {
                             ForEach(DatasetMotionColumn.allCases) { column in
                                 Toggle(column.displayName, isOn: motionBinding(for: column))
@@ -43,8 +43,8 @@ struct DatasetExportOptionsView: View {
 
             HStack {
                 Spacer()
-                Button("취소", action: onCancel)
-                Button("내보내기", action: onExport)
+                Button("Cancel", action: onCancel)
+                Button("Export", action: onExport)
                     .buttonStyle(.borderedProminent)
             }
         }

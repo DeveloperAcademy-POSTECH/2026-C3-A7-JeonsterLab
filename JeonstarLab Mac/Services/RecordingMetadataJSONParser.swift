@@ -26,7 +26,7 @@ extension JSONDecoder {
 
             throw DecodingError.dataCorruptedError(
                 in: container,
-                debugDescription: "지원하지 않는 날짜 형식입니다."
+                debugDescription: "Unsupported date format."
             )
         }
         return decoder

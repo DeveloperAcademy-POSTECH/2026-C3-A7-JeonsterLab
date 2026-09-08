@@ -61,24 +61,24 @@ struct MacRecordingDetailView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     titleHeader
 
-                    Text("\(package.recordingDateText) · 수신 \(package.receivedAtText)")
+                    Text("\(package.recordingDateText) · Received \(package.receivedAtText)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    Text("결과 요약: \(package.resultSummaryText)")
+                    Text("Summary: \(package.resultSummaryText)")
                         .font(.callout)
                         .foregroundStyle(.secondary)
 
-                    sectionCard(title: "녹화 정보") {
+                    sectionCard(title: "Recording Information") {
                         MacRecordingInfoPanel(package: package)
                     }
 
-                    sectionCard(title: "사용자 정보") {
+                    sectionCard(title: "Participant Information") {
                         participantInfoCard
                     }
 
                     if !package.parseMessages.isEmpty {
-                        sectionCard(title: "파일 상태") {
+                        sectionCard(title: "File Status") {
                             VStack(alignment: .leading, spacing: 6) {
                                 ForEach(package.parseMessages, id: \.self) { message in
                                     Text(message)
@@ -88,7 +88,7 @@ struct MacRecordingDetailView: View {
                         }
                     }
 
-                    sectionCard(title: "스냅 이벤트") {
+                    sectionCard(title: "Snap Events") {
                         VStack(alignment: .leading, spacing: 12) {
                             MacSnapEventListView(
                                 events: package.workingSnapEvents,
@@ -118,36 +118,36 @@ struct MacRecordingDetailView: View {
                         }
                     }
 
-                    sectionCard(title: "그래프") {
+                    sectionCard(title: "Motion Viewer") {
                         if let csvErrorMessage {
                             Text(csvErrorMessage)
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
                         } else if samples.isEmpty {
-                            ProgressView("CSV 로딩 중")
+                            ProgressView("Loading CSV")
                                 .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
                         } else {
                             VStack(alignment: .leading, spacing: 16) {
                                 HStack(spacing: 12) {
-                                    Toggle("저장된 스냅 미리보기", isOn: $showsSavedSnapPreviews)
+                                    Toggle("Show Saved Snaps", isOn: $showsSavedSnapPreviews)
                                         .toggleStyle(.switch)
 
                                     Spacer()
 
-                                    Button("전체 보기") {
+                                    Button("Fit All") {
                                         resetVisibleRangeToFull()
                                     }
 
-                                    Button("선택 구간 보기") {
+                                    Button("Fit Selection") {
                                         focusVisibleRange(on: chartSelection)
                                     }
                                     .disabled(chartSelection == nil)
 
-                                    Button("축소") {
+                                    Button("Zoom Out") {
                                         zoomVisibleRange(scale: 0.8)
                                     }
 
-                                    Button("확대") {
+                                    Button("Zoom In") {
                                         zoomVisibleRange(scale: 1.25)
                                     }
                                 }
@@ -179,28 +179,28 @@ struct MacRecordingDetailView: View {
         .onChange(of: package.folderURL) {
             resetTransientStateForPackageSwitch()
         }
-        .alert("스냅 구간을 변경할까요?", isPresented: $showsEditConfirmation) {
-            Button("취소", role: .cancel) {}
-            Button("변경하기", role: .destructive) {
+        .alert("Update this snap range?", isPresented: $showsEditConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Update", role: .destructive) {
                 applySnapEdit()
             }
         } message: {
-            Text("선택한 스냅의 시작·끝 시간이 새 구간으로 변경됩니다.\n이 작업은 되돌릴 수 없습니다.")
+            Text("The selected snap's start and end times will be replaced.\nThis action cannot be undone.")
         }
         .alert(
-            "이 스냅 이벤트를 삭제할까요?",
+            "Delete this snap?",
             isPresented: $showsDeleteConfirmation,
             presenting: pendingDeleteEvent
         ) { event in
-            Button("취소", role: .cancel) {
+            Button("Cancel", role: .cancel) {
                 pendingDeleteEvent = nil
             }
-            Button("삭제", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 deleteSnapEvent(event)
                 pendingDeleteEvent = nil
             }
         } message: { _ in
-            Text("삭제하면 현재 녹화의 스냅 목록에서 사라집니다.\n이 작업은 되돌릴 수 없습니다.")
+            Text("This snap will be removed from the recording.\nThis action cannot be undone.")
         }
     }
 
@@ -211,16 +211,16 @@ struct MacRecordingDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             if isEditingTitle {
                 HStack(spacing: 8) {
-                    TextField("녹화 이름", text: $draftDisplayName, prompt: Text(package.recordingDateTitle))
+                    TextField("Recording Name", text: $draftDisplayName, prompt: Text(package.recordingDateTitle))
                         .textFieldStyle(.roundedBorder)
 
-                    Button("저장") {
+                    Button("Save") {
                         package.displayName = draftDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
                         isEditingTitle = false
                         onSaveLabel(package)
                     }
 
-                    Button("취소") {
+                    Button("Cancel") {
                         draftDisplayName = package.displayName
                         isEditingTitle = false
                     }
@@ -239,7 +239,7 @@ struct MacRecordingDetailView: View {
                         Image(systemName: "pencil")
                     }
                     .buttonStyle(.borderless)
-                    .help("녹화 이름 편집")
+                    .help("Edit Recording Name")
                 }
             }
         }
@@ -248,9 +248,9 @@ struct MacRecordingDetailView: View {
     private var participantInfoCard: some View {
         Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
             GridRow {
-                Text("이름(닉네임)")
+                Text("Name or Nickname")
                     .foregroundStyle(.secondary)
-                TextField("미입력", text: $package.participantInfo.nameOrNickname)
+                TextField("Not set", text: $package.participantInfo.nameOrNickname)
                     .textFieldStyle(.roundedBorder)
                     .onChange(of: package.participantInfo.nameOrNickname) {
                         onSaveLabel(package)
@@ -258,9 +258,9 @@ struct MacRecordingDetailView: View {
             }
 
             GridRow {
-                Text("성별")
+                Text("Gender")
                     .foregroundStyle(.secondary)
-                Picker("성별", selection: $package.participantInfo.gender) {
+                Picker("Gender", selection: $package.participantInfo.gender) {
                     ForEach(ParticipantGenderOption.allCases) { option in
                         Text(option.displayName).tag(option)
                     }
@@ -272,9 +272,9 @@ struct MacRecordingDetailView: View {
             }
 
             GridRow {
-                Text("연령대")
+                Text("Age Group")
                     .foregroundStyle(.secondary)
-                Picker("연령대", selection: $package.participantInfo.ageGroup) {
+                Picker("Age Group", selection: $package.participantInfo.ageGroup) {
                     ForEach(ParticipantAgeGroupOption.allCases) { option in
                         Text(option.displayName).tag(option)
                     }
@@ -286,17 +286,17 @@ struct MacRecordingDetailView: View {
             }
 
             GridRow {
-                Text("키(cm)")
+                Text("Height (cm)")
                     .foregroundStyle(.secondary)
-                TextField("예: 174", text: heightBinding)
+                TextField("e.g. 174", text: heightBinding)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 180)
             }
 
             GridRow {
-                Text("주 사용 손")
+                Text("Dominant Hand")
                     .foregroundStyle(.secondary)
-                Picker("주 사용 손", selection: $package.participantInfo.dominantHand) {
+                Picker("Dominant Hand", selection: $package.participantInfo.dominantHand) {
                     ForEach(ParticipantDominantHandOption.allCases) { option in
                         Text(option.displayName).tag(option)
                     }
@@ -308,9 +308,9 @@ struct MacRecordingDetailView: View {
             }
 
             GridRow {
-                Text("숙련도")
+                Text("Experience")
                     .foregroundStyle(.secondary)
-                Picker("숙련도", selection: $package.participantInfo.skillLevel) {
+                Picker("Experience", selection: $package.participantInfo.skillLevel) {
                     ForEach(ParticipantSkillLevelOption.allCases) { option in
                         Text(option.displayName).tag(option)
                     }
@@ -322,7 +322,7 @@ struct MacRecordingDetailView: View {
             }
 
             GridRow(alignment: .top) {
-                Text("메모")
+                Text("Notes")
                     .foregroundStyle(.secondary)
                     .padding(.top, 6)
                 TextEditor(text: $package.participantInfo.memo)
@@ -373,7 +373,7 @@ struct MacRecordingDetailView: View {
 
     private var manualSelectionPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("선택 구간")
+            Text("Selected Range")
                 .font(.headline)
 
             if let editMessage {
@@ -399,17 +399,17 @@ struct MacRecordingDetailView: View {
                 conflictWarning
 
                 HStack {
-                    Button("스냅 저장하기") {
+                    Button("Save Snap") {
                         saveManualSnap()
                     }
                     .disabled(draft?.canSave != true || hasSelectionConflict)
 
-                    Button("선택 지우기") {
+                    Button("Clear Selection") {
                         self.chartSelection = nil
                     }
                 }
             } else {
-                Text("그래프 위에서 드래그해 수동 스냅 구간을 선택하세요.")
+                Text("Drag across a chart to select a manual snap range.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -419,20 +419,20 @@ struct MacRecordingDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("선택한 스냅")
+                    Text("Selected Snap")
                         .font(.headline)
-                    Text("그래프에서 구간을 움직이거나 양 끝을 조절하면 수정할 수 있습니다.")
+                    Text("Move the range or drag its handles on the chart to edit it.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("선택 해제") {
+                Button("Clear Selection") {
                     clearFocusedSnap()
                 }
             }
 
             editStatsColumn(
-                title: "현재 구간",
+                title: "Current Range",
                 event: editDraft.originalEvent,
                 draft: originalDraft(for: editDraft)
             )
@@ -443,21 +443,21 @@ struct MacRecordingDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("스냅 구간 수정")
+                    Text("Edit Snap Range")
                         .font(.headline)
-                    Text("초록색은 기존 구간, 파란색은 새 후보 구간입니다.")
+                    Text("Green marks the original range; blue marks your proposed range.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("수정 취소") {
+                Button("Cancel Edit") {
                     clearFocusedSnap()
                 }
             }
 
             HStack(alignment: .top, spacing: 14) {
                 editStatsColumn(
-                    title: "기존",
+                    title: "Original",
                     event: editDraft.originalEvent,
                     draft: originalDraft(for: editDraft)
                 )
@@ -465,7 +465,7 @@ struct MacRecordingDetailView: View {
                 Divider()
 
                 editStatsColumn(
-                    title: "후보",
+                    title: "Proposed",
                     event: nil,
                     draft: manualSnapDraft
                 )
@@ -485,7 +485,7 @@ struct MacRecordingDetailView: View {
                     .foregroundStyle(.green)
             }
 
-            Button("스냅 변경하기") {
+            Button("Update Snap") {
                 showsEditConfirmation = true
             }
             .buttonStyle(.borderedProminent)
@@ -504,19 +504,19 @@ struct MacRecordingDetailView: View {
     ) -> some View {
         Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 6) {
             GridRow {
-                selectionMetric("시작", formattedSeconds(selection.startTime))
-                selectionMetric("끝", formattedSeconds(selection.endTime))
-                selectionMetric("길이", formattedSeconds(selection.duration))
+                selectionMetric("Start", formattedSeconds(selection.startTime))
+                selectionMetric("End", formattedSeconds(selection.endTime))
+                selectionMetric("Duration", formattedSeconds(selection.duration))
             }
             GridRow {
-                selectionMetric("샘플", sampleCount.map { "\($0)개" } ?? "-")
-                selectionMetric("최대 가속도", formatted(peakAcceleration, suffix: "g"))
-                selectionMetric("최대 각속도", formatted(peakGyro, suffix: "rad/s"))
+                selectionMetric("Samples", sampleCount.map { "\($0)" } ?? "-")
+                selectionMetric("Peak Acceleration", formatted(peakAcceleration, suffix: "g"))
+                selectionMetric("Peak Rotation", formatted(peakGyro, suffix: "rad/s"))
             }
             GridRow {
-                selectionMetric("피크", formatted(peakTime, suffix: "s"))
-                selectionMetric("주 회전축", dominantAxis ?? "-")
-                selectionMetric("저장 가능", canSave ? "가능" : "불가")
+                selectionMetric("Peak", formatted(peakTime, suffix: "s"))
+                selectionMetric("Dominant Axis", dominantAxis ?? "-")
+                selectionMetric("Can Save", canSave ? "Yes" : "No")
             }
         }
     }
@@ -549,7 +549,7 @@ struct MacRecordingDetailView: View {
                     canSave: draft?.canSave ?? true
                 )
             } else {
-                Text("구간 정보 없음")
+                Text("No range information")
                     .foregroundStyle(.secondary)
             }
         }
@@ -560,10 +560,10 @@ struct MacRecordingDetailView: View {
         Group {
             if hasSelectionConflict {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("스냅이 충돌되는 부분이 있습니다.")
+                    Text("This range overlaps another snap.")
                         .font(.callout)
                         .fontWeight(.semibold)
-                    Text("기존 스냅과 겹치지 않도록 범위를 조정해주세요.")
+                    Text("Adjust the range so it does not overlap an existing snap.")
                         .font(.caption)
                 }
                 .foregroundStyle(.red)
@@ -574,7 +574,7 @@ struct MacRecordingDetailView: View {
     private func loadCSV() {
         guard let csvURL = package.csvURL else {
             samples = []
-            csvErrorMessage = "recording.csv 파일이 없습니다."
+            csvErrorMessage = "Missing recording.csv."
             resetVisibleRangeToFull()
             return
         }
@@ -674,9 +674,9 @@ struct MacRecordingDetailView: View {
             self.chartSelection = nil
             focusVisibleRange(on: selection(for: updatedEvent))
             editErrorMessage = nil
-            editMessage = "스냅 구간이 변경되었습니다."
+            editMessage = "Snap range updated."
         } catch {
-            editErrorMessage = "세그먼트 갱신 실패: \(error.localizedDescription)"
+            editErrorMessage = "Failed to update segment: \(error.localizedDescription)"
         }
     }
 

@@ -14,9 +14,9 @@ struct FolderDatasetExportReport: Equatable {
     let generatedAt: Date
 
     var summaryText: String {
-        var message = "CSV 내보내기 완료: \(exportedSnapCount)개 스냅, \(exportedRowCount)개 행"
+        var message = "CSV exported: \(exportedSnapCount) snaps, \(exportedRowCount) rows"
         if skippedItemCount > 0 {
-            message += " · \(skippedItemCount)개 제외"
+            message += " · \(skippedItemCount) skipped"
         }
         return message
     }

@@ -36,13 +36,13 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
 
     var recordingDateTitle: String {
         guard let startedAt = metadata?.startedAt else {
-            return "녹화 시각 확인 불가"
+            return "Recording date unavailable"
         }
-        return "\(startedAt.formatted(date: .numeric, time: .shortened)) 녹화"
+        return "Recording · \(startedAt.formatted(date: .numeric, time: .shortened))"
     }
 
     var recordingDateText: String {
-        metadata?.startedAt?.formatted(date: .abbreviated, time: .shortened) ?? "메타데이터 없음"
+        metadata?.startedAt?.formatted(date: .abbreviated, time: .shortened) ?? "No metadata"
     }
 
     var receivedAtText: String {
@@ -51,7 +51,7 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
 
     var completenessText: String {
         let count = [csvURL, metadataURL, snapAnalysisURL].compactMap(\.self).count
-        return count == 3 ? "파일 3/3" : "파일 \(count)/3"
+        return count == 3 ? "3/3 files" : "\(count)/3 files"
     }
 
     var snapDetectionMode: MacSnapDetectionMode {
@@ -79,12 +79,12 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     var resultSummaryText: String {
         let events = workingSnapEvents
         guard !events.isEmpty else {
-            return "스냅 이벤트 없음"
+            return "No snap events"
         }
 
         let counts = snapLabelCounts
         if counts.isEmpty || (counts.count == 1 && counts[.unlabeled] != nil) {
-            return "스냅 라벨 미분류"
+            return "Unlabeled snaps"
         }
 
         return RecordingPackageLabel.allCases
@@ -325,23 +325,23 @@ enum RecordingPackageLabel: String, CaseIterable, Codable, Identifiable {
     var displayName: String {
         switch self {
         case .unlabeled:
-            return "미분류"
+            return "Unlabeled"
         case .success:
-            return "성공 모션"
+            return "Successful Motion"
         case .failure:
-            return "실패 모션"
+            return "Failed Motion"
         case .flipped:
-            return "뒤집기 성공"
+            return "Flip Success"
         case .partialFlipped:
-            return "부분 뒤집기 성공"
+            return "Partial Flip"
         case .unflipped:
-            return "뒤집기 실패"
+            return "Flip Failure"
         case .loosen:
-            return "분리"
+            return "Loosen"
         case .idle:
-            return "대기"
+            return "Idle"
         case .other:
-            return "기타"
+            return "Other"
         }
     }
 
