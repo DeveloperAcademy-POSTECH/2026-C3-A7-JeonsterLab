@@ -13,11 +13,14 @@ struct SavedWatchRecordingsView: View {
             .font(.headline)
             .frame(maxWidth: .infinity)
         } else {
-          Text("Awaiting iPhone confirmation").font(.headline)
+          Text("Saved on Watch").font(.headline)
         }
         Text("Files stay here until your iPhone confirms they were imported.")
           .font(.caption2)
           .foregroundStyle(.secondary)
+        if let error = storage.lastError {
+          Text(error).font(.caption2).foregroundStyle(.orange)
+        }
         ForEach(storage.retainedFiles) { file in
           SavedWatchRecordingRow(
             file: file, canResend: viewModel.canResendRetainedFile, canDelete: canDelete,
@@ -100,7 +103,7 @@ struct SavedWatchRecordingRow: View {
             Label("Resend", systemImage: "arrow.clockwise").frame(maxWidth: .infinity)
           }
           .buttonStyle(.borderedProminent).tint(.blue)
-          .disabled(!canResend || file.sessionID == nil)
+          .disabled(!canResend || file.sessionID == nil || file.sampleCount == 0)
           .accessibilityLabel("Resend Saved Recording")
           Button(role: .destructive, action: onDelete) {
             Label("Delete", systemImage: "trash").frame(maxWidth: .infinity)
@@ -111,6 +114,9 @@ struct SavedWatchRecordingRow: View {
           if file.sessionID == nil {
             Text("Session ID unavailable. This file cannot be resent.")
               .font(.caption2).foregroundStyle(.orange)
+          } else if file.sampleCount == 0 {
+            Text("No motion samples were saved. You can delete this empty recording.")
+              .font(.caption2).foregroundStyle(.secondary)
           }
         }
         .padding(.top, 6)

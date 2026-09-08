@@ -97,7 +97,7 @@ struct WatchRecordingDashboard: View {
       }
       if !isTransferring {
         Button(action: onAction) {
-          Label(actionTitle, systemImage: actionSymbol)
+          Text(actionTitle)
             .font(.headline)
             .frame(maxWidth: .infinity, minHeight: 24)
         }

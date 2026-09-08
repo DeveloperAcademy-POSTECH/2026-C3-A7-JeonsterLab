@@ -34,6 +34,7 @@ struct EditorSettingsView: View {
                     Text(ProjectExportPreferences.safeName(projectName)
                          + (includeTimestamp ? "_YYYYMMDD_HHmmss" : "") + "." + archiveFormat.rawValue)
                         .textSelection(.enabled).font(.caption.monospaced())
+                        .lineLimit(2).truncationMode(.middle)
                 }
                 Text("Both project formats contain the same ZIP-based project. Older .jeonstarlab projects can still be opened. CSV datasets remain .csv and metadata remains .json.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -47,7 +48,7 @@ struct EditorSettingsView: View {
             .tabItem { Label("Export", systemImage: "square.and.arrow.up") }
         }
         .padding(12)
-        .frame(width: 600, height: 370)
+        .frame(width: 600, height: 420)
         .editorAppearance()
     }
 }

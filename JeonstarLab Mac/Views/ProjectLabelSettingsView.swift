@@ -14,8 +14,11 @@ struct ProjectLabelSettingsView: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Project Labels").font(.title2.weight(.semibold))
             Text(request.title).foregroundStyle(.secondary)
-            Text("Changes apply to this project only. Archiving hides labels without removing annotations. Shortcuts work while the label menu is open. Custom names are used in future CSV exports.")
-                .font(.callout).foregroundStyle(.secondary)
+            DisclosureGroup("Label Settings Help") {
+                Text("Changes apply to this project. Archived labels stay on saved annotations. Number shortcuts work while the label menu is open; custom names appear in future CSV exports.")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .padding(.top, 6)
+            }
             ScrollView {
                 LazyVStack(spacing: 8) {
                     ForEach(Array(catalog.labels.enumerated()), id: \.element.id) { index, definition in
@@ -31,7 +34,7 @@ struct ProjectLabelSettingsView: View {
                 Spacer()
                 Button("Reload") { load() }
                     .help("Discard unsaved changes and reload labels from this project")
-                Button("Save Changes") { save() }
+                Button("Save") { save() }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut("s", modifiers: .command)
                     .disabled(loadFailed)

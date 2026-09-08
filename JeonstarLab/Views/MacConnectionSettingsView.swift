@@ -16,21 +16,23 @@ struct MacConnectionSettingsView: View {
                     MacConnectionControls(viewModel: viewModel)
                 }
                 Section {
-                    Toggle("Automatically Send to Mac", isOn: $viewModel.isAutomaticTransferEnabled)
+                    Toggle("Auto-send New Recordings", isOn: $viewModel.isAutomaticTransferEnabled)
                 } header: {
                     Text("Automatic Transfer")
                 } footer: {
-                    Text("Applies to all new recordings received from your Watch while a Mac is connected. Existing recordings are not sent automatically.")
+                    Text("Sends new Watch recordings while connected. Existing recordings are not sent automatically.")
                 }
                 Section {
-                    Label("Start Receiving in the Mac app before searching.", systemImage: "laptopcomputer")
-                    Label("Keep Wi-Fi and Bluetooth enabled, and allow local network access.", systemImage: "wifi")
+                    DisclosureGroup("Connection Help") {
+                        Text("On Mac, choose Start Receiving and approve this iPhone. Keep Wi-Fi and Bluetooth enabled, and allow local network access.")
+                            .padding(.vertical, 6)
+                    }
                 } header: {
                     Text("Before Connecting")
                 }
                 .font(.callout)
             }
-            .navigationTitle("Connection Settings")
+            .navigationTitle("Mac Connection")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
