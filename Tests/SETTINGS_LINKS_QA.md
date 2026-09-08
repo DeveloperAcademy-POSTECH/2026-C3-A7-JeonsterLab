@@ -9,7 +9,7 @@
 
 Apple guideline 5.1.1(i) also requires the privacy URL in App Store Connect; an in-app link does not fill that metadata field automatically. Use `https://watch-motion-editor-site.vercel.app/privacy` and keep it publicly available.
 
-The currently published policy describes motion data, local transfers, participant fields, deletion, website hosting and support. It does not yet describe the newly added StoreKit purchase verification or persistent device-local Keychain trial history (workspace/recording identifiers and export count). Update the website policy for those behaviors before enabling paid release, including the distinction between deleting recordings and retaining trial history. This change does not publish website content or update App Store Connect.
+The website source policy now describes StoreKit purchase verification and persistent device-local Keychain trial history (workspace/recording identifiers and export count), including the distinction between deleting recordings and retaining trial history. Publish that site commit before enabling paid release. This change does not update App Store Connect.
 
 Also verify privacy access in the separately submitted iPhone/Watch experience; this change adds the links to **Mac** Settings. This is a targeted settings check, not a guarantee of overall App Review approval.
 
