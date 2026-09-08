@@ -32,6 +32,7 @@ struct MacConnectionSettingsView: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
+        .mobileEditorStyle()
     }
 }
 

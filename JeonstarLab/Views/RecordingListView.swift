@@ -9,6 +9,8 @@ import SwiftUI
 
 struct RecordingListView: View {
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @State var viewModel:        RecordingListViewModel
     @State var watchControlVM:   WatchControlViewModel
 
@@ -22,7 +24,7 @@ struct RecordingListView: View {
                 ContentUnavailableView(
                     "No Recordings",
                     systemImage: "waveform.slash",
-                    description: Text("Start a recording on your Watch or use the button below.")
+                    description: Text("Start a recording on your Watch or use the Watch controls above.")
                 )
             } else {
                 ForEach(viewModel.recordings) { session in
@@ -37,6 +39,7 @@ struct RecordingListView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle("Recordings")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -65,7 +68,10 @@ struct RecordingListView: View {
 
     private var watchControlSection: some View {
         Section {
-            HStack {
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                : AnyLayout(HStackLayout())
+            layout {
                 // 연결 상태 표시
                 Label(
                     watchControlVM.isReachable ? "Watch Connected" : "Watch Not Connected",
@@ -74,7 +80,7 @@ struct RecordingListView: View {
                 .foregroundStyle(watchControlVM.isReachable ? .green : .secondary)
                 .font(.subheadline)
 
-                Spacer()
+                if !dynamicTypeSize.isAccessibilitySize { Spacer() }
 
                 // 녹화 제어 버튼
                 switch watchControlVM.watchState {
@@ -112,13 +118,18 @@ struct RecordingListView: View {
 
 struct RecordingRowView: View {
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let session: RecordingSession
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
                 .font(.headline)
-            HStack(spacing: 8) {
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                : AnyLayout(HStackLayout(spacing: 8))
+            layout {
                 Label(durationText, systemImage: "clock")
                 Label("\(session.sampleCount) samples", systemImage: "waveform")
             }

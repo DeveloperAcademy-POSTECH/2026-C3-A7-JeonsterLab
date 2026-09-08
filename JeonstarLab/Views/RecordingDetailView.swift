@@ -42,6 +42,7 @@ struct RecordingDetailView: View {
             notesSection
             transferSection
         }
+        .listStyle(.insetGrouped)
         .navigationTitle("Recording Detail")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -93,6 +94,7 @@ struct RecordingDetailView: View {
                             isEditingMemo = false
                         }
                     }
+                    .buttonStyle(.borderless)
                 } else {
                     Button {
                         viewModel.resetRecordingMemoDraft()
@@ -103,10 +105,14 @@ struct RecordingDetailView: View {
                                 .foregroundStyle(viewModel.savedRecordingMemo.isEmpty ? .secondary : .primary)
                                 .multilineTextAlignment(.leading)
                             Spacer()
+                            Image(systemName: "pencil")
+                                .foregroundStyle(.secondary)
                         }
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Edit recording notes")
+                    .accessibilityValue(viewModel.savedRecordingMemo)
 
                 }
 

@@ -16,5 +16,6 @@ struct ContentView: View {
         NavigationStack {
             RecordingListView(viewModel: viewModel, watchControlVM: watchControlVM)
         }
+        .mobileEditorStyle()
     }
 }
