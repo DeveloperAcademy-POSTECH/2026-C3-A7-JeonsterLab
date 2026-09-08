@@ -1,7 +1,7 @@
 import Foundation
 import UniformTypeIdentifiers
 
-enum ProjectArchiveFormat: String, CaseIterable, Identifiable {
+nonisolated enum ProjectArchiveFormat: String, CaseIterable, Identifiable {
     case watchmotion, zip
     var id: String { rawValue }
     var title: String { self == .watchmotion ? "WatchMotion Project (.watchmotion)" : "ZIP Archive (.zip)" }
@@ -9,10 +9,10 @@ enum ProjectArchiveFormat: String, CaseIterable, Identifiable {
 }
 
 extension UTType {
-    static let watchMotionProject = UTType(exportedAs: "com.Jeonster.WatchMotionEditor.project", conformingTo: .zip)
+    nonisolated static let watchMotionProject = UTType(exportedAs: "com.Jeonster.WatchMotionEditor.project", conformingTo: .zip)
 }
 
-enum ProjectExportPreferences {
+nonisolated enum ProjectExportPreferences {
     static let nameKey = "WatchMotionEditor.projectExportName"
     static let formatKey = "WatchMotionEditor.projectExportFormat"
     static let timestampKey = "WatchMotionEditor.projectExportTimestamp"

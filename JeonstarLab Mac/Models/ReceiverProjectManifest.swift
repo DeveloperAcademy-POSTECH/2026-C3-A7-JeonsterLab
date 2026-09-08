@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct ReceiverProjectManifest: Codable {
+nonisolated struct ReceiverProjectManifest: Codable {
     static let currentFormatVersion = 2
 
     let formatVersion: Int
@@ -32,7 +32,7 @@ struct ReceiverProjectManifest: Codable {
     }
 }
 
-struct ReceiverProjectPackageReport {
+nonisolated struct ReceiverProjectPackageReport {
     let recordingCount: Int
     let folderCount: Int
     let outputURL: URL?

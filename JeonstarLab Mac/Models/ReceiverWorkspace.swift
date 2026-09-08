@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct ReceiverWorkspace: Identifiable {
+nonisolated struct ReceiverWorkspace: Identifiable {
     enum Kind {
         case defaultLocal
         case importedProject

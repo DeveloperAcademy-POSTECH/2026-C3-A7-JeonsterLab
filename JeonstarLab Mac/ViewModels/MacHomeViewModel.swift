@@ -544,7 +544,16 @@ final class MacHomeViewModel {
         }
     }
 
-    func exportReceiverProjectPackage() {
+    private(set) var isProcessingProject = false
+    private(set) var projectOperationStatus = "Processing Project…"
+    private var cancelProjectWork: (() -> Void)?
+    func cancelProjectOperation() {
+        projectOperationStatus = "Canceling…"
+        cancelProjectWork?()
+    }
+
+    func exportReceiverProjectPackage() async {
+        guard !isProcessingProject else { return }
         let savePanel = NSSavePanel()
         savePanel.title = "Export WatchMotion Editor Project"
         savePanel.nameFieldStringValue = ReceiverProjectPackageService.defaultFileName()
@@ -558,20 +567,31 @@ final class MacHomeViewModel {
         }
 
         do {
-            let report = try ReceiverProjectPackageService.exportProject(
-                recordingsRootURL: activeWorkspace.recordingsRootURL,
-                foldersRootURL: activeWorkspace.foldersRootURL,
-                workspaceName: activeWorkspace.displayName,
-                folders: snapFolders,
-                outputURL: outputURL
-            )
+            isProcessingProject = true
+            projectOperationStatus = "Processing Project…"
+            defer { isProcessingProject = false; cancelProjectWork = nil }
+            let workspace = activeWorkspace
+            let folders = snapFolders
+            let access = outputURL.startAccessingSecurityScopedResource()
+            defer { if access { outputURL.stopAccessingSecurityScopedResource() } }
+            let worker = Task.detached(priority: .userInitiated) {
+                try ReceiverProjectPackageService.exportProject(
+                    recordingsRootURL: workspace.recordingsRootURL,
+                    foldersRootURL: workspace.foldersRootURL,
+                    workspaceName: workspace.displayName, folders: folders, outputURL: outputURL)
+            }
+            cancelProjectWork = { worker.cancel() }
+            let report = try await worker.value
             projectPackageMessage = "\(report.message): \(report.recordingCount) recordings, \(report.folderCount) folders\n\(report.outputURL?.lastPathComponent ?? "")"
+        } catch is CancellationError {
+            projectPackageMessage = "Export canceled. Existing files were kept."
         } catch {
             errorMessage = "Project export failed: \(error.localizedDescription)"
         }
     }
 
-    func makeProjectWindowRequest() -> ReceiverProjectWindowRequest? {
+    func makeProjectWindowRequest() async -> ReceiverProjectWindowRequest? {
+        guard !isProcessingProject else { return nil }
         let openPanel = NSOpenPanel()
         openPanel.title = "Open WatchMotion Editor Project"
         openPanel.canChooseFiles = true
@@ -585,9 +605,22 @@ final class MacHomeViewModel {
         }
 
         do {
-            let workspace = try workspaceManager.createProjectWorkspace(packageURL: packageURL)
+            isProcessingProject = true
+            projectOperationStatus = "Processing Project…"
+            defer { isProcessingProject = false; cancelProjectWork = nil }
+            let projectsRoot = workspaceManager.projectsRootURL
+            let access = packageURL.startAccessingSecurityScopedResource()
+            defer { if access { packageURL.stopAccessingSecurityScopedResource() } }
+            let worker = Task.detached(priority: .userInitiated) {
+                try ReceiverProjectPackageService.openProjectWorkspace(packageURL: packageURL, projectsRootURL: projectsRoot)
+            }
+            cancelProjectWork = { worker.cancel() }
+            let workspace = try await worker.value
             projectPackageMessage = "Opened project in a new window.\n\(workspace.displayName)"
             return ReceiverProjectWindowRequest(workspace: workspace)
+        } catch is CancellationError {
+            projectPackageMessage = "Open canceled. Existing projects were kept."
+            return nil
         } catch {
             errorMessage = "Failed to open project: \(error.localizedDescription)"
             return nil

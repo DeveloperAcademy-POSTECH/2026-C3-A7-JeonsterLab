@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AABB00212FBE10000098CE69 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = AABB00222FBE10000098CE69 /* ZIPFoundation */; };
 		D37ECEDC2FBD9EB80098CE69 /* WatchMotion Editor.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D37ECED22FBD9EB70098CE69 /* WatchMotion Editor.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -130,6 +131,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AABB00212FBE10000098CE69 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -225,6 +227,7 @@
 			);
 			name = "JeonstarLab Mac";
 			packageProductDependencies = (
+				AABB00222FBE10000098CE69 /* ZIPFoundation */,
 			);
 			productName = "WatchMotion Editor";
 			productReference = D37ECF002FBE00000098CE69 /* WatchMotion Editor.app */;
@@ -260,6 +263,9 @@
 			);
 			mainGroup = D37ECEB72FBD9E350098CE69;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AABB00232FBE10000098CE69 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D37ECEC12FBD9E350098CE69 /* Products */;
 			projectDirPath = "";
@@ -694,6 +700,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AABB00232FBE10000098CE69 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.9.20;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AABB00222FBE10000098CE69 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AABB00232FBE10000098CE69 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D37ECEB82FBD9E350098CE69 /* Project object */;
 }

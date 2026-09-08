@@ -1,4 +1,5 @@
 import Foundation
+import ZIPFoundation
 
 @main
 struct ProjectSettingsSmokeTests {
@@ -99,6 +100,50 @@ struct ProjectSettingsSmokeTests {
         defaults.set(false, forKey: ProjectExportPreferences.timestampKey)
         defaults.set("zip", forKey: ProjectExportPreferences.formatKey)
         precondition(ProjectExportPreferences.fileName(defaults: defaults) == "_My_Project.zip")
+        // Reject hostile paths, symlinks, duplicate names and damaged payloads before committing a workspace.
+        for (index, path) in ["../escaped.txt", "/absolute.txt", "nested/../../escaped.txt", "nested\\escape", "link"].enumerated() {
+            let malicious = root.appendingPathComponent("unsafe-\(index).zip")
+            let archive = try Archive(url: malicious, accessMode: .create)
+            let bytes = Data("payload".utf8)
+            try archive.addEntry(with: path, type: path == "link" ? .symlink : .file,
+                uncompressedSize: Int64(bytes.count)) { offset, length in
+                bytes.subdata(in: Int(offset)..<(Int(offset) + length))
+            }
+            requireThrows { _ = try ReceiverProjectPackageService.openProjectWorkspace(packageURL: malicious,
+                projectsRootURL: root.appendingPathComponent("unsafe-opened")) }
+        }
+        let corrupted = root.appendingPathComponent("corrupt.zip")
+        do {
+            let archive = try Archive(url: corrupted, accessMode: .create)
+            let bytes = Data("unique-corruption-fixture".utf8)
+            try archive.addEntry(with: "recordings/data.txt", type: .file,
+                uncompressedSize: Int64(bytes.count)) { offset, length in
+                bytes.subdata(in: Int(offset)..<(Int(offset) + length))
+            }
+        }
+        var damagedBytes = try Data(contentsOf: corrupted)
+        let payloadRange = damagedBytes.range(of: Data("unique-corruption-fixture".utf8))!
+        damagedBytes[payloadRange.lowerBound] ^= 1
+        try damagedBytes.write(to: corrupted)
+        do {
+            _ = try ReceiverProjectPackageService.openProjectWorkspace(packageURL: corrupted,
+                projectsRootURL: root.appendingPathComponent("corrupt-opened"))
+            fatalError("Damaged checksum accepted")
+        } catch { precondition(error.localizedDescription.contains("checksum")) }
+        precondition(!fm.fileExists(atPath: root.appendingPathComponent("escaped.txt").path))
+        precondition(!fm.fileExists(atPath: root.appendingPathComponent("unsafe-opened").path))
+        let protectedArchive = root.appendingPathComponent("protected.watchmotion")
+        let originalArchive = Data("existing export must survive a failed replacement".utf8)
+        try originalArchive.write(to: protectedArchive)
+        let link = folder.appendingPathComponent("unsafe-link")
+        try fm.createSymbolicLink(at: link, withDestinationURL: folder.appendingPathComponent("recording.csv"))
+        requireThrows {
+            _ = try ReceiverProjectPackageService.exportProject(recordingsRootURL: recordings,
+                foldersRootURL: recordings, workspaceName: "Unsafe", folders: [], outputURL: protectedArchive)
+        }
+        let preservedArchive = try Data(contentsOf: protectedArchive)
+        precondition(preservedArchive == originalArchive)
+
         print("PASS: label identity, legacy decoding, validation, project isolation, archive round trips, original CSV, export naming")
         print("Isolated UI workspace: \(recordings.path)")
     }

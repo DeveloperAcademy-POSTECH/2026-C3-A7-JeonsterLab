@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import Darwin
 
 @main
 struct JeonstarLabMacApp: App {
@@ -12,6 +13,9 @@ struct JeonstarLabMacApp: App {
     init() {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
+        if args.contains("--sandbox-smoke") {
+            exit(SandboxSmokeCheck.run() ? 0 : 1)
+        }
         if let index = args.firstIndex(of: "--ui-workspace"), args.indices.contains(index + 1) {
             let root = URL(fileURLWithPath: args[index + 1], isDirectory: true)
             let workspace = ReceiverWorkspace(id: root.path, name: "UI Verification",

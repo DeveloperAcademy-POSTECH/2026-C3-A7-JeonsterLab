@@ -27,8 +27,8 @@ struct MacHomeView: View {
 
                     if viewModel.canOpenProjectPackage {
                         Button {
-                            if let request = viewModel.makeProjectWindowRequest() {
-                                openWindow(value: request)
+                            Task {
+                                if let request = await viewModel.makeProjectWindowRequest() { openWindow(value: request) }
                             }
                         } label: {
                             Label("Open Project", systemImage: "plus")
@@ -223,11 +223,22 @@ struct MacHomeView: View {
             ToolbarItem { EditorAppearanceMenu() }
             ToolbarItem {
                 Button {
-                    viewModel.exportReceiverProjectPackage()
+                    Task { await viewModel.exportReceiverProjectPackage() }
                 } label: {
                     Label("Export Project", systemImage: "square.and.arrow.up")
                 }
                 .help("Export WatchMotion Editor Project")
+            }
+        }
+        .disabled(viewModel.isProcessingProject)
+        .overlay {
+            if viewModel.isProcessingProject {
+                VStack(spacing: 16) {
+                    ProgressView(viewModel.projectOperationStatus)
+                    Button("Cancel") { viewModel.cancelProjectOperation() }
+                }
+                    .padding(24)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
             }
         }
         .environment(\.projectLabelOptions, viewModel.labelCatalog.activeLabels)
@@ -383,7 +394,7 @@ struct MacHomeView: View {
                     .disabled(viewModel.isAdvertising)
                     if viewModel.canOpenProjectPackage {
                         Button("Open Project…") {
-                            if let request = viewModel.makeProjectWindowRequest() { openWindow(value: request) }
+                            Task { if let request = await viewModel.makeProjectWindowRequest() { openWindow(value: request) } }
                         }
                     }
                 }

@@ -4,8 +4,9 @@
 //
 
 import Foundation
+import ZIPFoundation
 
-enum ReceiverProjectPackageError: LocalizedError {
+nonisolated enum ReceiverProjectPackageError: LocalizedError {
     case missingManifest
     case unsupportedVersion(Int)
     case missingRecordingsDirectory
@@ -28,7 +29,7 @@ enum ReceiverProjectPackageError: LocalizedError {
     }
 }
 
-enum ReceiverProjectPackageService {
+nonisolated enum ReceiverProjectPackageService {
     private static let manifestFileName = "project_manifest.json"
     private static let recordingsDirectoryName = "recordings"
     private static let foldersDirectoryName = "folders"
@@ -70,6 +71,7 @@ enum ReceiverProjectPackageService {
 
         let recordingURLs = try receivedRecordingDirectories(in: recordingsRootURL)
         for recordingURL in recordingURLs {
+            try Task.checkCancellation()
             try copyDirectory(
                 from: recordingURL,
                 to: recordingsURL.appendingPathComponent(recordingURL.lastPathComponent, isDirectory: true)
@@ -93,13 +95,11 @@ enum ReceiverProjectPackageService {
             to: projectURL.appendingPathComponent("project_info.json")
         )
 
-        try runDitto(arguments: ["-c", "-k", "--sequesterRsrc", stagingURL.path, archiveURL.path])
+        try createArchive(from: stagingURL, at: archiveURL)
 
         let finalOutputURL = normalizedProjectPackageURL(outputURL)
-        if fileManager.fileExists(atPath: finalOutputURL.path) {
-            try fileManager.removeItem(at: finalOutputURL)
-        }
-        try fileManager.moveItem(at: archiveURL, to: finalOutputURL)
+        try Task.checkCancellation()
+        try Data(contentsOf: archiveURL, options: .mappedIfSafe).write(to: finalOutputURL, options: .atomic)
 
         return ReceiverProjectPackageReport(
             recordingCount: recordingURLs.count,
@@ -122,7 +122,7 @@ enum ReceiverProjectPackageService {
         }
 
         try fileManager.createDirectory(at: extractionURL, withIntermediateDirectories: true)
-        try runDitto(arguments: ["-x", "-k", packageURL.path, extractionURL.path])
+        try extractSafely(packageURL, to: extractionURL)
 
         let manifestURL = extractionURL.appendingPathComponent(manifestFileName)
         guard fileManager.fileExists(atPath: manifestURL.path) else {
@@ -152,6 +152,8 @@ enum ReceiverProjectPackageService {
         }
 
         try fileManager.createDirectory(at: workspaceRootURL, withIntermediateDirectories: true)
+        var committed = false
+        defer { if !committed { try? fileManager.removeItem(at: workspaceRootURL) } }
         try fileManager.copyItem(
             at: manifestURL,
             to: workspaceRootURL.appendingPathComponent(manifestFileName)
@@ -177,6 +179,30 @@ enum ReceiverProjectPackageService {
             )
         }
 
+        let savedFoldersURL = workspaceFoldersURL.appendingPathComponent(foldersFileName)
+        if fileManager.fileExists(atPath: savedFoldersURL.path) {
+            var folders = try readJSON([SnapFolder].self, from: savedFoldersURL)
+            for index in folders.indices {
+                for item in folders[index].items {
+                    guard !item.packageFolderName.isEmpty, item.packageFolderName != ".",
+                        item.packageFolderName != "..", !item.packageFolderName.contains("/"),
+                        !item.packageFolderName.contains("\\") else {
+                        throw ReceiverProjectPackageError.processFailed("Unsafe recording reference in project.")
+                    }
+                    for path in [item.segmentCSVRelativePath, item.segmentMetadataRelativePath].compactMap({ $0 }) {
+                        guard !path.hasPrefix("/"), !path.contains("\\"), !path.split(separator: "/").contains("..") else {
+                            throw ReceiverProjectPackageError.processFailed("Unsafe segment reference in project.")
+                        }
+                    }
+                }
+                folders[index].items = folders[index].items.map {
+                    remappedFolderItem($0, destinationRootURL: workspaceRootURL.appendingPathComponent(recordingsDirectoryName), packageNameMap: [:])
+                }
+            }
+            try writeJSON(folders, to: savedFoldersURL)
+        }
+        try Task.checkCancellation()
+        committed = true
         return ReceiverWorkspace(
             id: workspaceRootURL.path,
             name: projectName,
@@ -202,7 +228,7 @@ enum ReceiverProjectPackageService {
         }
 
         try fileManager.createDirectory(at: extractionURL, withIntermediateDirectories: true)
-        try runDitto(arguments: ["-x", "-k", packageURL.path, extractionURL.path])
+        try extractSafely(packageURL, to: extractionURL)
 
         let manifestURL = extractionURL.appendingPathComponent(manifestFileName)
         guard fileManager.fileExists(atPath: manifestURL.path) else {
@@ -314,6 +340,7 @@ enum ReceiverProjectPackageService {
         let packageFolderName = packageNameMap[item.packageFolderName] ?? item.packageFolderName
         let packageFolderURL = destinationRootURL.appendingPathComponent(packageFolderName, isDirectory: true)
         return SnapFolderItem(
+            itemID: item.itemID,
             snapID: item.snapID,
             recordingID: item.recordingID,
             packageFolderName: packageFolderName,
@@ -351,6 +378,9 @@ enum ReceiverProjectPackageService {
 
     private static func copyDirectory(from sourceURL: URL, to destinationURL: URL) throws {
         let fileManager = FileManager.default
+        guard try sourceURL.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink != true else {
+            throw ReceiverProjectPackageError.unsafeDestination(sourceURL)
+        }
         try fileManager.createDirectory(at: destinationURL, withIntermediateDirectories: true)
         let keys: Set<URLResourceKey> = [.isDirectoryKey]
         let children = try fileManager.contentsOfDirectory(
@@ -360,6 +390,10 @@ enum ReceiverProjectPackageService {
         )
 
         for child in children where !shouldExclude(child) {
+            try Task.checkCancellation()
+            guard try child.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink != true else {
+                throw ReceiverProjectPackageError.unsafeDestination(child)
+            }
             let destinationChild = destinationURL.appendingPathComponent(child.lastPathComponent)
             if (try? child.resourceValues(forKeys: keys).isDirectory) == true {
                 try copyDirectory(from: child, to: destinationChild)
@@ -428,26 +462,116 @@ enum ReceiverProjectPackageService {
     }
 
     private static func readJSON<T: Decodable>(_ type: T.Type, from url: URL) throws -> T {
+        guard (try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) <= 16 * 1024 * 1024 else {
+            throw ReceiverProjectPackageError.processFailed("Project metadata exceeds the safety limit.")
+        }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(type, from: Data(contentsOf: url))
     }
 
-    private static func runDitto(arguments: [String]) throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-        process.arguments = arguments
+    private static func extractSafely(_ source: URL, to destination: URL) throws {
+        let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        guard size > 0, size <= 512 * 1024 * 1024 else {
+            throw ReceiverProjectPackageError.processFailed("Project archive exceeds the 512 MB limit.")
+        }
+        let archive = try Archive(url: source, accessMode: .read)
+        var paths = Set<String>()
+        var entries: [(Entry, URL)] = []
+        var declaredSize: UInt64 = 0
+        for entry in archive {
+            try Task.checkCancellation()
+            let parts = entry.path.split(separator: "/").filter { $0 != "." }
+            guard !entry.path.hasPrefix("/"), !entry.path.contains("\\"),
+                !entry.path.contains("\0"), !parts.contains(".."), entry.type != .symlink,
+                entry.uncompressedSize <= 2_000_000_000, entries.count < 20_000 else {
+                throw ReceiverProjectPackageError.processFailed("Unsafe entry in project archive.")
+            }
+            if parts.isEmpty, entry.type == .directory { continue } // Legacy ditto root entry.
+            let relative = parts.joined(separator: "/")
+            guard !relative.isEmpty,
+                paths.insert(relative.precomposedStringWithCanonicalMapping.lowercased()).inserted else {
+                throw ReceiverProjectPackageError.processFailed("Duplicate or empty archive path.")
+            }
+            declaredSize += entry.uncompressedSize
+            guard declaredSize <= 2_000_000_000 else {
+                throw ReceiverProjectPackageError.processFailed("Project expands beyond the 2 GB safety limit.")
+            }
+            let target = destination.appendingPathComponent(relative)
+            guard isChild(target, of: destination) else { throw ReceiverProjectPackageError.unsafeDestination(target) }
+            entries.append((entry, target))
+        }
+        guard !entries.isEmpty else { throw ReceiverProjectPackageError.missingManifest }
+        var totalWritten: UInt64 = 0
+        for (entry, target) in entries {
+            try Task.checkCancellation()
+            if entry.type == .directory {
+                guard entry.uncompressedSize == 0 else { throw CocoaError(.fileReadCorruptFile) }
+                try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+                continue
+            }
+            try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+            guard FileManager.default.createFile(atPath: target.path, contents: nil) else { throw CocoaError(.fileWriteUnknown) }
+            let handle = try FileHandle(forWritingTo: target)
+            defer { try? handle.close() }
+            var written: UInt64 = 0
+            let checksum = try archive.extract(entry, bufferSize: 64 * 1024) { chunk in
+                try Task.checkCancellation()
+                written += UInt64(chunk.count)
+                totalWritten += UInt64(chunk.count)
+                guard written <= entry.uncompressedSize, totalWritten <= 2_000_000_000 else {
+                    throw CocoaError(.fileReadCorruptFile)
+                }
+                try handle.write(contentsOf: chunk)
+            }
+            guard checksum == entry.checksum, written == entry.uncompressedSize else {
+                throw ReceiverProjectPackageError.processFailed("Project archive is damaged (checksum mismatch).")
+            }
+        }
+    }
 
-        let errorPipe = Pipe()
-        process.standardError = errorPipe
-
-        try process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else {
-            let data = errorPipe.fileHandleForReading.readDataToEndOfFile()
-            let message = String(data: data, encoding: .utf8) ?? "Failed to run ditto."
-            throw ReceiverProjectPackageError.processFailed(message)
+    private static func createArchive(from root: URL, at output: URL) throws {
+        let root = root.resolvingSymlinksInPath().standardizedFileURL
+        let archive = try Archive(url: output, accessMode: .create)
+        guard let enumerator = FileManager.default.enumerator(at: root,
+            includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey]) else {
+            throw CocoaError(.fileReadUnknown)
+        }
+        var total: Int64 = 0
+        var count = 0
+        for case let file as URL in enumerator {
+            try Task.checkCancellation()
+            let info = try file.resourceValues(forKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+            count += 1
+            guard info.isSymbolicLink != true, count <= 20_000 else { throw ReceiverProjectPackageError.unsafeDestination(file) }
+            let file = file.resolvingSymlinksInPath().standardizedFileURL
+            guard file.pathComponents.starts(with: root.pathComponents) else {
+                throw ReceiverProjectPackageError.unsafeDestination(file)
+            }
+            let relative = file.pathComponents.dropFirst(root.pathComponents.count).joined(separator: "/")
+            if info.isDirectory == true {
+                try archive.addEntry(with: relative, relativeTo: root)
+            } else {
+                guard info.isRegularFile == true else { throw ReceiverProjectPackageError.unsafeDestination(file) }
+                let size = Int64(info.fileSize ?? 0)
+                total += size
+                guard total <= 2_000_000_000 else {
+                    throw ReceiverProjectPackageError.processFailed("Split this project before exporting: the limit is 2 GB.")
+                }
+                let handle = try FileHandle(forReadingFrom: file)
+                defer { try? handle.close() }
+                try archive.addEntry(with: relative, type: .file, uncompressedSize: size,
+                    compressionMethod: .deflate, bufferSize: 64 * 1024) { position, length in
+                    try Task.checkCancellation()
+                    try handle.seek(toOffset: UInt64(position))
+                    let data = try handle.read(upToCount: length) ?? Data()
+                    guard data.count == length else { throw CocoaError(.fileReadCorruptFile) }
+                    return data
+                }
+            }
+        }
+        guard (try output.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) <= 512 * 1024 * 1024 else {
+            throw ReceiverProjectPackageError.processFailed("Split this project before exporting: the archive limit is 512 MB.")
         }
     }
 

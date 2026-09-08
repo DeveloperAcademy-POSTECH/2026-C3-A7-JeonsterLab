@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 /// Stable identity with a portable display snapshot. Legacy string values still decode.
-struct RecordingPackageLabel: Codable, Identifiable, Hashable {
+nonisolated struct RecordingPackageLabel: Codable, Identifiable, Hashable {
     let rawValue: String
     var displayName: String
     var colorHex: String

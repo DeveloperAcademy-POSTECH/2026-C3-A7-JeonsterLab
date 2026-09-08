@@ -1,14 +1,14 @@
 import Foundation
 import SwiftUI
 
-struct ProjectLabelDefinition: Codable, Identifiable {
+nonisolated struct ProjectLabelDefinition: Codable, Identifiable {
     var label: RecordingPackageLabel
     var shortcut: Int?
     var isArchived = false
     var id: String { label.id }
 }
 
-struct ProjectLabelCatalog: Codable {
+nonisolated struct ProjectLabelCatalog: Codable {
     static let fileName = "project_labels.json"
     var labels: [ProjectLabelDefinition]
     static var legacy: Self {
@@ -66,7 +66,7 @@ struct ProjectLabelCatalog: Codable {
 }
 
 extension Notification.Name {
-    static let projectLabelsDidChange = Notification.Name("WatchMotionEditor.projectLabelsDidChange")
+    nonisolated static let projectLabelsDidChange = Notification.Name("WatchMotionEditor.projectLabelsDidChange")
 }
 
 private struct ProjectLabelOptionsKey: EnvironmentKey {

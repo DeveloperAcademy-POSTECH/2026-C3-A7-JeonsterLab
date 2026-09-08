@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum SnapEventSourceType: String, Codable, Equatable {
+nonisolated enum SnapEventSourceType: String, Codable, Equatable {
     case automatic
     case manual
 
