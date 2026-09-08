@@ -1,0 +1,87 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ samples" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Check saved files before starting a new recording." : {
+
+    },
+    "Collapsed" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete Saved Recording" : {
+
+    },
+    "Delete this saved recording?" : {
+
+    },
+    "Elapsed recording time" : {
+
+    },
+    "Expanded" : {
+
+    },
+    "Files stay here until your iPhone confirms they were imported." : {
+
+    },
+    "Keep this app open.\nLeaving it saves and stops recording." : {
+
+    },
+    "No Saved Files" : {
+
+    },
+    "No motion samples were saved. You can delete this empty recording." : {
+
+    },
+    "Queued for iPhone.\nDelivery may take a moment." : {
+
+    },
+    "Resend" : {
+
+    },
+    "Resend Saved Recording" : {
+
+    },
+    "Saved Files" : {
+
+    },
+    "Saved Recording" : {
+
+    },
+    "Saved on Watch" : {
+
+    },
+    "Saved on Watch, %lld recordings" : {
+
+    },
+    "Saves the recording and queues it for iPhone." : {
+
+    },
+    "Session ID unavailable. This file cannot be resent." : {
+
+    },
+    "Shows file details, resend, and delete actions." : {
+
+    },
+    "This removes the recording from your Watch. If it has not been saved on your iPhone, it cannot be recovered." : {
+
+    },
+    "Transfer queued for iPhone" : {
+
+    },
+    "Waiting for file transfer" : {
+
+    },
+    "WatchMotion" : {
+
+    }
+  },
+  "version" : "1.0"
+}

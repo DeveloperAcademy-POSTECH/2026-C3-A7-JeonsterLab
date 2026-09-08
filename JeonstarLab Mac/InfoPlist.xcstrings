@@ -1,0 +1,39 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "The name displayed below the app icon.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WatchMotion Editor"
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription" : {
+      "comment" : "Explains why the Mac app needs access to the local network.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local network access is used to receive motion recordings from the nearby iPhone app."
+          }
+        }
+      }
+    },
+    "UTTypeDescription" : {
+      "comment" : "The document type description shown by macOS.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WatchMotion Editor Project"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

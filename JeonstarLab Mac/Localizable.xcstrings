@@ -1,0 +1,626 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ samples · %@ snaps · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ samples · %2$@ snaps · %3$@"
+          }
+        }
+      }
+    },
+    "%@ · %@ samples" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ samples"
+          }
+        }
+      }
+    },
+    "%@ · Received %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · Received %2$@"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@"
+          }
+        }
+      }
+    },
+    "%lld of 3" : {
+
+    },
+    "%lld snaps" : {
+
+    },
+    "Add Label" : {
+
+    },
+    "Add snap notes…" : {
+
+    },
+    "Adjust the boundaries if needed, then confirm. The segment starts without a label." : {
+
+    },
+    "Adjust the range so it does not overlap an existing snap." : {
+
+    },
+    "Age Group" : {
+
+    },
+    "All suggestions reviewed." : {
+
+    },
+    "Always included to identify and label each sample." : {
+
+    },
+    "Analysis stopped at 2,000 suggestions. Split long recordings for further review." : {
+
+    },
+    "Analyze Again" : {
+
+    },
+    "App Settings…" : {
+
+    },
+    "Appearance" : {
+
+    },
+    "Appearance: System, Light, or Dark" : {
+
+    },
+    "Append date and time" : {
+
+    },
+    "Apple Watch to iPhone to Mac" : {
+
+    },
+    "Archived" : {
+
+    },
+    "Auto Segments" : {
+
+    },
+    "Axis" : {
+
+    },
+    "Back" : {
+
+    },
+    "Both project formats contain the same ZIP-based project. Older .jeonstarlab projects can still be opened. CSV datasets remain .csv and metadata remains .json." : {
+
+    },
+    "Build Your Dataset" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Cancel Edit" : {
+
+    },
+    "Changes apply to this project. Archived labels stay on saved annotations. Number shortcuts work while the label menu is open; custom names appear in future CSV exports." : {
+
+    },
+    "Choose a label before adding this snap to a folder." : {
+
+    },
+    "Choose which columns to include in your CSV dataset." : {
+
+    },
+    "Clear Selection" : {
+
+    },
+    "Click a suggestion to review · Drag to select or resize · Space-drag to pan" : {
+
+    },
+    "Color" : {
+
+    },
+    "Color for %@" : {
+
+    },
+    "Confidence" : {
+
+    },
+    "Confirm Segment" : {
+
+    },
+    "Dashed ranges are suggestions. Review and confirm them before adding them to a dataset." : {
+
+    },
+    "Default project name" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete Snap" : {
+
+    },
+    "Delete snap" : {
+
+    },
+    "Delete this recording?" : {
+
+    },
+    "Delete this snap?" : {
+
+    },
+    "Detection Mode" : {
+
+    },
+    "Discard unsaved changes and reload labels from this project" : {
+
+    },
+    "Dismiss Segment %lld" : {
+
+    },
+    "Dismiss this suggestion; keep the original recording" : {
+
+    },
+    "Dominant Hand" : {
+
+    },
+    "Drag across a chart to select a manual snap range." : {
+
+    },
+    "Duration" : {
+
+    },
+    "Edit Recording Name" : {
+
+    },
+    "Edit Snap Range" : {
+
+    },
+    "Experience" : {
+
+    },
+    "Export" : {
+
+    },
+    "Export CSV" : {
+
+    },
+    "Export Create ML" : {
+
+    },
+    "Export Dataset" : {
+
+    },
+    "Export Project" : {
+
+    },
+    "Export WatchMotion Editor Project" : {
+
+    },
+    "File Status" : {
+
+    },
+    "File name" : {
+
+    },
+    "Fit All" : {
+
+    },
+    "Fit Selection" : {
+
+    },
+    "Folder" : {
+
+    },
+    "Folder Name" : {
+
+    },
+    "Folders" : {
+
+    },
+    "Gender" : {
+
+    },
+    "General" : {
+
+    },
+    "Generate Segments" : {
+
+    },
+    "Get Started" : {
+
+    },
+    "Getting Started" : {
+
+    },
+    "Green marks the original range; blue marks your proposed range." : {
+
+    },
+    "Height (cm)" : {
+
+    },
+    "In %@" : {
+
+    },
+    "Keep Wi-Fi and Bluetooth enabled. Allow local network access on both devices." : {
+
+    },
+    "Label" : {
+
+    },
+    "Label Settings Help" : {
+
+    },
+    "Label name" : {
+
+    },
+    "Label settings travel with exported projects. Appearance and export defaults apply to this Mac." : {
+
+    },
+    "Labels and notes are saved automatically." : {
+
+    },
+    "Loading CSV" : {
+
+    },
+    "Missing Segments" : {
+
+    },
+    "Motion Data Unavailable" : {
+
+    },
+    "Move label down" : {
+
+    },
+    "Move label up" : {
+
+    },
+    "Move the range or drag its handles on the chart to edit it." : {
+
+    },
+    "Name or Nickname" : {
+
+    },
+    "New Folder" : {
+
+    },
+    "Next" : {
+
+    },
+    "No folders yet." : {
+
+    },
+    "No new activity ranges found. You can still select a range manually." : {
+
+    },
+    "No pinned recordings." : {
+
+    },
+    "No range information" : {
+
+    },
+    "No recordings yet." : {
+
+    },
+    "No snaps yet." : {
+
+    },
+    "None" : {
+
+    },
+    "Not Generated" : {
+
+    },
+    "Not added to a folder." : {
+
+    },
+    "Not set" : {
+
+    },
+    "Notes" : {
+
+    },
+    "OK" : {
+
+    },
+    "Open Project" : {
+
+    },
+    "Open Project…" : {
+
+    },
+    "Open Recording" : {
+
+    },
+    "Open WatchMotion Editor Project" : {
+
+    },
+    "Open in New Window" : {
+
+    },
+    "Organize labeled snaps into a dataset. Generate segment files before exporting, or export directly from the source recordings." : {
+
+    },
+    "Original Snap End" : {
+
+    },
+    "Original Snap Start" : {
+
+    },
+    "Participant Information" : {
+
+    },
+    "Pin Recording" : {
+
+    },
+    "Pinned" : {
+
+    },
+    "Pinned Recordings" : {
+
+    },
+    "Project Labels" : {
+
+    },
+    "Project Labels…" : {
+
+    },
+    "Project Settings" : {
+
+    },
+    "Project format" : {
+
+    },
+    "Project labels saved." : {
+
+    },
+    "Receive recordings from your iPhone, select motion segments,\nand turn them into labeled datasets." : {
+
+    },
+    "Received" : {
+
+    },
+    "Received Recordings" : {
+
+    },
+    "Receiving…" : {
+
+    },
+    "Recorded" : {
+
+    },
+    "Recording Detail" : {
+
+    },
+    "Recording Information" : {
+
+    },
+    "Recording Name" : {
+
+    },
+    "Refresh" : {
+
+    },
+    "Refresh recordings" : {
+
+    },
+    "Reload" : {
+
+    },
+    "Remove from Folder" : {
+
+    },
+    "Restore Export Defaults" : {
+
+    },
+    "Samples" : {
+
+    },
+    "Save" : {
+
+    },
+    "Save Snap" : {
+
+    },
+    "Saved" : {
+
+    },
+    "Saved Snap End" : {
+
+    },
+    "Saved Snap Start" : {
+
+    },
+    "Search recordings" : {
+
+    },
+    "Segment" : {
+
+    },
+    "Segment %lld" : {
+
+    },
+    "Segment File" : {
+
+    },
+    "Segment saved" : {
+
+    },
+    "Select a range on a chart, then save it as a snap." : {
+
+    },
+    "Select a snap in a recording, assign a label, then add it to this folder." : {
+
+    },
+    "Select snap %@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Select snap %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "Select this snap to edit its label, notes, and range" : {
+
+    },
+    "Selected Range" : {
+
+    },
+    "Selected Snap" : {
+
+    },
+    "Selection End" : {
+
+    },
+    "Selection Start" : {
+
+    },
+    "Selections are remembered for your next export." : {
+
+    },
+    "Settings" : {
+
+    },
+    "Shortcut" : {
+
+    },
+    "Show Saved Snaps" : {
+
+    },
+    "Show Tutorial" : {
+
+    },
+    "Show in Finder" : {
+
+    },
+    "Show received recordings in Finder" : {
+
+    },
+    "Skip" : {
+
+    },
+    "Snap %@" : {
+
+    },
+    "Snap Events" : {
+
+    },
+    "Sort" : {
+
+    },
+    "Source Missing" : {
+
+    },
+    "Source recording unavailable." : {
+
+    },
+    "Start Receiving" : {
+
+    },
+    "Stop Receiving" : {
+
+    },
+    "Suggest Segments" : {
+
+    },
+    "Suggested End" : {
+
+    },
+    "Suggested Segment" : {
+
+    },
+    "Suggested Start" : {
+
+    },
+    "The selected snap's start and end times will be replaced.\nThis action cannot be undone." : {
+
+    },
+    "This range overlaps another snap." : {
+
+    },
+    "This recording package will be removed from this Mac.\nThis action cannot be undone." : {
+
+    },
+    "This snap will be removed from the recording.\nThis action cannot be undone." : {
+
+    },
+    "Time" : {
+
+    },
+    "Time (s)" : {
+
+    },
+    "Unable to open the project workspace." : {
+
+    },
+    "Unable to open this recording." : {
+
+    },
+    "Unpin Recording" : {
+
+    },
+    "Update" : {
+
+    },
+    "Update Snap" : {
+
+    },
+    "Update this snap range?" : {
+
+    },
+    "Use Settings → Project Labels in a workspace toolbar to edit that project's labels, colors, order, and shortcuts." : {
+
+    },
+    "WatchMotion\nEditor" : {
+
+    },
+    "WatchMotion Editor" : {
+
+    },
+    "WatchMotion Editor Project" : {
+
+    },
+    "WatchMotion Editor — Project" : {
+
+    },
+    "Your motion. Ready to explore." : {
+
+    },
+    "Zoom In" : {
+
+    },
+    "Zoom Out" : {
+
+    },
+    "Zoom in" : {
+
+    },
+    "Zoom out" : {
+
+    },
+    "e.g. 174" : {
+
+    },
+    "snapID: %@" : {
+
+    }
+  },
+  "version" : "1.0"
+}

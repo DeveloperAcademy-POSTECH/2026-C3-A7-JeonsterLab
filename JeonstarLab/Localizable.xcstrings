@@ -1,0 +1,244 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@, three axes, %lld motion samples" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, three axes, %2$lld motion samples"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld of 3" : {
+
+    },
+    "%lld possible snaps" : {
+
+    },
+    "%lld samples" : {
+
+    },
+    "Add notes about this recording." : {
+
+    },
+    "Auto-send New Recordings" : {
+
+    },
+    "Automatic Transfer" : {
+
+    },
+    "Axis" : {
+
+    },
+    "Back" : {
+
+    },
+    "Before Connecting" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Connect" : {
+
+    },
+    "Connection Help" : {
+
+    },
+    "Connection Settings" : {
+
+    },
+    "Date" : {
+
+    },
+    "Detected Flips" : {
+
+    },
+    "Dominant Axis" : {
+
+    },
+    "Done" : {
+
+    },
+    "Drag to rotate the 3D chart." : {
+
+    },
+    "Duration" : {
+
+    },
+    "Edit recording notes" : {
+
+    },
+    "Export failed" : {
+
+    },
+    "Failed to save notes: %@" : {
+
+    },
+    "Find Mac" : {
+
+    },
+    "Get Started" : {
+
+    },
+    "Getting Started" : {
+
+    },
+    "Help" : {
+
+    },
+    "Later" : {
+
+    },
+    "Loading motion data…" : {
+
+    },
+    "Mac Connection" : {
+
+    },
+    "Motion Preview" : {
+
+    },
+    "Next" : {
+
+    },
+    "No Motion Samples" : {
+
+    },
+    "No Recordings" : {
+
+    },
+    "No Snaps" : {
+
+    },
+    "No possible flipping snaps were found." : {
+
+    },
+    "Notes" : {
+
+    },
+    "OK" : {
+
+    },
+    "On Mac, choose Start Receiving and approve this iPhone. Keep Wi-Fi and Bluetooth enabled, and allow local network access." : {
+
+    },
+    "Open the Watch app and keep it near your iPhone." : {
+
+    },
+    "Opening Recordings" : {
+
+    },
+    "Pitch Range" : {
+
+    },
+    "Record" : {
+
+    },
+    "Recording Detail" : {
+
+    },
+    "Recording Information" : {
+
+    },
+    "Recording Not Imported" : {
+
+    },
+    "Recordings" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Review the recording here. Select segments and build labeled datasets on your Mac." : {
+
+    },
+    "Roll Range" : {
+
+    },
+    "Samples" : {
+
+    },
+    "Save" : {
+
+    },
+    "Send to Mac" : {
+
+    },
+    "Sending another recording…" : {
+
+    },
+    "Sends new Watch recordings while connected. Existing recordings are not sent automatically." : {
+
+    },
+    "Sensor" : {
+
+    },
+    "Share Original Files" : {
+
+    },
+    "Show Tutorial" : {
+
+    },
+    "Skip" : {
+
+    },
+    "Snap Range" : {
+
+    },
+    "Start a recording on your Watch or use the Watch controls above." : {
+
+    },
+    "Stop" : {
+
+    },
+    "Stop Searching" : {
+
+    },
+    "This recording has no samples to preview." : {
+
+    },
+    "Time" : {
+
+    },
+    "Time (s)" : {
+
+    },
+    "Transfer to Mac" : {
+
+    },
+    "Try Again" : {
+
+    },
+    "Unable to Load Motion" : {
+
+    },
+    "Unable to Open Recordings" : {
+
+    },
+    "Watch Connected" : {
+
+    },
+    "Watch Controls" : {
+
+    },
+    "Watch Not Connected" : {
+
+    },
+    "Yaw Range" : {
+
+    },
+    "You can also use the share button to export the original files." : {
+
+    },
+    "Your saved files have not been deleted. Free some storage if needed, then retry.\n%@" : {
+
+    }
+  },
+  "version" : "1.0"
+}
