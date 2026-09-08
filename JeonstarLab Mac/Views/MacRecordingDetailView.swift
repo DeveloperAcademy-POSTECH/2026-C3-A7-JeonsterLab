@@ -6,6 +6,10 @@
 import SwiftUI
 
 struct MacRecordingDetailView: View {
+    @Environment(\.trialWorkspaceID) private var trialWorkspaceID
+    private var canEdit: Bool {
+        EditorPurchaseStore.shared.canEdit(workspace: trialWorkspaceID, recording: package.trialRecordingID)
+    }
     @Binding var package: ReceivedRecordingPackage
     let folders: [SnapFolder]
     let folderForEvent: (ReceivedRecordingPackage, WorkingSnapEvent) -> SnapFolder?
@@ -64,6 +68,17 @@ struct MacRecordingDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     titleHeader
+                    if !canEdit {
+                        HStack {
+                            Text("Preview mode · Trial includes 3 recordings and 1 dataset export.")
+                                .font(.caption).foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Enable Editing") {
+                                _ = EditorPurchaseStore.shared.admit(workspace: trialWorkspaceID, recordings: [package.trialRecordingID])
+                            }.buttonStyle(.borderedProminent)
+                                .disabled(EditorPurchaseStore.shared.isChecking)
+                        }
+                    }
                     Text("\(package.recordingDateText) · \(package.sampleCountText) samples")
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -79,6 +94,7 @@ struct MacRecordingDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     selectionPanel
+                        .disabled(!canEdit)
                     if let event = package.workingSnapEvents.first(where: { $0.snapID == editDraft?.snapID }) {
                         snapList([event], inspector: true)
                             .padding(.horizontal, 14)
@@ -90,6 +106,7 @@ struct MacRecordingDetailView: View {
                     }
                     DisclosureGroup("Participant Information") {
                         participantInfoCard.padding(.top, 12)
+                            .disabled(!canEdit)
                     }
                     if !package.parseMessages.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
@@ -224,7 +241,8 @@ struct MacRecordingDetailView: View {
             onSelect: selectSnapEvent(_:),
             onDelete: requestDeleteSnapEvent(_:),
             isInspector: inspector,
-            selectedSnapID: editDraft?.snapID
+            selectedSnapID: editDraft?.snapID,
+            isEditable: canEdit
         )
     }
 
@@ -267,6 +285,7 @@ struct MacRecordingDetailView: View {
                 }
             }
         }
+        .disabled(!canEdit)
     }
 
     private var participantInfoCard: some View {
@@ -613,6 +632,7 @@ struct MacRecordingDetailView: View {
     }
 
     private func saveManualSnap() {
+        guard canEdit else { return }
         guard let manualSnapDraft, manualSnapDraft.canSave, !hasSelectionConflict else { return }
         editMessage = nil
         editErrorMessage = nil
@@ -627,6 +647,7 @@ struct MacRecordingDetailView: View {
     }
 
     private func deleteSnapEvent(_ event: WorkingSnapEvent) {
+        guard canEdit else { return }
         if editDraft?.snapID == event.snapID {
             clearFocusedSnap()
         }
@@ -683,6 +704,10 @@ struct MacRecordingDetailView: View {
     }
 
     private func suggestSegments() {
+        guard canEdit else {
+            _ = EditorPurchaseStore.shared.admit(workspace: trialWorkspaceID, recordings: [package.trialRecordingID])
+            return
+        }
         guard analysisTask == nil, !samples.isEmpty else { return }
         let snapshot = samples
         let folderURL = package.folderURL
@@ -738,6 +763,7 @@ struct MacRecordingDetailView: View {
     }
 
     private func persistAutoSegments(_ updated: ReceivedRecordingPackage) -> Bool {
+        guard canEdit else { return false }
         do {
             try ReceivedRecordingPackageLoader().saveLabel(package: updated)
             package = updated
@@ -750,6 +776,7 @@ struct MacRecordingDetailView: View {
     }
 
     private func applySnapEdit() {
+        guard canEdit else { return }
         guard let editDraft,
               let manualSnapDraft,
               manualSnapDraft.canSave,

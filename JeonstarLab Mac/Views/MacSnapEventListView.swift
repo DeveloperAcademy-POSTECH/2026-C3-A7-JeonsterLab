@@ -20,6 +20,7 @@ struct MacSnapEventListView: View {
 
     var isInspector = false
     var selectedSnapID: String?
+    var isEditable = true
 
     var body: some View {
         if events.isEmpty {
@@ -34,6 +35,7 @@ struct MacSnapEventListView: View {
                 ForEach(events) { event in
                     if isInspector {
                         inspector(for: event)
+                            .disabled(!isEditable)
                     } else {
                         summaryRow(for: event)
                     }
@@ -68,6 +70,7 @@ struct MacSnapEventListView: View {
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
             .help("Delete snap")
+            .disabled(!isEditable)
         }
         .padding(10)
         .background(selectedSnapID == event.snapID ? EditorPalette.accent.opacity(0.13) : Color.clear,

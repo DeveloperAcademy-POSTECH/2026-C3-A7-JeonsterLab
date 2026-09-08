@@ -10,6 +10,13 @@ struct EditorSettingsView: View {
     var body: some View {
         TabView {
             Form {
+                Section("Full Access") {
+                    Text(EditorPurchaseStore.shared.isUnlocked ? "Full Unlock purchased" : "Free trial: one workspace, three recordings, one dataset export.")
+                    Button("Manage Purchase") {
+                        EditorPurchaseStore.shared.reason = String(localized: "Unlock unlimited editing and dataset exports.")
+                        openWindow(id: "full-unlock")
+                    }
+                }
                 Button("Show Tutorial", systemImage: "questionmark.circle") { openWindow(id: "getting-started") }
                 Picker("Appearance", selection: $appearance) {
                     ForEach(EditorAppearance.allCases) { Text($0.title).tag($0) }

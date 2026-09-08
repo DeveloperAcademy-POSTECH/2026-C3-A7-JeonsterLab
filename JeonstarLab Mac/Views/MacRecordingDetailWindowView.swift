@@ -11,6 +11,7 @@ struct MacRecordingDetailWindowView: View {
     @State private var package: ReceivedRecordingPackage?
     @State private var errorMessage: String?
     @State private var labelCatalog = ProjectLabelCatalog.legacy
+    @State private var trialWorkspaceID = "00000000-0000-0000-0000-000000000001"
 
     private let loader = ReceivedRecordingPackageLoader()
 
@@ -41,6 +42,7 @@ struct MacRecordingDetailWindowView: View {
             loadPackage()
         }
         .environment(\.projectLabelOptions, labelCatalog.activeLabels)
+        .environment(\.trialWorkspaceID, trialWorkspaceID)
         .onReceive(NotificationCenter.default.publisher(for: .projectLabelsDidChange)) { notification in
             guard notification.object as? String == URL(fileURLWithPath: packagePath).deletingLastPathComponent().standardizedFileURL.path else { return }
             loadPackage()
@@ -64,6 +66,7 @@ struct MacRecordingDetailWindowView: View {
 
     private func loadPackage() {
         let folderURL = URL(fileURLWithPath: packagePath)
+        trialWorkspaceID = EditorPurchaseStore.workspaceID(recordingsRoot: folderURL.deletingLastPathComponent())
         do { labelCatalog = try ProjectLabelCatalog.load(root: folderURL.deletingLastPathComponent()) }
         catch { errorMessage = error.localizedDescription; return }
         guard let loadedPackage = loader.loadPackage(folderURL: folderURL) else {

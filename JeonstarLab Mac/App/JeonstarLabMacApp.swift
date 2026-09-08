@@ -31,6 +31,7 @@ struct JeonstarLabMacApp: App {
     var body: some Scene {
         WindowGroup("WatchMotion Editor") {
             MacHomeView(viewModel: viewModel)
+                .background(PurchaseWindowPresenter())
                 .editorAppearance()
                 .frame(minWidth: 1080, minHeight: 680)
         }
@@ -40,6 +41,7 @@ struct JeonstarLabMacApp: App {
         WindowGroup("WatchMotion Editor — Project", for: ReceiverProjectWindowRequest.self) { $request in
             if let request {
                 MacReceiverProjectWindowView(request: request)
+                    .background(PurchaseWindowPresenter())
                     .editorAppearance()
                     .frame(minWidth: 1080, minHeight: 680)
             } else {
@@ -51,6 +53,7 @@ struct JeonstarLabMacApp: App {
         WindowGroup("Recording Detail", for: String.self) { $packagePath in
             if let packagePath {
                 MacRecordingDetailWindowView(packagePath: packagePath)
+                    .background(PurchaseWindowPresenter())
                     .editorAppearance()
                     .frame(minWidth: 880, minHeight: 620)
                     .toolbar { EditorAppearanceMenu() }
@@ -61,12 +64,30 @@ struct JeonstarLabMacApp: App {
         }
 
         Settings { EditorSettingsView() }
+        Window("Full Unlock", id: "full-unlock") { EditorPurchaseView() }
+            .windowResizability(.contentSize)
         Window("Getting Started", id: "getting-started") { MacTutorialWindow() }
             .windowResizability(.contentSize)
 
         WindowGroup("Project Settings", for: ProjectSettingsRequest.self) { $request in
-            if let request { ProjectLabelSettingsView(request: request) }
+            if let request {
+                ProjectLabelSettingsView(request: request).background(PurchaseWindowPresenter())
+            }
         }
         .defaultSize(width: 760, height: 540)
+    }
+}
+
+private struct PurchaseWindowPresenter: View {
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.scenePhase) private var scenePhase
+    var body: some View {
+        Color.clear.onReceive(NotificationCenter.default.publisher(for: .showEditorPurchase)) { _ in
+            openWindow(id: "full-unlock")
+        }
+        .task { _ = EditorPurchaseStore.shared }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await EditorPurchaseStore.shared.refreshEntitlements() } }
+        }
     }
 }

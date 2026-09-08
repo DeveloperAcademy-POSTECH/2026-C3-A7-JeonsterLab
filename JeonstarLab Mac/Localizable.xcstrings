@@ -98,6 +98,9 @@
     "Auto Segments" : {
 
     },
+    "Auto Segments and custom labels" : {
+
+    },
     "Axis" : {
 
     },
@@ -108,6 +111,9 @@
 
     },
     "Build Your Dataset" : {
+
+    },
+    "CSV and Create ML exports" : {
 
     },
     "Cancel" : {
@@ -141,6 +147,9 @@
 
     },
     "Confirm Segment" : {
+
+    },
+    "Continue Editing" : {
 
     },
     "Dashed ranges are suggestions. Review and confirm them before adding them to a dataset." : {
@@ -191,6 +200,9 @@
     "Edit Snap Range" : {
 
     },
+    "Enable Editing" : {
+
+    },
     "Experience" : {
 
     },
@@ -212,6 +224,9 @@
     "Export WatchMotion Editor Project" : {
 
     },
+    "FULL ACCESS" : {
+
+    },
     "File Status" : {
 
     },
@@ -231,6 +246,24 @@
 
     },
     "Folders" : {
+
+    },
+    "Free trial: one workspace, three recordings, one dataset export." : {
+
+    },
+    "Full Access" : {
+
+    },
+    "Full Unlock" : {
+
+    },
+    "Full Unlock purchased" : {
+
+    },
+    "Full Unlock…" : {
+
+    },
+    "Full access is active on this Mac." : {
 
     },
     "Gender" : {
@@ -278,6 +311,9 @@
     "Loading CSV" : {
 
     },
+    "Manage Purchase" : {
+
+    },
     "Missing Segments" : {
 
     },
@@ -300,6 +336,9 @@
 
     },
     "Next" : {
+
+    },
+    "No Full Unlock purchase was found for this Apple Account." : {
 
     },
     "No folders yet." : {
@@ -326,6 +365,9 @@
     "Not Generated" : {
 
     },
+    "Not Now" : {
+
+    },
     "Not added to a folder." : {
 
     },
@@ -336,6 +378,9 @@
 
     },
     "OK" : {
+
+    },
+    "One-time purchase · No subscription" : {
 
     },
     "Open Project" : {
@@ -374,6 +419,12 @@
     "Pinned Recordings" : {
 
     },
+    "Preview mode · Trial includes 3 recordings and 1 dataset export." : {
+
+    },
+    "Price unavailable" : {
+
+    },
     "Project Labels" : {
 
     },
@@ -387,6 +438,21 @@
 
     },
     "Project labels saved." : {
+
+    },
+    "Purchase awaiting approval. Access will unlock once approved." : {
+
+    },
+    "Purchase failed. You can try again or restore a previous purchase." : {
+
+    },
+    "Purchase not completed. Please try again." : {
+
+    },
+    "Purchase restored." : {
+
+    },
+    "Purchases are currently unavailable. Please try again later." : {
 
     },
     "Receive recordings from your iPhone, select motion segments,\nand turn them into labeled datasets." : {
@@ -422,10 +488,16 @@
     "Reload" : {
 
     },
+    "Reload Price" : {
+
+    },
     "Remove from Folder" : {
 
     },
     "Restore Export Defaults" : {
+
+    },
+    "Restore Purchases" : {
 
     },
     "Samples" : {
@@ -549,6 +621,9 @@
     "Suggested Start" : {
 
     },
+    "The purchase could not be verified. Please restore purchases or try again." : {
+
+    },
     "The selected snap's start and end times will be replaced.\nThis action cannot be undone." : {
 
     },
@@ -567,10 +642,46 @@
     "Time (s)" : {
 
     },
+    "Trial history could not be read. Unlock or restore your purchase to continue editing." : {
+
+    },
+    "Trial history could not be saved. Your recordings are safe. Restore or unlock to continue." : {
+
+    },
+    "Trial storage is unavailable." : {
+
+    },
+    "Try one workspace, three recordings and one dataset export for free." : {
+
+    },
+    "Turn every recording into a finished dataset." : {
+
+    },
+    "Unable to load the price. Check your connection and try again." : {
+
+    },
     "Unable to open the project workspace." : {
 
     },
     "Unable to open this recording." : {
+
+    },
+    "Unable to restore purchases. Please try again." : {
+
+    },
+    "Unlimited projects and recordings" : {
+
+    },
+    "Unlock Forever" : {
+
+    },
+    "Unlock WatchMotion Editor" : {
+
+    },
+    "Unlock or restore your purchase to continue." : {
+
+    },
+    "Unlock unlimited editing and dataset exports." : {
 
     },
     "Unpin Recording" : {
@@ -600,6 +711,18 @@
     "WatchMotion Editor — Project" : {
 
     },
+    "You're all set" : {
+
+    },
+    "Your free export is complete. Unlock to export another dataset." : {
+
+    },
+    "Your free trial includes one workspace. Unlock to edit another project." : {
+
+    },
+    "Your free trial includes three recordings. Unlock to edit more." : {
+
+    },
     "Your motion. Ready to explore." : {
 
     },
@@ -613,6 +736,12 @@
 
     },
     "Zoom out" : {
+
+    },
+    "[" : {
+
+    },
+    "]" : {
 
     },
     "e.g. 174" : {

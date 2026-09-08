@@ -45,7 +45,8 @@ nonisolated enum ReceiverProjectPackageService {
         foldersRootURL: URL,
         workspaceName: String,
         folders: [SnapFolder],
-        outputURL: URL
+        outputURL: URL,
+        packageID: UUID = UUID()
     ) throws -> ReceiverProjectPackageReport {
         let fileManager = FileManager.default
         try fileManager.createDirectory(at: recordingsRootURL, withIntermediateDirectories: true)
@@ -83,6 +84,7 @@ nonisolated enum ReceiverProjectPackageService {
         try writeJSON(labels, to: recordingsURL.appendingPathComponent(ProjectLabelCatalog.fileName))
 
         let manifest = ReceiverProjectManifest(
+            packageID: packageID,
             recordingCount: recordingURLs.count,
             folderCount: folders.count
         )

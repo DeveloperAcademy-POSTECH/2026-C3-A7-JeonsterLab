@@ -105,6 +105,9 @@ struct ProjectLabelSettingsView: View {
         catch { errorMessage = error.localizedDescription; loadFailed = true }
     }
     private func save() {
+        guard EditorPurchaseStore.shared.admit(
+            workspace: EditorPurchaseStore.workspaceID(recordingsRoot: root), recordings: []
+        ) else { return }
         do {
             let currentData = try? Data(contentsOf: root.appendingPathComponent(ProjectLabelCatalog.fileName))
             guard currentData == loadedData else {
