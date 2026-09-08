@@ -14,7 +14,7 @@ struct MacHomeView: View {
         NavigationSplitView {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text("JeonstarLab Receiver")
+                    Text("WatchMotion Editor")
                         .font(.title2)
                         .fontWeight(.semibold)
 

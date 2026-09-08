@@ -23,12 +23,12 @@ struct ReceiverProjectManifest: Codable {
         folderCount: Int
     ) {
         self.formatVersion = Self.currentFormatVersion
-        self.appName = "JeonstarLab Receiver"
+        self.appName = "WatchMotion Editor"
         self.packageID = packageID
         self.exportedAt = exportedAt
         self.recordingCount = recordingCount
         self.folderCount = folderCount
-        self.notes = "ZIP-based JeonstarLab Receiver project package."
+        self.notes = "ZIP-based WatchMotion Editor project package."
     }
 }
 
