@@ -1,171 +1,142 @@
-//
-//  RecordingView.swift
-//  Wrist Motion Watch Watch App
-//
-//  Created by Seungjun Lee on 5/18/26.
-//
-
 import SwiftUI
 
 struct RecordingView: View {
+  @State var viewModel: RecordingViewModel
+  var storage: WatchRecordingStorage
 
-    @State var viewModel: RecordingViewModel
-    @State private var pendingDeleteFile: RetainedWatchRecordingFile?
-    var storage: WatchRecordingStorage
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 12) {
-                statusView
-                sampleCountView
-                actionButton
-                retainedFilesView
+  var body: some View {
+    NavigationStack {
+      ScrollView {
+        VStack(spacing: 16) {
+          WatchRecordingDashboard(state: viewModel.state, sampleCount: storage.bufferCount) {
+            switch viewModel.state {
+            case .idle, .error: viewModel.startRecording()
+            case .recording: viewModel.stopRecording()
+            case .transferring: break
             }
-            .padding()
-        }
-        .alert(
-            "Delete this saved recording?",
-            isPresented: Binding(
-                get: { pendingDeleteFile != nil },
-                set: { if !$0 { pendingDeleteFile = nil } }
-            ),
-            presenting: pendingDeleteFile
-        ) { file in
-            Button("Delete", role: .destructive) {
-                storage.deleteRetainedFile(file)
-                pendingDeleteFile = nil
+          }
+          NavigationLink {
+            SavedWatchRecordingsView(viewModel: viewModel, storage: storage)
+          } label: {
+            HStack {
+              Image(systemName: "tray")
+              Text("Saved on Watch")
+              Spacer(minLength: 2)
+              Text(storage.retainedFiles.count.formatted()).monospacedDigit()
             }
-            Button("Cancel", role: .cancel) {
-                pendingDeleteFile = nil
-            }
-        } message: { _ in
-            Text("This removes the recording from your Watch. If it has not been saved on your iPhone, it cannot be recovered.")
-        }
-    }
-
-    // MARK: - Subviews
-
-    @ViewBuilder
-    private var statusView: some View {
-        switch viewModel.state {
-        case .idle:
-            Text("Ready")
-                .foregroundStyle(.secondary)
-        case .recording:
-            Text("Recording")
-                .foregroundStyle(.red)
-                .bold()
-        case .transferring:
-            HStack(spacing: 6) {
-                ProgressView()
-                    .controlSize(.mini)
-                Text("Sending…")
-            }
-            .foregroundStyle(.orange)
-        case .error(let message):
-            Text(message)
-                .foregroundStyle(.red)
-                .font(.caption2)
-                .multilineTextAlignment(.center)
-        }
-    }
-
-    private var sampleCountView: some View {
-        Text("\(storage.bufferCount) samples")
             .font(.caption)
-            .monospacedDigit()
+          }
+          .buttonStyle(.bordered)
+          .accessibilityLabel("Saved on Watch, \(storage.retainedFiles.count) recordings")
+          Text("Review on iPhone.\nEdit on Mac.")
+            .font(.caption2)
             .foregroundStyle(.secondary)
-    }
-
-    private var actionButton: some View {
-        Button {
-            switch viewModel.state {
-            case .idle, .error:
-                viewModel.startRecording()
-            case .recording:
-                viewModel.stopRecording()
-            case .transferring:
-                break
-            }
-        } label: {
-            switch viewModel.state {
-            case .recording:
-                Label("Stop", systemImage: "stop.circle.fill")
-            default:
-                Label("Record", systemImage: "record.circle")
-            }
+            .multilineTextAlignment(.center)
         }
-        .tint(recordingButtonTint)
+        .padding(.horizontal, 10)
+        .padding(.bottom, 12)
+      }
+      .navigationTitle("WatchMotion")
+      .navigationBarTitleDisplayMode(.inline)
+    }
+  }
+}
+
+/// Presentation only: the elapsed timer uses the actual session start date.
+struct WatchRecordingDashboard: View {
+  let state: RecordingViewModel.RecordingState
+  let sampleCount: Int
+  var onAction: () -> Void
+
+  var body: some View {
+    VStack(spacing: 6) {
+      Label(statusTitle, systemImage: statusSymbol)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(statusColor)
+      switch state {
+      case .recording(let startedAt, _):
+        Text(startedAt, style: .timer)
+          .font(.system(.title, design: .rounded, weight: .semibold))
+          .monospacedDigit()
+          .lineLimit(1)
+          .minimumScaleFactor(0.6)
+          .accessibilityLabel("Elapsed recording time")
+        Text("\(sampleCount.formatted()) samples")
+          .font(.caption2)
+          .monospacedDigit()
+          .foregroundStyle(.secondary)
+      case .idle:
+        Image(systemName: "waveform")
+          .font(.system(size: 32, weight: .medium))
+          .foregroundStyle(.red)
+          .accessibilityHidden(true)
+          .padding(.vertical, 4)
+      case .transferring:
+        ProgressView().controlSize(.small)
+          .accessibilityLabel("Waiting for file transfer")
+        Text("Queued for iPhone.\nDelivery may take a moment.")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .multilineTextAlignment(.center)
+      case .error(let message):
+        Text(message)
+          .font(.caption2)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+        Text("Check saved files before starting a new recording.")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .multilineTextAlignment(.center)
+      }
+      if !isTransferring {
+        Button(action: onAction) {
+          Label(actionTitle, systemImage: actionSymbol)
+            .font(.headline)
+            .frame(maxWidth: .infinity, minHeight: 24)
+        }
         .buttonStyle(.borderedProminent)
-        .disabled(isButtonDisabled)
+        .tint(isTransferring ? .gray : .red)
+        .disabled(isTransferring)
+        .accessibilityHint(isRecording ? "Saves the recording and queues it for iPhone." : "")
+      }
     }
+    .frame(maxWidth: .infinity)
+  }
 
-    private var recordingButtonTint: Color {
-        if case .recording = viewModel.state { return .red }
-        return .green
+  private var isRecording: Bool {
+    if case .recording = state { return true }
+    return false
+  }
+  private var isTransferring: Bool {
+    if case .transferring = state { return true }
+    return false
+  }
+  private var actionTitle: String { isRecording ? "Stop" : isTransferring ? "Sending…" : "Record" }
+  private var actionSymbol: String {
+    isRecording ? "stop.fill" : isTransferring ? "iphone" : "record.circle"
+  }
+  private var statusTitle: String {
+    switch state {
+    case .idle: "Ready to Record"
+    case .recording: "Recording"
+    case .transferring: "Transfer Pending"
+    case .error: "Needs Attention"
     }
-
-    private var isButtonDisabled: Bool {
-        if case .transferring = viewModel.state { return true }
-        return false
+  }
+  private var statusSymbol: String {
+    switch state {
+    case .idle: "checkmark.circle"
+    case .recording: "record.circle"
+    case .transferring: "arrow.up.circle"
+    case .error: "exclamationmark.triangle"
     }
-
-    @ViewBuilder
-    private var retainedFilesView: some View {
-        if !storage.retainedFiles.isEmpty {
-            Divider()
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Awaiting Confirmation")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                ForEach(storage.retainedFiles) { file in
-                    HStack(spacing: 8) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(file.fileName)
-                                .font(.caption2)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Text(byteCountText(file.byteCount))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer(minLength: 4)
-
-                        Button {
-                            viewModel.resendRetainedFile(file)
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.mini)
-                        .disabled(!viewModel.canResendRetainedFile || file.sessionID == nil)
-                        .accessibilityLabel("Resend Saved Recording")
-
-                        Button {
-                            pendingDeleteFile = file
-                        } label: {
-                            Image(systemName: "trash")
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.mini)
-                        .tint(.red)
-                        .disabled(!canDeleteRetainedFiles)
-                        .accessibilityLabel("Delete Saved Recording")
-                    }
-                }
-            }
-        }
+  }
+  private var statusColor: Color {
+    switch state {
+    case .idle: .secondary
+    case .recording: .red
+    case .transferring: .orange
+    case .error: .orange
     }
-
-    private func byteCountText(_ byteCount: Int) -> String {
-        ByteCountFormatter.string(fromByteCount: Int64(byteCount), countStyle: .file)
-    }
-
-    private var canDeleteRetainedFiles: Bool {
-        if case .transferring = viewModel.state { return false }
-        return true
-    }
+  }
 }
