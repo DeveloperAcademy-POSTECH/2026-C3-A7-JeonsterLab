@@ -43,17 +43,17 @@ enum CreateMLActivityExporter {
 
         for item in folder.items {
             guard !item.snapID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                skippedReasons.append("snapID 없음: \(item.packageFolderName)")
+                skippedReasons.append("Missing snapID: \(item.packageFolderName)")
                 continue
             }
 
             guard let package = packages.first(where: { $0.folderURL.lastPathComponent == item.packageFolderName }) else {
-                skippedReasons.append("패키지 없음: \(item.packageFolderName) / \(item.snapID)")
+                skippedReasons.append("Missing package: \(item.packageFolderName) / \(item.snapID)")
                 continue
             }
 
             guard let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }) else {
-                skippedReasons.append("스냅 없음 또는 삭제됨: \(item.packageFolderName) / \(item.snapID)")
+                skippedReasons.append("Snap missing or deleted: \(item.packageFolderName) / \(item.snapID)")
                 continue
             }
 
@@ -66,7 +66,7 @@ enum CreateMLActivityExporter {
                 )
                 let segmentSamples = try MotionCSVParser.parse(url: segmentURL)
                 guard !segmentSamples.isEmpty else {
-                    skippedReasons.append("세그먼트 샘플 없음: \(item.packageFolderName) / \(item.snapID)")
+                    skippedReasons.append("No segment samples: \(item.packageFolderName) / \(item.snapID)")
                     continue
                 }
 

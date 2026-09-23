@@ -11,37 +11,37 @@ struct MacRecordingInfoPanel: View {
     var body: some View {
         Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 10) {
             GridRow {
-                Text("녹화 시각")
+                Text("Recorded")
                 Text(package.recordingDateText)
                     .foregroundStyle(.secondary)
             }
             GridRow {
-                Text("수신 시각")
+                Text("Received")
                 Text(package.receivedAtText)
                     .foregroundStyle(.secondary)
             }
             GridRow {
-                Text("길이")
+                Text("Duration")
                 Text(package.durationText)
                     .foregroundStyle(.secondary)
             }
             GridRow {
-                Text("샘플")
+                Text("Samples")
                 Text(package.sampleCountText)
                     .foregroundStyle(.secondary)
             }
             GridRow {
-                Text("스냅 이벤트")
+                Text("Snap Events")
                 Text(package.snapEventCountText)
                     .foregroundStyle(.secondary)
             }
             GridRow {
-                Text("스냅 감지 기준")
+                Text("Detection Mode")
                 Text(package.snapDetectionMode.displayName)
                     .foregroundStyle(.secondary)
             }
             GridRow {
-                Text("파일 상태")
+                Text("File Status")
                 Text(package.completenessText)
                     .foregroundStyle(package.isComplete ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
             }

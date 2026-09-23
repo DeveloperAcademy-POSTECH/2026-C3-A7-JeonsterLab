@@ -26,6 +26,8 @@ final class MacHomeViewModel {
     var errorMessage: String?
     var projectPackageMessage: String?
     var searchQuery = ""
+    var labelCatalog = ProjectLabelCatalog.legacy
+    static let localProjectID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 
     init(workspace: ReceiverWorkspace? = nil) {
         workspaceManager = ReceiverWorkspaceManager(
@@ -77,23 +79,23 @@ final class MacHomeViewModel {
     }
 
     var connectedPeerText: String {
-        connectedPeerName ?? "연결된 iPhone 없음"
+        connectedPeerName ?? "No iPhone connected"
     }
 
     var guidanceText: String {
         switch receiverStatus {
         case .idle:
-            return "먼저 [수신 시작]을 눌러 Mac을 수신 대기 상태로 전환하세요."
+            return "Start receiving to make this Mac discoverable."
         case .advertising:
-            return "iPhone 앱의 녹화 상세 화면에서 [Mac 찾기]를 눌러주세요."
+            return "Open a recording on your iPhone and find this Mac."
         case .connected:
-            return "iPhone이 연결되었습니다. 이제 iPhone에서 [Mac으로 전송]을 누를 수 있습니다."
+            return "Your iPhone is connected. Send the recording from your iPhone."
         case .receiving:
-            return "녹화 파일을 수신하는 중입니다."
+            return "Receiving recording files."
         case .completed:
-            return "수신이 완료되었습니다."
+            return "Recording received."
         case .failed:
-            return "수신에 실패했습니다. 권한, Wi-Fi, Bluetooth 상태를 확인하세요."
+            return "Transfer failed. Check permissions, Wi-Fi, and Bluetooth."
         }
     }
 
@@ -131,8 +133,8 @@ final class MacHomeViewModel {
 
     var workspaceSubtitle: String {
         activeWorkspace.isDefaultLocal
-            ? "MacBook 데이터 수신 준비"
-            : "프로젝트 파일 작업공간"
+            ? "Local recording workspace"
+            : "Imported project workspace"
     }
 
     var canOpenProjectPackage: Bool {
@@ -156,6 +158,11 @@ final class MacHomeViewModel {
     }
 
     func reloadPackages() {
+        do { labelCatalog = try ProjectLabelCatalog.load(root: rootReceivedFolderURL) }
+        catch {
+            labelCatalog = ProjectLabelCatalog(labels: [ProjectLabelDefinition(label: .unlabeled)])
+            errorMessage = "Unable to read project labels: \(error.localizedDescription)"
+        }
         try? FileManager.default.createDirectory(
             at: rootReceivedFolderURL,
             withIntermediateDirectories: true
@@ -210,7 +217,7 @@ final class MacHomeViewModel {
         let standardizedFolder = package.folderURL.standardizedFileURL
         guard standardizedFolder.deletingLastPathComponent() == standardizedRoot,
               standardizedFolder != standardizedRoot else {
-            errorMessage = "삭제 실패: 수신 기록 폴더 경로를 확인할 수 없습니다."
+            errorMessage = "Delete failed: the recording folder path could not be verified."
             return
         }
 
@@ -224,7 +231,7 @@ final class MacHomeViewModel {
                 }
             }
         } catch {
-            errorMessage = "수신 기록 삭제 실패: \(error.localizedDescription)"
+            errorMessage = "Failed to delete recording: \(error.localizedDescription)"
         }
     }
 
@@ -283,7 +290,7 @@ final class MacHomeViewModel {
     }
 
     func addFolder() {
-        let baseName = "새 폴더"
+        let baseName = "New Folder"
         let existingNames = Set(snapFolders.map(\.name))
         var folderName = baseName
         var suffix = 1
@@ -320,7 +327,7 @@ final class MacHomeViewModel {
             upsert(package)
             updateFolderItems(for: package)
         } catch {
-            errorMessage = "라벨 저장 실패: \(error.localizedDescription)"
+            errorMessage = "Failed to save labels: \(error.localizedDescription)"
         }
     }
 
@@ -395,7 +402,7 @@ final class MacHomeViewModel {
             guard let package = receivedPackages.first(where: {
                 $0.folderURL.lastPathComponent == item.packageFolderName
             }) else {
-                errorMessage = "원본 데이터를 찾을 수 없습니다. 이 스냅 이벤트의 원본 녹화가 삭제되었거나 현재 작업공간에 없습니다."
+                errorMessage = "Source unavailable. The original recording was removed or is not in this workspace."
                 return
             }
             selectedPackageID = package.id
@@ -405,7 +412,7 @@ final class MacHomeViewModel {
 
     func generateSegments(for folder: SnapFolder) -> String {
         guard let folderIndex = snapFolders.firstIndex(where: { $0.id == folder.id }) else {
-            return "세그먼트 생성 실패: 폴더를 찾을 수 없습니다."
+            return "Segment generation failed: folder not found."
         }
 
         var samplesByPackageName: [String: [MotionCSVSample]] = [:]
@@ -455,25 +462,29 @@ final class MacHomeViewModel {
         saveFolders()
 
         if skippedCount > 0 {
-            return "세그먼트 \(generatedCount)개 생성, \(skippedCount)개 건너뜀"
+            return "Generated \(generatedCount) segments; skipped \(skippedCount)."
         }
-        return "세그먼트 \(generatedCount)개를 생성했습니다."
+        return "Generated \(generatedCount) segments."
     }
 
     func exportDataset(for folder: SnapFolder, options: DatasetExportOptions) -> String {
         guard folder.items.isEmpty == false else {
-            return "내보낼 스냅이 없습니다."
+            return "No snaps to export."
         }
 
+        guard !isExportingDataset else { return "A dataset export is already in progress." }
+        isExportingDataset = true
+        defer { isExportingDataset = false }
+
         let savePanel = NSSavePanel()
-        savePanel.title = "데이터셋 CSV 내보내기"
+        savePanel.title = "Export CSV Dataset"
         savePanel.nameFieldStringValue = FolderDatasetExportService.defaultFileName(folderName: folder.name)
         savePanel.canCreateDirectories = true
         savePanel.allowedContentTypes = [.commaSeparatedText]
 
         guard savePanel.runModal() == .OK,
               let outputURL = savePanel.url else {
-            return "내보내기가 취소되었습니다."
+            return "Export canceled."
         }
 
         do {
@@ -489,24 +500,28 @@ final class MacHomeViewModel {
             if report.skippedItemCount > 0 {
                 let reasons = report.skippedReasons.prefix(2).joined(separator: " / ")
                 if !reasons.isEmpty {
-                    message += "\n제외 사유: \(reasons)"
+                    message += "\nSkipped items: \(reasons)"
                 }
             }
             return message
         } catch {
-            return "CSV 내보내기 실패: \(error.localizedDescription)"
+            return "CSV export failed: \(error.localizedDescription)"
         }
     }
 
     func exportCreateMLActivityDataset(for folder: SnapFolder) -> String {
         guard folder.items.isEmpty == false else {
-            return "내보낼 스냅이 없습니다."
+            return "No snaps to export."
         }
 
+        guard !isExportingDataset else { return "A dataset export is already in progress." }
+        isExportingDataset = true
+        defer { isExportingDataset = false }
+
         let openPanel = NSOpenPanel()
-        openPanel.title = "Create ML용 내보내기 위치 선택"
-        openPanel.prompt = "내보내기"
-        openPanel.message = "선택한 위치 아래에 \(folder.name) 클래스 폴더와 스냅별 CSV 파일을 생성합니다."
+        openPanel.title = "Choose Create ML Export Location"
+        openPanel.prompt = "Export"
+        openPanel.message = "Creates a \(folder.name) class folder with one CSV file per snap in the selected location."
         openPanel.canChooseFiles = false
         openPanel.canChooseDirectories = true
         openPanel.canCreateDirectories = true
@@ -514,7 +529,7 @@ final class MacHomeViewModel {
 
         guard openPanel.runModal() == .OK,
               let outputDirectoryURL = openPanel.url else {
-            return "내보내기가 취소되었습니다."
+            return "Export canceled."
         }
 
         do {
@@ -529,21 +544,32 @@ final class MacHomeViewModel {
             if report.skippedItemCount > 0 {
                 let reasons = report.skippedReasons.prefix(2).joined(separator: " / ")
                 if !reasons.isEmpty {
-                    message += "\n제외 사유: \(reasons)"
+                    message += "\nSkipped items: \(reasons)"
                 }
             }
             return message
         } catch {
-            return "Create ML 내보내기 실패: \(error.localizedDescription)"
+            return "Create ML export failed: \(error.localizedDescription)"
         }
     }
 
-    func exportReceiverProjectPackage() {
+    private var isExportingDataset = false
+    private(set) var isProcessingProject = false
+    private(set) var projectOperationStatus = "Processing Project…"
+    private var cancelProjectWork: (() -> Void)?
+    func cancelProjectOperation() {
+        projectOperationStatus = "Canceling…"
+        cancelProjectWork?()
+    }
+
+    func exportReceiverProjectPackage() async {
+        guard !isProcessingProject else { return }
         let savePanel = NSSavePanel()
-        savePanel.title = "Receiver 프로젝트 내보내기"
+        savePanel.title = "Export WatchMotion Editor Project"
         savePanel.nameFieldStringValue = ReceiverProjectPackageService.defaultFileName()
         savePanel.canCreateDirectories = true
-        savePanel.allowedContentTypes = [UTType(filenameExtension: "jeonstarlab") ?? .zip]
+        savePanel.allowedContentTypes = [ProjectExportPreferences.format.contentType]
+        savePanel.isExtensionHidden = false
 
         guard savePanel.runModal() == .OK,
               let outputURL = savePanel.url else {
@@ -551,26 +577,38 @@ final class MacHomeViewModel {
         }
 
         do {
-            let report = try ReceiverProjectPackageService.exportProject(
-                recordingsRootURL: activeWorkspace.recordingsRootURL,
-                foldersRootURL: activeWorkspace.foldersRootURL,
-                workspaceName: activeWorkspace.displayName,
-                folders: snapFolders,
-                outputURL: outputURL
-            )
-            projectPackageMessage = "\(report.message): \(report.recordingCount)개 녹화, \(report.folderCount)개 폴더\n\(report.outputURL?.lastPathComponent ?? "")"
+            isProcessingProject = true
+            projectOperationStatus = "Processing Project…"
+            defer { isProcessingProject = false; cancelProjectWork = nil }
+            let workspace = activeWorkspace
+            let folders = snapFolders
+            let access = outputURL.startAccessingSecurityScopedResource()
+            defer { if access { outputURL.stopAccessingSecurityScopedResource() } }
+            let worker = Task.detached(priority: .userInitiated) {
+                try ReceiverProjectPackageService.exportProject(
+                    recordingsRootURL: workspace.recordingsRootURL,
+                    foldersRootURL: workspace.foldersRootURL,
+                    workspaceName: workspace.displayName, folders: folders, outputURL: outputURL,
+                    packageID: workspace.manifest?.packageID ?? UUID(uuidString: "00000000-0000-0000-0000-000000000001")!)
+            }
+            cancelProjectWork = { worker.cancel() }
+            let report = try await worker.value
+            projectPackageMessage = "\(report.message): \(report.recordingCount) recordings, \(report.folderCount) folders\n\(report.outputURL?.lastPathComponent ?? "")"
+        } catch is CancellationError {
+            projectPackageMessage = "Export canceled. Existing files were kept."
         } catch {
-            errorMessage = "프로젝트 내보내기 실패: \(error.localizedDescription)"
+            errorMessage = "Project export failed: \(error.localizedDescription)"
         }
     }
 
-    func makeProjectWindowRequest() -> ReceiverProjectWindowRequest? {
+    func makeProjectWindowRequest() async -> ReceiverProjectWindowRequest? {
+        guard !isProcessingProject else { return nil }
         let openPanel = NSOpenPanel()
-        openPanel.title = "Receiver 프로젝트 열기"
+        openPanel.title = "Open WatchMotion Editor Project"
         openPanel.canChooseFiles = true
         openPanel.canChooseDirectories = false
         openPanel.allowsMultipleSelection = false
-        openPanel.allowedContentTypes = [UTType(filenameExtension: "jeonstarlab") ?? .zip]
+        openPanel.allowedContentTypes = [.watchMotionProject, UTType(filenameExtension: "jeonstarlab") ?? .data, .zip]
 
         guard openPanel.runModal() == .OK,
               let packageURL = openPanel.url else {
@@ -578,11 +616,25 @@ final class MacHomeViewModel {
         }
 
         do {
-            let workspace = try workspaceManager.createProjectWorkspace(packageURL: packageURL)
-            projectPackageMessage = "프로젝트를 새 창으로 열었습니다.\n\(workspace.displayName)"
+            isProcessingProject = true
+            projectOperationStatus = "Processing Project…"
+            defer { isProcessingProject = false; cancelProjectWork = nil }
+            let projectsRoot = workspaceManager.projectsRootURL
+            let access = packageURL.startAccessingSecurityScopedResource()
+            defer { if access { packageURL.stopAccessingSecurityScopedResource() } }
+            let worker = Task.detached(priority: .userInitiated) {
+                try ReceiverProjectPackageService.openProjectWorkspace(packageURL: packageURL, projectsRootURL: projectsRoot)
+            }
+            cancelProjectWork = { worker.cancel() }
+            let workspace = try await worker.value
+            // The new window is the success feedback. A sheet on the source
+            // window steals focus and hides the workspace we just opened.
             return ReceiverProjectWindowRequest(workspace: workspace)
+        } catch is CancellationError {
+            projectPackageMessage = "Open canceled. Existing projects were kept."
+            return nil
         } catch {
-            errorMessage = "프로젝트 열기 실패: \(error.localizedDescription)"
+            errorMessage = "Failed to open project: \(error.localizedDescription)"
             return nil
         }
     }
@@ -754,7 +806,7 @@ final class MacHomeViewModel {
         do {
             try folderStore.saveFolders(snapFolders)
         } catch {
-            errorMessage = "폴더 저장 실패: \(error.localizedDescription)"
+            errorMessage = "Failed to save folders: \(error.localizedDescription)"
         }
     }
 }
@@ -770,17 +822,17 @@ enum MacReceiverStatus: Equatable {
     var displayText: String {
         switch self {
         case .idle:
-            return "대기 중"
+            return "Idle"
         case .advertising:
-            return "수신 대기 중"
+            return "Ready to Receive"
         case .connected:
-            return "iPhone 연결됨"
+            return "iPhone Connected"
         case .receiving:
-            return "수신 중"
+            return "Receiving"
         case .completed:
-            return "수신 완료"
+            return "Received"
         case .failed(let message):
-            return "수신 실패: \(message)"
+            return "Transfer failed: \(message)"
         }
     }
 }

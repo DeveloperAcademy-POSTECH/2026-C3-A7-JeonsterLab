@@ -1,47 +1,87 @@
-//
-//  RecordingDetailView.swift
-//  Wrist Motion
-//
-//  Created by Seungjun Lee on 5/18/26.
-//
-
 import SwiftUI
-import Charts
-import MultipeerConnectivity
 
 struct RecordingDetailView: View {
-
     @State var viewModel: RecordingDetailViewModel
-    @State private var selectedSnapEventIndex: Int = 0
     @State private var exportURLs: [URL] = []
     @State private var isShareSheetPresented = false
     @State private var isExporting = false
     @State private var exportErrorMessage: String?
-    @State private var snapDetectionModeErrorMessage: String?
-    @State private var isSnapDetectionModeConfirmationPresented = false
     @State private var isEditingMemo = false
+    @State private var isShowingConnectionSettings = false
     @State private var macConnectionViewModel = MacConnectionViewModel.shared
 
     var body: some View {
         List {
-            // MARK: 정보 섹션
-            Section("정보") {
-                LabeledContent("날짜", value: viewModel.title)
-                LabeledContent("길이", value: viewModel.durationText)
-                LabeledContent("샘플", value: viewModel.sampleCountText)
+            Section("Recording Information") {
+                LabeledContent("Date", value: viewModel.title)
+                LabeledContent("Duration", value: viewModel.durationText)
+                LabeledContent("Samples", value: viewModel.sampleCountText)
             }
 
-            Section("메모") {
+            Section {
+                if viewModel.isLoading {
+                    ProgressView("Loading motion data…")
+                        .frame(maxWidth: .infinity, minHeight: 220)
+                } else if let error = viewModel.errorMessage {
+                    ContentUnavailableView("Unable to Load Motion", systemImage: "exclamationmark.triangle",
+                                           description: Text(error))
+                    Button("Try Again") { Task { await viewModel.loadSamples() } }
+                } else if viewModel.samples.isEmpty {
+                    ContentUnavailableView("No Motion Samples", systemImage: "waveform.slash",
+                                           description: Text("This recording has no samples to preview."))
+                } else {
+                    RecordingMotionPreview(samples: viewModel.samples,
+                                           samplingRate: viewModel.currentSession.samplingRate)
+                }
+            } header: {
+                Text("Motion Preview")
+            } footer: {
+                Text("Review the recording here. Select segments and build labeled datasets on your Mac.")
+            }
+
+            notesSection
+            transferSection
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle("Recording Detail")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: exportRecording) {
+                    if isExporting { ProgressView() }
+                    else { Label("Share Original Files", systemImage: "square.and.arrow.up") }
+                }
+                .disabled(isExporting)
+                .accessibilityLabel("Share Original Files")
+            }
+        }
+        .sheet(isPresented: $isShowingConnectionSettings) {
+            MacConnectionSettingsView(viewModel: macConnectionViewModel)
+        }
+        .sheet(isPresented: $isShareSheetPresented) { ShareSheet(activityItems: exportURLs) }
+        .alert("Export failed", isPresented: Binding(
+            get: { exportErrorMessage != nil },
+            set: { if !$0 { exportErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { exportErrorMessage = nil }
+        } message: {
+            Text(exportErrorMessage ?? "An unknown error occurred.")
+        }
+        .task { await viewModel.loadSamples() }
+    }
+
+    private var notesSection: some View {
+            Section("Notes") {
                 if isEditingMemo {
                     TextField(
-                        "녹화 당시의 특이사항을 기록하세요.",
+                        "Add notes about this recording.",
                         text: $viewModel.recordingMemo,
                         axis: .vertical
                     )
                     .lineLimit(3...6)
 
                     HStack {
-                        Button("저장") {
+                        Button("Save") {
                             viewModel.updateRecordingMemo(viewModel.recordingMemo)
                             if viewModel.memoErrorMessage == nil {
                                 isEditingMemo = false
@@ -49,275 +89,90 @@ struct RecordingDetailView: View {
                         }
                         .disabled(!viewModel.hasRecordingMemoChanges)
 
-                        Button("취소") {
+                        Button("Cancel") {
                             viewModel.resetRecordingMemoDraft()
                             isEditingMemo = false
                         }
                     }
+                    .buttonStyle(.borderless)
                 } else {
                     Button {
                         viewModel.resetRecordingMemoDraft()
                         isEditingMemo = true
                     } label: {
                         HStack(alignment: .top) {
-                            Text(viewModel.savedRecordingMemo.isEmpty ? "녹화 당시의 특이사항을 기록하세요." : viewModel.savedRecordingMemo)
+                            Text(viewModel.savedRecordingMemo.isEmpty ? "Add notes about this recording." : viewModel.savedRecordingMemo)
                                 .foregroundStyle(viewModel.savedRecordingMemo.isEmpty ? .secondary : .primary)
                                 .multilineTextAlignment(.leading)
                             Spacer()
+                            Image(systemName: "pencil")
+                                .foregroundStyle(.secondary)
                         }
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Edit recording notes")
+                    .accessibilityValue(viewModel.savedRecordingMemo)
 
-                    Button("메모 편집") {
-                        viewModel.resetRecordingMemoDraft()
-                        isEditingMemo = true
-                    }
                 }
 
                 if let memoErrorMessage = viewModel.memoErrorMessage {
-                    Text("메모 저장 실패: \(memoErrorMessage)")
+                    Text("Failed to save notes: \(memoErrorMessage)")
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
             }
 
-            Section("Mac 전송") {
-                LabeledContent("Mac 연결 상태", value: macConnectionViewModel.connectionStatusText)
-                LabeledContent("Mac", value: macConnectionViewModel.connectedMacText)
-                LabeledContent("전송", value: macConnectionViewModel.transferStatusText)
+    }
 
-                Text(macConnectionViewModel.guidanceText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                if !macConnectionViewModel.discoveredMacs.isEmpty,
-                   macConnectionViewModel.connectionStatus == .searching {
-                    ForEach(macConnectionViewModel.discoveredMacs, id: \.self) { mac in
-                        HStack {
-                            Label(mac.displayName, systemImage: "desktopcomputer")
-                            Spacer()
-                            Button("연결") {
-                                macConnectionViewModel.selectMac(mac)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                        }
-                    }
-                }
-
-                Toggle("Mac 연결 시 자동 전송", isOn: Binding(
-                    get: { macConnectionViewModel.isAutomaticTransferEnabled },
-                    set: { macConnectionViewModel.isAutomaticTransferEnabled = $0 }
-                ))
-
-                Text(macConnectionViewModel.automaticTransferGuidanceText)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                if let errorMessage = macConnectionViewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-
-                HStack {
-                    Button("Mac 찾기") {
-                        macConnectionViewModel.startSearching()
-                    }
-
-                    Button("Mac으로 전송") {
-                        macConnectionViewModel.sendRecording(
-                            session: viewModel.currentSession,
-                            repository: viewModel.recordingRepository
-                        )
-                    }
-                    .disabled(!macConnectionViewModel.canSendToMac)
-                }
+    private var transferSection: some View {
+        Section {
+            MacConnectionControls(viewModel: macConnectionViewModel)
+            if let status = macConnectionViewModel.transferStatus(for: viewModel.currentSession.id) {
+                transferStatusView(status)
+            } else if macConnectionViewModel.isTransferring {
+                Label("Sending another recording…", systemImage: "arrow.up.doc")
+                    .font(.callout).foregroundStyle(.secondary)
             }
-
-            Section("스냅 감지 기준") {
-                Text("이 녹화 기록에서 어떤 동작 기준으로 스냅을 분석할지 선택하세요.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Picker("감지 기준", selection: $viewModel.pendingSnapDetectionMode) {
-                    ForEach(viewModel.availableSnapDetectionModes) { mode in
-                        Text(mode.displayName)
-                            .tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Button("감지 기준 적용") {
-                    isSnapDetectionModeConfirmationPresented = true
-                }
-                .disabled(!viewModel.canApplySnapDetectionMode)
+            Button {
+                macConnectionViewModel.sendRecording(
+                    session: viewModel.currentSession,
+                    repository: viewModel.recordingRepository
+                )
+            } label: {
+                Label("Send to Mac", systemImage: "arrow.up.right")
+                    .frame(maxWidth: .infinity)
             }
-
-            // MARK: 그래프 섹션
-            if viewModel.isLoading {
-                Section {
-                    HStack {
-                        Spacer()
-                        ProgressView("로딩 중…")
-                        Spacer()
-                    }
-                    .padding(.vertical)
-                }
-            } else if let error = viewModel.errorMessage {
-                Section {
-                    Text(error)
-                        .foregroundStyle(.red)
-                        .font(.caption)
-                }
-            } else if !viewModel.samples.isEmpty {
-                let snapResult = viewModel.snapAnalysisResult
-                let selectedEvent = snapResult?.event(at: selectedSnapEventIndex)
-
-                Section("스냅 분석 요약") {
-                    if let snapResult {
-                        SnapAnalysisSummaryView(
-                            result: snapResult,
-                            selectedEventIndex: $selectedSnapEventIndex
-                        )
-                    } else {
-                        ContentUnavailableView(
-                            "감지된 스냅 없음",
-                            systemImage: "waveform.slash",
-                            description: Text("스냅 감지 기준이 없음으로 설정되어 있습니다.")
-                        )
-                    }
-                }
-
-                Section("사용자 가속도") {
-                    accelerationChart(selectedEvent: selectedEvent)
-                }
-
-                Section("자이로스코프") {
-                    gyroChart(selectedEvent: selectedEvent)
-                }
-
-                Section("자세 (Attitude)") {
-                    attitudeChart(selectedEvent: selectedEvent)
-                }
-
-                Section("3D 사용자 가속도") {
-                    MotionTrajectory3DView(
-                        samples: viewModel.samples,
-                        kind: .userAcceleration
-                    )
-                }
-
-                Section("3D 자이로스코프") {
-                    MotionTrajectory3DView(
-                        samples: viewModel.samples,
-                        kind: .gyroscope
-                    )
-                }
-
-                Section("3D 자세") {
-                    MotionTrajectory3DView(
-                        samples: viewModel.samples,
-                        kind: .attitude
-                    )
-                }
-            }
-        }
-        .navigationTitle("녹화 상세")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    exportRecording()
-                } label: {
-                    if isExporting {
-                        ProgressView()
-                    } else {
-                        Label("Export", systemImage: "square.and.arrow.up")
-                    }
-                }
-                .disabled(isExporting)
-            }
-        }
-        .sheet(isPresented: $isShareSheetPresented) {
-            ShareSheet(activityItems: exportURLs)
-        }
-        .alert("내보내기 실패", isPresented: exportErrorBinding) {
-            Button("확인", role: .cancel) {
-                exportErrorMessage = nil
-            }
-        } message: {
-            Text(exportErrorMessage ?? "알 수 없는 오류가 발생했습니다.")
-        }
-        .alert(snapDetectionModeConfirmationTitle, isPresented: $isSnapDetectionModeConfirmationPresented) {
-            Button("취소", role: .cancel) { }
-            Button("적용") {
-                applySnapDetectionMode()
-            }
-        } message: {
-            Text(snapDetectionModeConfirmationMessage)
-        }
-        .alert("감지 기준 저장 실패", isPresented: snapDetectionModeErrorBinding) {
-            Button("확인", role: .cancel) {
-                snapDetectionModeErrorMessage = nil
-            }
-        } message: {
-            Text(snapDetectionModeErrorMessage ?? "알 수 없는 오류가 발생했습니다.")
-        }
-        .task {
-            await viewModel.loadSamples()
-        }
-        .onChange(of: viewModel.appliedSnapDetectionMode) {
-            selectedSnapEventIndex = 0
+            .buttonStyle(.borderedProminent)
+            .disabled(!macConnectionViewModel.canSendToMac)
+            Button("Connection Settings") { isShowingConnectionSettings = true }
+                .font(.callout)
+        } header: {
+            Text("Transfer to Mac")
+        } footer: {
+            Text("You can also use the share button to export the original files.")
         }
     }
 
-    private var exportErrorBinding: Binding<Bool> {
-        Binding(
-            get: { exportErrorMessage != nil },
-            set: { isPresented in
-                if !isPresented {
-                    exportErrorMessage = nil
-                }
+    private func transferStatusView(_ status: MacTransferStatus) -> some View {
+        HStack(spacing: 10) {
+            switch status {
+            case .preparing, .sending, .verifying: ProgressView()
+            case .completed: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            case .failed: Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+            case .idle: Image(systemName: "arrow.up.doc")
             }
-        )
-    }
-
-    private var snapDetectionModeErrorBinding: Binding<Bool> {
-        Binding(
-            get: { snapDetectionModeErrorMessage != nil },
-            set: { isPresented in
-                if !isPresented {
-                    snapDetectionModeErrorMessage = nil
-                }
-            }
-        )
-    }
-
-    private var snapDetectionModeConfirmationTitle: String {
-        switch viewModel.pendingSnapDetectionMode {
-        case .none:
-            return "스냅 감지를 사용하지 않을까요?"
-        case .jeonFlip:
-            return "전 부치기를 스냅 감지 기준으로 설정할까요?"
+            Text(status.displayText)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private var snapDetectionModeConfirmationMessage: String {
-        switch viewModel.pendingSnapDetectionMode {
-        case .none:
-            return "그래프는 그대로 볼 수 있지만, 자동 감지된 스냅 분석은 표시하지 않습니다."
-        case .jeonFlip:
-            return "이 녹화 기록의 스냅 분석이 전 부치기 동작 기준으로 표시됩니다."
-        }
+        .accessibilityElement(children: .combine)
     }
 
     private func exportRecording() {
         Task { @MainActor in
             isExporting = true
             defer { isExporting = false }
-
             do {
                 exportURLs = try viewModel.exportRecording()
                 isShareSheetPresented = true
@@ -325,82 +180,5 @@ struct RecordingDetailView: View {
                 exportErrorMessage = error.localizedDescription
             }
         }
-    }
-
-    private func applySnapDetectionMode() {
-        do {
-            try viewModel.applyPendingSnapDetectionMode()
-            selectedSnapEventIndex = 0
-        } catch {
-            snapDetectionModeErrorMessage = error.localizedDescription
-        }
-    }
-
-    // MARK: - Charts
-
-    private func accelerationChart(selectedEvent: SnapEventSummary?) -> some View {
-        Chart(Array(viewModel.samples.enumerated()), id: \.offset) { i, s in
-            LineMark(x: .value("t", i), y: .value("X", s.userAccX))
-                .foregroundStyle(by: .value("축", "X"))
-            LineMark(x: .value("t", i), y: .value("Y", s.userAccY))
-                .foregroundStyle(by: .value("축", "Y"))
-            LineMark(x: .value("t", i), y: .value("Z", s.userAccZ))
-                .foregroundStyle(by: .value("축", "Z"))
-
-            if let selectedEvent {
-                snapRangeMarks(for: selectedEvent)
-            }
-        }
-        .chartXAxis(.hidden)
-        .frame(height: 120)
-    }
-
-    private func gyroChart(selectedEvent: SnapEventSummary?) -> some View {
-        Chart(Array(viewModel.samples.enumerated()), id: \.offset) { i, s in
-            LineMark(x: .value("t", i), y: .value("X", s.rotationRateX))
-                .foregroundStyle(by: .value("축", "X"))
-            LineMark(x: .value("t", i), y: .value("Y", s.rotationRateY))
-                .foregroundStyle(by: .value("축", "Y"))
-            LineMark(x: .value("t", i), y: .value("Z", s.rotationRateZ))
-                .foregroundStyle(by: .value("축", "Z"))
-
-            if let selectedEvent {
-                snapRangeMarks(for: selectedEvent)
-            }
-        }
-        .chartXAxis(.hidden)
-        .frame(height: 120)
-    }
-
-    private func attitudeChart(selectedEvent: SnapEventSummary?) -> some View {
-        Chart(Array(viewModel.samples.enumerated()), id: \.offset) { i, s in
-            LineMark(x: .value("t", i), y: .value("Roll", s.attitudeRoll))
-                .foregroundStyle(by: .value("축", "Roll"))
-            LineMark(x: .value("t", i), y: .value("Pitch", s.attitudePitch))
-                .foregroundStyle(by: .value("축", "Pitch"))
-            LineMark(x: .value("t", i), y: .value("Yaw", s.attitudeYaw))
-                .foregroundStyle(by: .value("축", "Yaw"))
-
-            if let selectedEvent {
-                snapRangeMarks(for: selectedEvent)
-            }
-        }
-        .chartXAxis(.hidden)
-        .frame(height: 120)
-    }
-
-    @ChartContentBuilder
-    private func snapRangeMarks(for event: SnapEventSummary) -> some ChartContent {
-        RuleMark(x: .value("Snap Start", event.startIndex))
-            .foregroundStyle(.orange.opacity(0.45))
-            .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-
-        RuleMark(x: .value("Snap Peak", event.peakIndex))
-            .foregroundStyle(.red)
-            .lineStyle(StrokeStyle(lineWidth: 2))
-
-        RuleMark(x: .value("Snap End", event.endIndex))
-            .foregroundStyle(.orange.opacity(0.45))
-            .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
     }
 }

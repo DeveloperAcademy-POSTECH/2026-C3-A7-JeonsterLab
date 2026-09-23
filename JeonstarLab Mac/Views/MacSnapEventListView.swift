@@ -7,6 +7,7 @@ import SwiftUI
 import AppKit
 
 struct MacSnapEventListView: View {
+    @Environment(\.projectLabelOptions) private var projectLabels
     let events: [WorkingSnapEvent]
     @Binding var snapEventLabels: [String: SnapEventLabelPayload]
     let folders: [SnapFolder]
@@ -17,86 +18,112 @@ struct MacSnapEventListView: View {
     let onSelect: (WorkingSnapEvent) -> Void
     let onDelete: (WorkingSnapEvent) -> Void
 
+    var isInspector = false
+    var selectedSnapID: String?
+
     var body: some View {
         if events.isEmpty {
-            Text("표시할 스냅 이벤트가 없습니다.")
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("No snaps yet.").fontWeight(.medium)
+                Text("Select a range on a chart, then save it as a snap.")
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 12)
         } else {
-            VStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: 6) {
                 ForEach(events) { event in
-                    let key = event.snapID
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(alignment: .top, spacing: 14) {
-                            Button {
-                                onSelect(event)
-                            } label: {
-                                HStack(alignment: .top, spacing: 14) {
-                                    Text(title(for: event))
-                                        .font(.headline)
-                                        .frame(width: 46, alignment: .leading)
-                                    sourceBadge(event.sourceType)
-                                    metric("시작", event.startTime, suffix: "s")
-                                    metric("끝", event.endTime, suffix: "s")
-                                    metric("피크", event.peakTime, suffix: "s")
-                                    metric("피크 시간차", event.peakDelay, suffix: "s")
-                                    metric("지속시간", event.snapDuration, suffix: "s")
-                                    metric("가속도", event.peakAcceleration, suffix: "g")
-                                    metric("회전", event.peakGyro, suffix: "rad/s")
-                                    Text(event.confidence ?? "-")
-                                        .foregroundStyle(.secondary)
-                                        .frame(minWidth: 56, alignment: .leading)
-                                    Spacer()
-                                    segmentStatusDot(for: event)
-                                }
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .help("그래프에서 이 스냅 구간 보기")
-
-                            Button(role: .destructive) {
-                                onDelete(event)
-                            } label: {
-                                Image(systemName: "trash")
-                            }
-                            .buttonStyle(.borderless)
-                            .help("스냅 이벤트 제거")
-                        }
-
-                        HStack(alignment: .top, spacing: 10) {
-                            HStack(spacing: 6) {
-                                Text("라벨")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 28, alignment: .leading)
-
-                                NumberShortcutMenuButton(
-                                    title: currentLabel(for: event).displayName,
-                                    labelStyle: currentLabel(for: event),
-                                    options: labelShortcutOptions(for: key)
-                                )
-                                .frame(width: 132)
-                            }
-                            .padding(.top, 1)
-
-                            TextField("스냅 노트", text: notesBinding(for: key), axis: .vertical)
-                                .textFieldStyle(.roundedBorder)
-                        }
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("폴더")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            folderMembershipControls(for: event)
-                        }
+                    if isInspector {
+                        inspector(for: event)
+                    } else {
+                        summaryRow(for: event)
                     }
-                    .padding(.vertical, 6)
-
-                    Divider()
                 }
             }
         }
+    }
+
+    private func summaryRow(for event: WorkingSnapEvent) -> some View {
+        HStack(spacing: 8) {
+            Button { onSelect(event) } label: {
+                HStack(spacing: 12) {
+                    Text(title(for: event)).font(.callout.weight(.semibold))
+                        .frame(width: 48, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(currentLabel(for: event).displayName).fontWeight(.medium)
+                        Text(event.sourceType.displayName).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 4)
+                    Text(rangeText(for: event)).monospacedDigit().font(.callout)
+                    segmentStatusDot(for: event)
+                }
+                .frame(maxWidth: .infinity, minHeight: 36)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Select this snap to edit its label, notes, and range")
+            .accessibilityLabel("Select snap \(title(for: event)), \(currentLabel(for: event).displayName)")
+            Button(role: .destructive) { onDelete(event) } label: {
+                Label("Delete Snap", systemImage: "trash")
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            .help("Delete snap")
+        }
+        .padding(10)
+        .background(selectedSnapID == event.snapID ? EditorPalette.accent.opacity(0.13) : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 7))
+        .overlay(alignment: .bottom) { Divider().opacity(0.5) }
+    }
+
+    private func inspector(for event: WorkingSnapEvent) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Snap \(title(for: event))").font(.headline)
+                Spacer()
+                sourceBadge(event.sourceType)
+            }
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Label").font(.caption).foregroundStyle(.secondary)
+                NumberShortcutMenuButton(
+                    title: currentLabel(for: event).displayName,
+                    labelStyle: currentLabel(for: event),
+                    options: labelShortcutOptions(for: event.snapID)
+                )
+                .frame(maxWidth: .infinity)
+            }
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Notes").font(.caption).foregroundStyle(.secondary)
+                TextField("Add snap notes…", text: notesBinding(for: event.snapID), axis: .vertical)
+                    .lineLimit(3...6)
+                    .textFieldStyle(.roundedBorder)
+            }
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Folder").font(.caption).foregroundStyle(.secondary)
+                folderMembershipControls(for: event)
+            }
+            Text("Labels and notes are saved automatically.")
+                .font(.caption2).foregroundStyle(.secondary)
+            Divider()
+            HStack {
+                metric("Peak Delay", event.peakDelay, suffix: "s")
+                Spacer()
+                VStack(alignment: .leading) {
+                    Text("Confidence").font(.caption).foregroundStyle(.secondary)
+                    Text(event.confidence ?? "–")
+                }
+            }
+            HStack {
+                Text("Segment File").foregroundStyle(.secondary)
+                Spacer()
+                segmentStatusDot(for: event)
+            }
+            .font(.caption)
+        }
+    }
+
+    private func rangeText(for event: WorkingSnapEvent) -> String {
+        guard let start = event.startTime, let end = event.endTime else { return "No range" }
+        return String(format: "%.2f – %.2f s", start, end)
     }
 
     private func labelBinding(for key: Int) -> Binding<RecordingPackageLabel> {
@@ -129,40 +156,41 @@ struct MacSnapEventListView: View {
     private func folderMembershipControls(for event: WorkingSnapEvent) -> some View {
         let assignedFolder = folderForEvent(event)
         let label = currentLabel(for: event)
-        HStack(alignment: .center, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             if let assignedFolder {
-                Text("\(assignedFolder.name) 폴더에 포함됨")
+                Text("In \(assignedFolder.name)")
                     .font(.callout)
 
-                Button("폴더에서 제거", role: .destructive) {
+                Button("Remove from Folder", role: .destructive) {
                     onRemoveFromFolder(event, assignedFolder)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             } else {
-                Text("아직 폴더에 추가되지 않았습니다.")
+                Text("Not added to a folder.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
                 if label == .unlabeled {
-                    Text("라벨을 먼저 선택해야 폴더에 추가할 수 있습니다.")
+                    Text("Choose a label before adding this snap to a folder.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     NumberShortcutMenuButton(
-                        title: "폴더에 추가",
-                        emptyMessage: "생성된 폴더가 없습니다.",
+                        title: "Add to Folder",
+                        emptyMessage: "No folders available.",
                         options: folderShortcutOptions(for: event)
                     )
-                    .frame(width: 104)
+                    .frame(maxWidth: .infinity)
                 }
             }
         }
     }
 
     private func labelShortcutOptions(for key: String) -> [NumberShortcutMenuOption] {
-        RecordingPackageLabel.allCases.enumerated().map { index, label in
-            NumberShortcutMenuOption(index: index + 1, title: label.displayName) {
+        projectLabels.enumerated().map { index, definition in
+            let label = definition.label
+            return NumberShortcutMenuOption(index: index + 1, title: label.displayName, shortcut: definition.shortcut ?? 0) {
                 labelBinding(for: key).wrappedValue = label
             }
         }
@@ -181,10 +209,11 @@ struct MacSnapEventListView: View {
     }
 
     private func title(for event: WorkingSnapEvent) -> String {
+        if event.sourceType == .autoSegment { return "Auto" }
         if let eventIndex = event.eventIndex {
-            return "\(eventIndex + 1)번"
+            return "#\(eventIndex + 1)"
         }
-        return "수동"
+        return "Manual"
     }
 
     private func sourceBadge(_ sourceType: SnapEventSourceType) -> some View {
@@ -203,7 +232,7 @@ struct MacSnapEventListView: View {
         return Circle()
             .fill(exists ? Color.green : Color.red)
             .frame(width: 9, height: 9)
-            .help(exists ? "세그먼트 생성됨" : "세그먼트 없음")
+            .help(exists ? "Segment saved" : "Missing Segments")
     }
 
     private func metric(_ title: String, _ value: Double?, suffix: String) -> some View {
@@ -226,16 +255,18 @@ struct MacSnapEventListView: View {
 private struct NumberShortcutMenuOption: Identifiable {
     let index: Int
     let title: String
+    var shortcut: Int? = nil
     let action: () -> Void
 
     var id: Int { index }
-    var hasShortcut: Bool { (1...9).contains(index) }
+    var shortcutNumber: Int { shortcut ?? index }
+    var hasShortcut: Bool { shortcutNumber > 0 }
 }
 
 private struct NumberShortcutMenuButton: View {
     let title: String
     var labelStyle: RecordingPackageLabel?
-    var emptyMessage: String = "선택할 항목이 없습니다."
+    var emptyMessage: String = "No options available."
     let options: [NumberShortcutMenuOption]
 
     @State private var isPresented = false
@@ -301,9 +332,15 @@ private struct NumberShortcutMenuContent: View {
     @Binding var isPresented: Bool
 
     @State private var keyMonitor: Any?
+    @State private var numberInput = ""
 
     var body: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: 4) {
+            if options.contains(where: { $0.shortcutNumber >= 10 }) {
+                Text(numberInput.isEmpty ? String(localized: "Type a number · Return to confirm") : "\(numberInput) ↵")
+                    .font(.caption).foregroundStyle(.secondary).padding(10)
+            }
             if options.isEmpty {
                 Text(emptyMessage)
                     .font(.callout)
@@ -320,7 +357,7 @@ private struct NumberShortcutMenuContent: View {
                                 .lineLimit(1)
                             Spacer()
                             if option.hasShortcut {
-                                Text("\(option.index)")
+                                Text("\(option.shortcutNumber)")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -335,6 +372,8 @@ private struct NumberShortcutMenuContent: View {
         }
         .frame(minWidth: 180, alignment: .leading)
         .padding(.vertical, 6)
+        }
+        .frame(width: 260, height: min(420, CGFloat(options.count * 36 + 50)))
         .onAppear(perform: installKeyMonitor)
         .onDisappear(perform: removeKeyMonitor)
     }
@@ -346,13 +385,26 @@ private struct NumberShortcutMenuContent: View {
 
     private func installKeyMonitor() {
         removeKeyMonitor()
+        let menuWindow = NSApp.keyWindow
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard let number = shortcutNumber(from: event),
-                  let option = options.first(where: { $0.index == number }) else {
-                return event
+            guard event.window === menuWindow,
+                  event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty else { return event }
+            if event.keyCode == 53 { isPresented = false; return nil }
+            if event.keyCode == 51 {
+                if !numberInput.isEmpty { numberInput.removeLast() }
+                return nil
             }
-
-            select(option)
+            if event.keyCode == 36 || event.keyCode == 76 {
+                if let option = options.first(where: { $0.hasShortcut && String($0.shortcutNumber) == numberInput }) { select(option) }
+                return nil
+            }
+            guard let digit = event.charactersIgnoringModifiers, digit.count == 1,
+                  digit.unicodeScalars.allSatisfy({ (48...57).contains($0.value) }) else { return event }
+            let candidate = numberInput + digit
+            let matches = options.filter { $0.hasShortcut && String($0.shortcutNumber).hasPrefix(candidate) }
+            guard !matches.isEmpty else { NSSound.beep(); return nil }
+            numberInput = candidate
+            if matches.count == 1, String(matches[0].shortcutNumber) == candidate { select(matches[0]) }
             return nil
         }
     }
@@ -362,18 +414,6 @@ private struct NumberShortcutMenuContent: View {
             NSEvent.removeMonitor(keyMonitor)
             self.keyMonitor = nil
         }
-    }
-
-    private func shortcutNumber(from event: NSEvent) -> Int? {
-        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        guard modifiers.isEmpty,
-              let characters = event.charactersIgnoringModifiers,
-              characters.count == 1,
-              let number = Int(characters),
-              (1...9).contains(number) else {
-            return nil
-        }
-
-        return number
+        numberInput = ""
     }
 }

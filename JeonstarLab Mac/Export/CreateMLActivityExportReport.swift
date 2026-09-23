@@ -14,9 +14,9 @@ struct CreateMLActivityExportReport {
 
     var summaryText: String {
         if skippedItemCount > 0 {
-            return "Create ML 내보내기 완료: \(exportedFileCount)개 파일, \(skippedItemCount)개 건너뜀"
+            return "Create ML exported: \(exportedFileCount) files; \(skippedItemCount) skipped"
         }
-        return "Create ML 내보내기 완료: \(exportedFileCount)개 파일"
+        return "Create ML exported: \(exportedFileCount) files"
     }
 }
 
@@ -28,12 +28,12 @@ enum CreateMLActivityExportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .emptyFolder:
-            return "내보낼 스냅이 없습니다."
+            return "No snaps to export."
         case .noExportableSnaps(let reasons):
             let detail = reasons.prefix(3).joined(separator: "\n")
-            return detail.isEmpty ? "내보낼 수 있는 스냅이 없습니다." : "내보낼 수 있는 스냅이 없습니다.\n\(detail)"
+            return detail.isEmpty ? "No exportable snaps found." : "No exportable snaps found.\n\(detail)"
         case .missingSourceCSV:
-            return "원본 recording.csv를 찾을 수 없습니다."
+            return "The source recording.csv could not be found."
         }
     }
 }

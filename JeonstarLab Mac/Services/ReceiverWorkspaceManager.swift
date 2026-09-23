@@ -25,7 +25,7 @@ final class ReceiverWorkspaceManager {
     var projectsRootURL: URL {
         let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         return documents
-            .appendingPathComponent("JeonstarLab", isDirectory: true)
+            .appendingPathComponent("WatchMotion Editor", isDirectory: true)
             .appendingPathComponent("Projects", isDirectory: true)
     }
 
@@ -43,7 +43,7 @@ final class ReceiverWorkspaceManager {
     private static func makeDefaultWorkspace(defaultRecordingsURL: URL) -> ReceiverWorkspace {
         ReceiverWorkspace(
             id: "default-local",
-            name: "기본 작업공간",
+            name: "Local Workspace",
             rootURL: defaultRecordingsURL,
             recordingsRootURL: defaultRecordingsURL,
             foldersRootURL: defaultRecordingsURL,

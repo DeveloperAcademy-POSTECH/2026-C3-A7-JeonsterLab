@@ -25,81 +25,67 @@ struct SnapFolderDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                TextField("폴더 이름", text: $folder.name)
-                    .font(.largeTitle)
+                TextField("Folder Name", text: $folder.name)
+                    .font(.system(size: 28, weight: .semibold))
                     .textFieldStyle(.plain)
                     .onChange(of: folder.name) {
                         folder.updatedAt = Date()
                         onRename(folder)
                     }
 
-                Text("\(folder.items.count)개 스냅")
+                Text("\(folder.items.count) snaps")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                HStack(spacing: 10) {
-                    Picker("정렬", selection: $sortOption) {
-                        ForEach(SnapFolderSortOption.allCases) { option in
-                            Text(option.displayName).tag(option)
-                        }
+                Text("Organize labeled snaps into a dataset. Generate segment files before exporting, or export directly from the source recordings.")
+                    .font(.callout).foregroundStyle(.secondary)
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        sortPicker
+                        Spacer()
+                        exportActions
                     }
-                    .pickerStyle(.menu)
-                    .frame(maxWidth: 220)
-
-                    Button("이 폴더 세그먼트 생성") {
-                        segmentMessage = onGenerateSegments(folder)
+                    VStack(alignment: .leading, spacing: 12) {
+                        sortPicker
+                        exportActions
                     }
-                    .disabled(folder.items.isEmpty)
-
-                    Button("데이터셋 CSV 내보내기") {
-                        exportOptions = .lastSaved()
-                        isShowingExportOptions = true
-                    }
-                    .disabled(folder.items.isEmpty)
-
-                    Button("Create ML용 내보내기") {
-                        exportMessage = onExportCreateML(folder)
-                    }
-                    .disabled(folder.items.isEmpty)
-
-                    if let segmentMessage {
-                        Text(segmentMessage)
-                            .font(.caption)
-                            .foregroundStyle(segmentMessage.contains("실패") ? .red : .secondary)
-                    }
+                }
+                if let segmentMessage {
+                    Text(segmentMessage)
+                        .font(.caption)
+                        .foregroundStyle(segmentMessage.localizedCaseInsensitiveContains("failed") ? .red : .secondary)
                 }
 
                 if let exportMessage {
                     Text(exportMessage)
                         .font(.caption)
-                        .foregroundStyle(exportMessage.contains("실패") ? .red : .secondary)
+                        .foregroundStyle(exportMessage.localizedCaseInsensitiveContains("failed") ? .red : .secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if folder.items.isEmpty {
-                    Text("아직 이 폴더에 추가된 스냅이 없습니다.")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 180, alignment: .center)
+                    ContentUnavailableView("Build Your Dataset", systemImage: "folder.badge.plus",
+                        description: Text("Select a snap in a recording, assign a label, then add it to this folder."))
+                        .frame(maxWidth: .infinity, minHeight: 240)
                 } else {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(sortedItems) { item in
                             folderItemRow(item)
-                            Divider()
                         }
                     }
                 }
             }
-            .frame(maxWidth: 920, alignment: .leading)
-            .padding(28)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
         }
         .alert(
-            "원본 데이터를 찾을 수 없습니다.",
+            "Source recording unavailable.",
             isPresented: Binding(
                 get: { sourceNavigationMessage != nil },
                 set: { if !$0 { sourceNavigationMessage = nil } }
             )
         ) {
-            Button("확인") {
+            Button("OK") {
                 sourceNavigationMessage = nil
             }
         } message: {
@@ -119,6 +105,31 @@ struct SnapFolderDetailView: View {
                 }
             )
         }
+    }
+
+    private var sortPicker: some View {
+        Picker("Sort", selection: $sortOption) {
+            ForEach(SnapFolderSortOption.allCases) { option in
+                Text(option.displayName).tag(option)
+            }
+        }
+        .pickerStyle(.menu)
+        .frame(width: 220)
+    }
+
+    private var exportActions: some View {
+        HStack(spacing: 10) {
+            Button("Generate Segments") { segmentMessage = onGenerateSegments(folder) }
+            Button("Export Create ML") { exportMessage = onExportCreateML(folder) }
+            Button {
+                exportOptions = .lastSaved()
+                isShowingExportOptions = true
+            } label: {
+                Label("Export CSV", systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .disabled(folder.items.isEmpty)
     }
 
     private var sortedItems: [SnapFolderItem] {
@@ -150,11 +161,11 @@ struct SnapFolderDetailView: View {
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
-                    Text(item.recordingStartedAt?.formatted(date: .abbreviated, time: .shortened) ?? "녹화 시각 확인 불가")
+                    Text(item.recordingStartedAt?.formatted(date: .abbreviated, time: .shortened) ?? "Recording date unavailable")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if !hasSourcePackage(item) {
-                        Text("원본 녹화 없음")
+                        Text("Source Missing")
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
@@ -171,11 +182,11 @@ struct SnapFolderDetailView: View {
                     .clipShape(Capsule())
             }
 
-            HStack(spacing: 16) {
-                metric("라벨", item.label.displayName)
-                metric("시작", formatted(item.startTime, suffix: "s"))
-                metric("피크", formatted(item.peakTime, suffix: "s"))
-                metric("끝", formatted(item.endTime, suffix: "s"))
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), alignment: .leading)], alignment: .leading, spacing: 12) {
+                metric("Label", item.label.displayName)
+                metric("Start", formatted(item.startTime, suffix: "s"))
+                metric("Peak", formatted(item.peakTime, suffix: "s"))
+                metric("End", formatted(item.endTime, suffix: "s"))
                 segmentStatusDot(hasSegment: item.segmentCSVRelativePath != nil)
             }
 
@@ -186,22 +197,24 @@ struct SnapFolderDetailView: View {
             }
 
             HStack {
-                Button("원본으로 이동") {
+                Button("Open Recording") {
                     if hasSourcePackage(item) {
                         onOpenSource(item)
                     } else {
-                        sourceNavigationMessage = "이 스냅 이벤트의 원본 녹화가 삭제되었거나 현재 작업공간에 없습니다."
+                        sourceNavigationMessage = "The original recording was removed or is not in this workspace."
                     }
                 }
 
-                Button("폴더에서 제거", role: .destructive) {
+                Spacer()
+                Button("Remove from Folder", role: .destructive) {
                     onDeleteItem(item)
                 }
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
         }
-        .padding(.vertical, 6)
+        .padding(18)
+        .editorSurface()
     }
 
     private func metric(_ title: String, _ value: String) -> some View {
@@ -216,13 +229,12 @@ struct SnapFolderDetailView: View {
 
     private func segmentStatusDot(hasSegment: Bool) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("세그먼트")
+            Text("Segment")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Circle()
-                .fill(hasSegment ? Color.green : Color.red)
-                .frame(width: 9, height: 9)
-                .help(hasSegment ? "세그먼트 생성됨" : "세그먼트 없음")
+            Label(hasSegment ? "Saved" : "Not Generated", systemImage: hasSegment ? "checkmark.circle.fill" : "circle.dashed")
+                .font(.callout)
+                .foregroundStyle(hasSegment ? Color.green : Color.secondary)
         }
     }
 
@@ -277,17 +289,17 @@ private enum SnapFolderSortOption: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .dateAscending:
-            return "오래된 녹화"
+            return "Oldest Recordings"
         case .dateDescending:
-            return "최신 녹화"
+            return "Newest Recordings"
         case .snapDurationAscending:
-            return "짧은 스냅"
+            return "Shortest Snaps"
         case .snapDurationDescending:
-            return "긴 스냅"
+            return "Longest Snaps"
         case .segmentSavedFirst:
-            return "세그먼트 저장됨"
+            return "Saved Segments First"
         case .segmentMissingFirst:
-            return "세그먼트 없음"
+            return "Missing Segments"
         }
     }
 }

@@ -18,22 +18,27 @@ final class RecordingFileStore: RecordingFileStoreProtocol {
 
     private let directory: URL
 
-    init() {
-        directory = FileManager.default
+    init(directory: URL? = nil) {
+        self.directory = directory ?? FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Recordings", isDirectory: true)
         try? FileManager.default.createDirectory(
-            at: directory,
+            at: self.directory,
             withIntermediateDirectories: true
         )
     }
 
     func moveToDocuments(from tempURL: URL, fileName: String) throws {
         let dest = directory.appendingPathComponent(fileName)
+        // Duplicate delivery must not replace an imported original.
+        let data = try Data(contentsOf: tempURL, options: .mappedIfSafe)
         if FileManager.default.fileExists(atPath: dest.path) {
-            try FileManager.default.removeItem(at: dest)
+            guard try Data(contentsOf: dest, options: .mappedIfSafe) == data else {
+                throw CocoaError(.fileWriteFileExists)
+            }
+            return
         }
-        try FileManager.default.moveItem(at: tempURL, to: dest)
+        try data.write(to: dest, options: .atomic)
     }
 
     func delete(fileName: String) throws {
@@ -57,8 +62,8 @@ enum RecordingRepositoryError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .notFound:     return "녹화 세션을 찾을 수 없습니다."
-        case .fileNotFound: return "녹화 파일을 찾을 수 없습니다."
+        case .notFound:     return "The recording session could not be found."
+        case .fileNotFound: return "The recording file could not be found."
         }
     }
 }

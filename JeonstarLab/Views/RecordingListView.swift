@@ -9,8 +9,12 @@ import SwiftUI
 
 struct RecordingListView: View {
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @State var viewModel:        RecordingListViewModel
     @State var watchControlVM:   WatchControlViewModel
+
+    @State private var isShowingConnectionSettings = false
 
     var body: some View {
         List {
@@ -18,9 +22,9 @@ struct RecordingListView: View {
 
             if viewModel.recordings.isEmpty {
                 ContentUnavailableView(
-                    "녹화 없음",
+                    "No Recordings",
                     systemImage: "waveform.slash",
-                    description: Text("Watch 또는 아래 버튼으로 녹화를 시작하세요.")
+                    description: Text("Start a recording on your Watch or use the Watch controls above.")
                 )
             } else {
                 ForEach(viewModel.recordings) { session in
@@ -35,7 +39,18 @@ struct RecordingListView: View {
                 }
             }
         }
-        .navigationTitle("녹화 목록")
+        .listStyle(.insetGrouped)
+        .navigationTitle("Recordings")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { isShowingConnectionSettings = true } label: {
+                    Label("Connection Settings", systemImage: "laptopcomputer")
+                }
+            }
+        }
+        .sheet(isPresented: $isShowingConnectionSettings) {
+            MacConnectionSettingsView(viewModel: .shared)
+        }
         .navigationDestination(for: RecordingSession.self) { session in
             RecordingDetailView(
                 viewModel: RecordingDetailViewModel(
@@ -53,16 +68,19 @@ struct RecordingListView: View {
 
     private var watchControlSection: some View {
         Section {
-            HStack {
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                : AnyLayout(HStackLayout())
+            layout {
                 // 연결 상태 표시
                 Label(
-                    watchControlVM.isReachable ? "Watch 연결됨" : "Watch 연결 안 됨",
+                    watchControlVM.isReachable ? "Watch Connected" : "Watch Not Connected",
                     systemImage: watchControlVM.isReachable ? "applewatch" : "applewatch.slash"
                 )
                 .foregroundStyle(watchControlVM.isReachable ? .green : .secondary)
                 .font(.subheadline)
 
-                Spacer()
+                if !dynamicTypeSize.isAccessibilitySize { Spacer() }
 
                 // 녹화 제어 버튼
                 switch watchControlVM.watchState {
@@ -70,7 +88,7 @@ struct RecordingListView: View {
                     Button {
                         watchControlVM.stopRecording()
                     } label: {
-                        Label("중지", systemImage: "stop.circle.fill")
+                        Label("Stop", systemImage: "stop.circle.fill")
                             .foregroundStyle(.red)
                     }
                     .buttonStyle(.bordered)
@@ -78,7 +96,7 @@ struct RecordingListView: View {
                     Button {
                         watchControlVM.startRecording()
                     } label: {
-                        Label("녹화", systemImage: "record.circle")
+                        Label("Record", systemImage: "record.circle")
                             .foregroundStyle(.red)
                     }
                     .buttonStyle(.bordered)
@@ -86,10 +104,10 @@ struct RecordingListView: View {
                 }
             }
         } header: {
-            Text("Watch 제어")
+            Text("Watch Controls")
         } footer: {
             if !watchControlVM.isReachable {
-                Text("Watch 앱을 실행하고 iPhone과 가까이 두세요.")
+                Text("Open the Watch app and keep it near your iPhone.")
                     .font(.caption2)
             }
         }
@@ -100,15 +118,20 @@ struct RecordingListView: View {
 
 struct RecordingRowView: View {
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let session: RecordingSession
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
                 .font(.headline)
-            HStack(spacing: 8) {
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                : AnyLayout(HStackLayout(spacing: 8))
+            layout {
                 Label(durationText, systemImage: "clock")
-                Label("\(session.sampleCount)개", systemImage: "waveform")
+                Label("\(session.sampleCount) samples", systemImage: "waveform")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -117,6 +140,7 @@ struct RecordingRowView: View {
     }
 
     private var durationText: String {
+        guard session.duration.isFinite, (0...2_678_400).contains(session.duration) else { return "—" }
         let total = Int(session.duration)
         let m = total / 60
         let s = total % 60

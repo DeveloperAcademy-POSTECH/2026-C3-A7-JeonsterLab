@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>WatchMotion Editor</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -11,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>WatchMotion Editor</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
@@ -22,10 +24,10 @@
 	<true/>
 	<key>NSBonjourServices</key>
 	<array>
-		<string>_jeonstar-data._tcp</string>
+		<string>_wm-editor-v1._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>근처 Mac 앱으로 녹화 데이터를 전송하기 위해 로컬 네트워크를 사용합니다.</string>
+	<string>Local network access is used to send motion recordings to the nearby Mac app.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

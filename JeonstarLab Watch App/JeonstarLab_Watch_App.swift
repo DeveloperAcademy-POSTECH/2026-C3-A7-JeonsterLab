@@ -63,9 +63,9 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
         }
 
         // 백그라운드 세션 만료 시 녹화 자동 종료
-        motionTracker.onExtendedSessionExpired = { [vm] in
-            vm.stopRecording()
-        }
+        motionTracker.onRecordingFailure = { [vm] message in vm.recordingFailed(message) }
+        recordingStorage.onRecordingError = { [vm] message in vm.recordingFailed(message) }
+        vm.isAppActive = false
 
         // iPhone으로부터 녹화 명령 수신
         // 여기서 vm.startRecording(), vm.stopRecording()을 호출하기 때문에
@@ -93,7 +93,10 @@ struct Wrist_Motion_Watch_Watch_AppApp: App {
                 viewModel: recordingViewModel,
                 storage: recordingStorage
             )
+            .onAppear { recordingViewModel.isAppActive = scenePhase == .active }
             .onChange(of: scenePhase) { _, newPhase in
+                recordingViewModel.isAppActive = newPhase == .active
+                if newPhase == .background { recordingViewModel.stopRecording() }
                 lifecycleLogger.info("scenePhase changed: \(String(describing: newPhase))")
             }
         }

@@ -5,15 +5,10 @@
     <key>method</key>
     <string>app-store</string>
     <key>teamID</key>
-    <string>2QJX795Q3R</string>
+	<string>36545XSWN8</string>
     <key>uploadSymbols</key>
     <true/>
-    <key>provisioningProfiles</key>
-    <dict>
-        <key>com.Tom.JeonstarLab</key>
-        <string>Jeonster Lab iOS AppStore</string>
-        <key>com.Tom.JeonstarLab.watchkitapp</key>
-        <string>Jeonster Lab watchOS AppStore</string>
-    </dict>
+	<key>signingStyle</key>
+	<string>automatic</string>
 </dict>
 </plist>

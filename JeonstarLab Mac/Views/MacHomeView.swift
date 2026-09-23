@@ -9,51 +9,56 @@ struct MacHomeView: View {
     @Bindable var viewModel: MacHomeViewModel
     @Environment(\.openWindow) private var openWindow
     @State private var pendingDeletePackage: ReceivedRecordingPackage?
+    @AppStorage("WatchMotionEditor.hasSeenMacTutorial.v1") private var hasSeenTutorial = false
 
     var body: some View {
         NavigationSplitView {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text("JeonstarLab Receiver")
-                        .font(.title2)
+                    Image(nsImage: NSApplication.shared.applicationIconImage)
+                        .resizable()
+                        .frame(width: 34, height: 34)
+                        .accessibilityHidden(true)
+                    Text("WatchMotion\nEditor")
+                        .font(.headline)
                         .fontWeight(.semibold)
 
                     Spacer()
 
                     if viewModel.canOpenProjectPackage {
                         Button {
-                            if let request = viewModel.makeProjectWindowRequest() {
-                                openWindow(value: request)
+                            Task {
+                                if let request = await viewModel.makeProjectWindowRequest() { openWindow(value: request) }
                             }
                         } label: {
-                            Label("프로젝트 열기", systemImage: "plus")
+                            Label("Open Project", systemImage: "plus")
                                 .labelStyle(.iconOnly)
                         }
-                        .help("Receiver 프로젝트 열기")
+                        .help("Open WatchMotion Editor Project")
                     }
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(viewModel.workspaceTitle)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
 
                     Text(viewModel.workspaceSubtitle)
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                 }
 
                 List(selection: viewModel.packageSelectionBinding()) {
-                    Section("Folders") {
+                    Section {
                         Button {
                             viewModel.addFolder()
                         } label: {
-                            Label("폴더 추가", systemImage: "folder.badge.plus")
+                            Label("New Folder", systemImage: "folder.badge.plus")
                         }
 
                         if viewModel.snapFolders.isEmpty {
-                            Text("아직 분류 폴더가 없습니다.")
-                                .foregroundStyle(.secondary)
+                            Text("No folders yet.")
+                                .foregroundStyle(Color.white.opacity(0.65))
                         } else {
                             ForEach(viewModel.snapFolders) { folder in
                                 Button {
@@ -61,30 +66,39 @@ struct MacHomeView: View {
                                 } label: {
                                     HStack {
                                         Image(systemName: "folder")
+                                            .foregroundStyle(Color.white.opacity(0.7))
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(folder.name)
+                                                .foregroundStyle(.white)
                                                 .lineLimit(1)
-                                            Text("\(folder.items.count)개 스냅")
+                                            Text("\(folder.items.count) snaps")
                                                 .font(.caption)
-                                                .foregroundStyle(.secondary)
+                                                .foregroundStyle(Color.white.opacity(0.65))
                                         }
                                     }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
+                                .listRowBackground(viewModel.selectedFolder?.id == folder.id ? EditorPalette.accent.opacity(0.24) : Color.clear)
                                 .contextMenu {
-                                    Button("삭제", role: .destructive) {
+                                    Button("Delete", role: .destructive) {
                                         viewModel.deleteFolder(folder)
                                     }
                                 }
                             }
                         }
+                    } header: {
+                        Text("Folders")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(0.55))
                     }
 
-                    Section("Pinned Recordings") {
+                    Section {
                         if viewModel.filteredPinnedPackages.isEmpty {
-                            Text("고정된 녹화가 없습니다.")
+                            Text("No pinned recordings.")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.white.opacity(0.65))
                         } else {
                             ForEach(viewModel.filteredPinnedPackages) { package in
                                 receivedPackageRow(package)
@@ -94,12 +108,16 @@ struct MacHomeView: View {
                                     }
                             }
                         }
+                    } header: {
+                        Text("Pinned Recordings")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(0.55))
                     }
 
-                    Section("Received Recordings") {
+                    Section {
                         if viewModel.filteredReceivedPackages.isEmpty {
-                            Text("아직 수신된 녹화 데이터가 없습니다.")
-                                .foregroundStyle(.secondary)
+                            Text("No recordings yet.")
+                                .foregroundStyle(Color.white.opacity(0.65))
                         } else {
                             ForEach(viewModel.filteredReceivedPackages) { package in
                                 receivedPackageRow(package)
@@ -109,17 +127,28 @@ struct MacHomeView: View {
                                     }
                             }
                         }
+                    } header: {
+                        Text("Received Recordings")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(0.55))
                     }
                 }
+                .scrollContentBackground(.hidden)
+                .listStyle(.sidebar)
+                Divider().overlay(Color.white.opacity(0.12))
+                Label(viewModel.connectedPeerText, systemImage: "iphone")
+                    .font(.caption)
+                    .foregroundStyle(Color.white.opacity(0.65))
+                    .padding(.bottom, 4)
             }
-            .padding()
-            .navigationSplitViewColumnWidth(min: 260, ideal: 300)
+            .padding(14)
+            .background(EditorPalette.sidebar)
+            .environment(\.colorScheme, .dark)
+            .navigationSplitViewColumnWidth(min: 230, ideal: 260, max: 340)
         } detail: {
             VStack(spacing: 0) {
                 connectionSection
-                    .padding(.top, 22)
-                    .padding(.horizontal, 28)
-                    .padding(.bottom, 0)
+                Divider()
 
                 if let folderBinding = viewModel.bindingForSelectedFolder() {
                     SnapFolderDetailView(
@@ -149,34 +178,34 @@ struct MacHomeView: View {
                     emptyState
                 }
             }
-            .background(Color(nsColor: .windowBackgroundColor))
+            .background(EditorPalette.background)
         }
         .alert(
-            "이 녹화 기록을 삭제할까요?",
+            "Delete this recording?",
             isPresented: Binding(
                 get: { pendingDeletePackage != nil },
                 set: { if !$0 { pendingDeletePackage = nil } }
             ),
             presenting: pendingDeletePackage
         ) { package in
-            Button("취소", role: .cancel) {
+            Button("Cancel", role: .cancel) {
                 pendingDeletePackage = nil
             }
-            Button("삭제", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 viewModel.deleteReceivedRecording(package)
                 pendingDeletePackage = nil
             }
         } message: { _ in
-            Text("삭제하면 Mac에 저장된 이 녹화 패키지가 사라집니다.\n이 작업은 되돌릴 수 없습니다.")
+            Text("This recording package will be removed from this Mac.\nThis action cannot be undone.")
         }
         .alert(
-            "Receiver 프로젝트",
+            "WatchMotion Editor Project",
             isPresented: Binding(
                 get: { viewModel.projectPackageMessage != nil },
                 set: { if !$0 { viewModel.projectPackageMessage = nil } }
             )
         ) {
-            Button("확인") {
+            Button("OK") {
                 viewModel.projectPackageMessage = nil
             }
         } message: {
@@ -184,18 +213,62 @@ struct MacHomeView: View {
         }
         .toolbar {
             ToolbarItem {
-                Button {
-                    viewModel.exportReceiverProjectPackage()
-                } label: {
-                    Label("프로젝트 내보내기", systemImage: "square.and.arrow.up")
-                }
-                .help("Receiver 프로젝트 내보내기")
+                Menu {
+                    Button("Project Labels…") {
+                        openWindow(value: ProjectSettingsRequest(recordingsPath: viewModel.rootReceivedFolderURL.path,
+                                                                 title: viewModel.workspaceTitle))
+                    }
+                    SettingsLink { Text("App Settings…") }
+                    Button("Show Tutorial") { openWindow(id: "getting-started") }
+                } label: { Label("Settings", systemImage: "gearshape") }
             }
+            ToolbarItem { EditorAppearanceMenu() }
+            ToolbarItem {
+                Button {
+                    Task { await viewModel.exportReceiverProjectPackage() }
+                } label: {
+                    Label("Export Project", systemImage: "square.and.arrow.up")
+                }
+                .help("Export WatchMotion Editor Project")
+            }
+        }
+        .disabled(viewModel.isProcessingProject)
+        .overlay {
+            if viewModel.isProcessingProject {
+                VStack(spacing: 16) {
+                    ProgressView(viewModel.projectOperationStatus)
+                    Button("Cancel") { viewModel.cancelProjectOperation() }
+                }
+                    .padding(24)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+            }
+        }
+        .environment(\.projectLabelOptions, viewModel.labelCatalog.activeLabels)
+        .task {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--show-project-labels") {
+                openWindow(value: ProjectSettingsRequest(recordingsPath: viewModel.rootReceivedFolderURL.path,
+                                                         title: viewModel.workspaceTitle))
+            }
+            if ProcessInfo.processInfo.arguments.contains("--show-tutorial") {
+                openWindow(id: "getting-started")
+                return
+            }
+            if ProcessInfo.processInfo.arguments.contains("--ui-workspace") { return }
+            #endif
+            if !hasSeenTutorial {
+                hasSeenTutorial = true
+                openWindow(id: "getting-started")
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .projectLabelsDidChange)) { notification in
+            guard notification.object as? String == viewModel.rootReceivedFolderURL.standardizedFileURL.path else { return }
+            viewModel.reloadPackages()
         }
         .searchable(
             text: $viewModel.searchQuery,
             placement: .toolbar,
-            prompt: "수신 기록 검색"
+            prompt: "Search recordings"
         )
     }
 
@@ -203,22 +276,23 @@ struct MacHomeView: View {
         HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(package.displayTitle)
+                    .foregroundStyle(.white)
                     .lineLimit(1)
                 if package.isPinned {
-                    Label("고정됨", systemImage: "pin.fill")
+                    Label("Pinned", systemImage: "pin.fill")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                         .labelStyle(.titleAndIcon)
                 }
                 Text(package.recordingDateText)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("\(package.resultSummaryText) · 수신 \(package.receivedAtText)")
+                    .foregroundStyle(Color.white.opacity(0.65))
+                Text("\(package.resultSummaryText) · Received \(package.receivedAtText)")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("\(package.sampleCountText)샘플 · 스냅 \(package.snapEventCountText) · \(package.completenessText)")
+                    .foregroundStyle(Color.white.opacity(0.65))
+                Text("\(package.sampleCountText) samples · \(package.snapEventCountText) snaps · \(package.completenessText)")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
             }
 
             Spacer(minLength: 8)
@@ -230,20 +304,20 @@ struct MacHomeView: View {
         Button {
             openWindow(value: package.folderURL.path)
         } label: {
-            Label("새로운 윈도우에서 열기", systemImage: "rectangle.on.rectangle")
+            Label("Open in New Window", systemImage: "rectangle.on.rectangle")
         }
 
         if package.isPinned {
             Button {
                 viewModel.unpinPackage(package)
             } label: {
-                Label("고정 해제", systemImage: "pin.slash")
+                Label("Unpin Recording", systemImage: "pin.slash")
             }
         } else {
             Button {
                 viewModel.pinPackage(package)
             } label: {
-                Label("기록 고정", systemImage: "pin")
+                Label("Pin Recording", systemImage: "pin")
             }
         }
 
@@ -252,157 +326,113 @@ struct MacHomeView: View {
         Button(role: .destructive) {
             pendingDeletePackage = package
         } label: {
-            Label("삭제하기", systemImage: "trash")
+            Label("Delete", systemImage: "trash")
         }
     }
 
     private var connectionSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 18) {
-                Text("Connection Status")
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(viewModel.isAdvertising ? Color.green : Color.secondary)
+                    .frame(width: 7, height: 7)
+                Text(viewModel.statusText).fontWeight(.medium)
+                Text(viewModel.connectedPeerText).foregroundStyle(.secondary)
                     .lineLimit(1)
-
-                Divider()
-                    .frame(height: 30)
-
-                connectionStatusItem(
-                    title: "상태",
-                    value: viewModel.statusText,
-                    systemImage: viewModel.isAdvertising
-                        ? "antenna.radiowaves.left.and.right"
-                        : "pause.circle"
-                )
-
-                connectionStatusItem(
-                    title: "기기",
-                    value: viewModel.connectedPeerText,
-                    systemImage: "iphone"
-                )
-
-                connectionStatusItem(
-                    title: "자동 전송",
-                    value: "비활성화",
-                    systemImage: "arrow.triangle.2.circlepath"
-                )
-
-                Spacer(minLength: 12)
-
-                HStack(spacing: 8) {
-                    Button("저장 폴더") {
-                        viewModel.openReceivedFolder()
-                    }
-
-                    Button("새로고침") {
-                        viewModel.reloadPackages()
-                    }
-
-                    if viewModel.isAdvertising {
-                        Button("수신 중지") {
-                            viewModel.stopReceiver()
-                        }
-                    } else {
-                        Button("수신 시작") {
-                            viewModel.startReceiver()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
+                Spacer(minLength: 8)
+                Button { viewModel.openReceivedFolder() } label: {
+                    Label("Show in Finder", systemImage: "folder")
                 }
-            }
-
-            Group {
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                } else {
-                    Text(viewModel.guidanceText)
-                        .foregroundStyle(.secondary)
+                .labelStyle(.iconOnly)
+                .help("Show received recordings in Finder")
+                Button { viewModel.reloadPackages() } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
                 }
+                .labelStyle(.iconOnly)
+                .help("Refresh recordings")
+                Button(viewModel.isAdvertising ? "Stop Receiving" : "Start Receiving") {
+                    if viewModel.isAdvertising { viewModel.stopReceiver() }
+                    else { viewModel.startReceiver() }
+                }
+                .buttonStyle(.borderedProminent)
             }
-            .font(.caption)
-            .lineLimit(1)
+            .controlSize(.small)
+            Text(viewModel.errorMessage ?? viewModel.guidanceText)
+                .font(.caption)
+                .foregroundStyle(viewModel.errorMessage == nil ? Color.secondary : Color.red)
+                .textSelection(.enabled)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color(nsColor: .controlBackgroundColor).opacity(0.56))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                }
-        }
-        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
-    }
-
-    private func connectionStatusItem(
-        title: String,
-        value: String,
-        systemImage: String
-    ) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Text(value)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-            }
-        }
-        .frame(minWidth: 96, alignment: .leading)
+        .padding(.vertical, 12)
+        .background(EditorPalette.surface)
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Text("아직 수신된 녹화 데이터가 없습니다.")
-                .font(.title3)
-            Text("Mac에서 [수신 시작]을 누른 뒤 iPhone 녹화 상세 화면에서 [Mac 찾기]와 [Mac으로 전송]을 순서대로 눌러주세요.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+        ScrollView {
+            VStack(spacing: 24) {
+                HStack(spacing: 22) {
+                    Image(systemName: "applewatch")
+                    Image(systemName: "arrow.right").font(.title3).foregroundStyle(.secondary)
+                    Image(systemName: "iphone")
+                    Image(systemName: "arrow.right").font(.title3).foregroundStyle(.secondary)
+                    Image(systemName: "laptopcomputer")
+                }
+                .font(.system(size: 40, weight: .light))
+                .foregroundStyle(EditorPalette.accent)
+                .accessibilityLabel("Apple Watch to iPhone to Mac")
+                VStack(spacing: 10) {
+                    Text("Your motion. Ready to explore.")
+                        .font(.system(size: 28, weight: .semibold))
+                    Text("Receive recordings from your iPhone, select motion segments,\nand turn them into labeled datasets.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                HStack(spacing: 12) {
+                    Button(viewModel.isAdvertising ? "Receiving…" : "Start Receiving") {
+                        viewModel.startReceiver()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.isAdvertising)
+                    if viewModel.canOpenProjectPackage {
+                        Button("Open Project…") {
+                            Task { if let request = await viewModel.makeProjectWindowRequest() { openWindow(value: request) } }
+                        }
+                    }
+                }
+                .controlSize(.large)
+                VStack(alignment: .leading, spacing: 16) {
+                    receiveStep("1", title: "Record on Apple Watch", detail: "Save a motion recording and transfer it to your paired iPhone.")
+                    receiveStep("2", title: "Send from iPhone", detail: "Open the recording, find this Mac, and send the files.")
+                    receiveStep("3", title: "Edit and export", detail: "Review all three motion axes, label snaps, and export a dataset.")
+                }
+                .padding(24)
+                .editorSurface()
+                .frame(maxWidth: 550)
+                Text("Keep Wi-Fi and Bluetooth enabled. Allow local network access on both devices.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 32)
+            .padding(.vertical, 64)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
     }
 
-    private func sectionCard<Content: View>(
-        title: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(title)
-                .font(.headline)
-            content()
+    private func receiveStep(_ number: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            Text(number).font(.caption.bold())
+                .frame(width: 26, height: 26)
+                .background(EditorPalette.accent.opacity(0.12), in: Circle())
+                .foregroundStyle(EditorPalette.accent)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).fontWeight(.medium)
+                Text(detail).font(.callout).foregroundStyle(.secondary)
+            }
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color(nsColor: .controlBackgroundColor).opacity(0.72))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                }
-        }
-        .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
-        .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
     }
+
 }
 
 #Preview {

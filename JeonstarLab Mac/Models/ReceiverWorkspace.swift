@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct ReceiverWorkspace: Identifiable {
+nonisolated struct ReceiverWorkspace: Identifiable {
     enum Kind {
         case defaultLocal
         case importedProject
@@ -24,6 +24,6 @@ struct ReceiverWorkspace: Identifiable {
     }
 
     var displayName: String {
-        isDefaultLocal ? "기본 작업공간" : name
+        isDefaultLocal ? "Local Workspace" : name
     }
 }

@@ -39,7 +39,13 @@ final class ImportRecordingUseCase {
             throw ImportRecordingError.malformedMetadata
         }
 
-        logger.debug("▶︎ [8a] 파싱 성공 — id: \(idString), samples: \(sampleCount), duration: \(duration)s")
+        guard duration.isFinite, (0...2_678_400).contains(duration),
+              startedAtTS.isFinite, (0...4_102_444_800).contains(startedAtTS),
+              sampleCount > 0, rate > 0, rate <= 1000 else {
+            throw ImportRecordingError.malformedMetadata
+        }
+        let samples = try MotionSampleSerializer.read(from: tempFileURL)
+        guard samples.count == sampleCount else { throw ImportRecordingError.malformedMetadata }
 
         let session = RecordingSession(
             id:          id,
@@ -61,6 +67,6 @@ enum ImportRecordingError: LocalizedError {
     case malformedMetadata
 
     var errorDescription: String? {
-        "Watch로부터 전달받은 메타데이터 형식이 올바르지 않습니다."
+        "The metadata received from Apple Watch is invalid."
     }
 }

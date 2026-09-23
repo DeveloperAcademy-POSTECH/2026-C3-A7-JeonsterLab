@@ -5,16 +5,19 @@
 
 import Foundation
 
-enum SnapEventSourceType: String, Codable, Equatable {
+nonisolated enum SnapEventSourceType: String, Codable, Equatable {
     case automatic
     case manual
+    case autoSegment
 
     var displayName: String {
         switch self {
         case .automatic:
-            return "자동 제안"
+            return "Automatic"
         case .manual:
-            return "수동 추가"
+            return "Manual"
+        case .autoSegment:
+            return "Auto · Confirmed"
         }
     }
 }

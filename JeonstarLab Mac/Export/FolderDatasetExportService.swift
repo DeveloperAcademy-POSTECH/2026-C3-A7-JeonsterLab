@@ -19,17 +19,17 @@ enum FolderDatasetExportService {
 
         for item in folder.items {
             guard !item.snapID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                skippedReasons.append("snapID 없음: \(item.packageFolderName)")
+                skippedReasons.append("Missing snapID: \(item.packageFolderName)")
                 continue
             }
 
             guard let package = packages.first(where: { $0.folderURL.lastPathComponent == item.packageFolderName }) else {
-                skippedReasons.append("패키지 없음: \(item.packageFolderName) / \(item.snapID)")
+                skippedReasons.append("Missing package: \(item.packageFolderName) / \(item.snapID)")
                 continue
             }
 
             guard let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }) else {
-                skippedReasons.append("스냅 없음 또는 삭제됨: \(item.packageFolderName) / \(item.snapID)")
+                skippedReasons.append("Snap missing or deleted: \(item.packageFolderName) / \(item.snapID)")
                 continue
             }
 
@@ -39,7 +39,7 @@ enum FolderDatasetExportService {
                 package: package,
                 event: event
             ) else {
-                skippedReasons.append("라벨 없음: \(item.packageFolderName) / \(item.snapID)")
+                skippedReasons.append("Missing label: \(item.packageFolderName) / \(item.snapID)")
                 continue
             }
 
@@ -52,7 +52,7 @@ enum FolderDatasetExportService {
                 )
                 let segmentSamples = try MotionCSVParser.parse(url: segmentURL)
                 guard !segmentSamples.isEmpty else {
-                    skippedReasons.append("세그먼트 샘플 없음: \(item.packageFolderName) / \(item.snapID)")
+                    skippedReasons.append("No segment samples: \(item.packageFolderName) / \(item.snapID)")
                     continue
                 }
 
@@ -155,24 +155,7 @@ enum FolderDatasetExportService {
     }
 
     private static func datasetLabel(from label: RecordingPackageLabel) -> String? {
-        switch label {
-        case .success:
-            return "success"
-        case .failure:
-            return "failure"
-        case .flipped:
-            return "flipped"
-        case .partialFlipped:
-            return "partial_flipped"
-        case .unflipped:
-            return "unflipped"
-        case .loosen:
-            return "loosen"
-        case .idle:
-            return "idle"
-        case .unlabeled, .other:
-            return nil
-        }
+        label.datasetValue
     }
 
     private static func datasetLabel(fromFolderName folderName: String) -> String? {
@@ -208,10 +191,10 @@ enum FolderDatasetExportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingSourceCSV:
-            return "원본 recording.csv를 찾을 수 없습니다."
+            return "The source recording.csv could not be found."
         case .noExportableSnaps(let reasons):
             let detail = reasons.prefix(3).joined(separator: "\n")
-            return detail.isEmpty ? "내보낼 수 있는 스냅이 없습니다." : "내보낼 수 있는 스냅이 없습니다.\n\(detail)"
+            return detail.isEmpty ? "No exportable snaps found." : "No exportable snaps found.\n\(detail)"
         }
     }
 }

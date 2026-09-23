@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct SnapFolderItem: Identifiable, Codable, Equatable {
+nonisolated struct SnapFolderItem: Identifiable, Codable, Equatable {
     let itemID: UUID
     var id: UUID { itemID }
 

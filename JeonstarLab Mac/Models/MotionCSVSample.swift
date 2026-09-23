@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct MotionCSVSample: Identifiable, Equatable {
+nonisolated struct MotionCSVSample: Identifiable, Equatable, Sendable {
     var id: Int { index }
 
     let index: Int

@@ -93,7 +93,7 @@ DerivedData/
 .build/
 .swiftpm/
 Packages/
-Package.resolved
+!Package.resolved
 
 # ========================
 # CocoaPods (사용 시)

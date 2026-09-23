@@ -23,22 +23,25 @@ final class FileReceiveService {
         self.sessionManager = sessionManager
     }
 
-    func handle(file: WCSessionFile) {
-        logger.debug("▶︎ [7] FileReceiveService.handle — file: \(file.fileURL.lastPathComponent)")
-        Task { @MainActor in
+    func retryPending() {
+        for (file, metadata) in PendingRecordingInbox.pending() { handle(file: file, metadata: metadata) }
+    }
+
+    func handle(file: URL, metadata: [String: Any]) {
             do {
                 let session = try importUseCase.execute(
-                    tempFileURL: file.fileURL,
-                    metadata:    file.metadata ?? [:]
+                    tempFileURL: file,
+                    metadata: metadata
                 )
                 logger.debug("✔ [9] ImportUseCase 성공")
                 sessionManager.sendRecordingImportAck(
                     sessionID: session.id,
                     fileName: session.fileName
                 )
+                try PendingRecordingInbox.complete(file)
             } catch {
                 logger.error("✗ [9] ImportUseCase 실패 — \(error.localizedDescription)")
+                sessionManager.onFileReceiveError?("Import failed. The recording is retained for retry. \(error.localizedDescription)")
             }
-        }
     }
 }

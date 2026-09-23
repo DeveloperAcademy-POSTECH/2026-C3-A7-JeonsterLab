@@ -10,7 +10,7 @@ import Foundation
 /// CMDeviceMotion의 단일 스냅샷.
 /// 13개의 Double(IEEE-754)이 연속으로 배치되어 104바이트의 고정 크기를 가짐.
 /// 배열을 raw bytes로 직접 읽고 쓸 수 있어 binary 직렬화 시 별도 인코딩 불필요.
-struct MotionSample {
+struct MotionSample: Sendable {
     // CMDeviceMotion.timestamp (기기 부팅 이후 경과 초)
     var timestamp: Double
 
@@ -38,30 +38,37 @@ struct MotionSample {
 // MARK: - MotionSampleSerializer
 
 /// binary 파일 포맷: [4바이트 magic "WMTF"] [4바이트 version UInt32] [MotionSample × N]
-enum MotionSampleSerializer {
-    static let magic: UInt32   = 0x574D5446  // "WMTF"
-    static let version: UInt32 = 1
-    static let headerSize      = 8  // magic(4) + version(4)
+nonisolated enum MotionSampleSerializer {
+    nonisolated static let magic: UInt32 = 0x574D5446
+    nonisolated static let version: UInt32 = 1
+    nonisolated static let headerSize = 8
 
     static func read(from url: URL) throws -> [MotionSample] {
+        try Task.checkCancellation()
         let data = try Data(contentsOf: url, options: .mappedIfSafe)
+        guard data.count <= 256 * 1024 * 1024 else { throw SerializerError.tooLarge }
         guard data.count >= headerSize else { throw SerializerError.invalidHeader }
 
-        let readMagic = data.withUnsafeBytes { $0.load(as: UInt32.self) }
-        guard readMagic == magic else { throw SerializerError.invalidHeader }
+        let readMagic = data.withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
+        let readVersion = data.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 4, as: UInt32.self) }
+        guard readMagic == magic, readVersion == version else { throw SerializerError.invalidHeader }
 
         let payload = data.dropFirst(headerSize)
         let sampleSize = MemoryLayout<MotionSample>.stride
         guard payload.count % sampleSize == 0 else { throw SerializerError.truncated }
 
         let count = payload.count / sampleSize
-        return payload.withUnsafeBytes { ptr in
-            Array(ptr.bindMemory(to: MotionSample.self).prefix(count))
+        return try payload.withUnsafeBytes { ptr in
+            try (0..<count).map { index in
+                if index.isMultiple(of: 4096) { try Task.checkCancellation() }
+                return ptr.loadUnaligned(fromByteOffset: index * sampleSize, as: MotionSample.self)
+            }
         }
     }
 
     enum SerializerError: Error {
         case invalidHeader
         case truncated
+        case tooLarge
     }
 }

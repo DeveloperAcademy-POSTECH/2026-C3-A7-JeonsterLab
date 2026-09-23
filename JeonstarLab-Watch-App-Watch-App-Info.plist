@@ -2,13 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
-	<key>WKBackgroundModes</key>
-	<array>
-		<string>self-monitoring</string>
-	</array>
+	<key>NSMotionUsageDescription</key>
+	<string>WatchMotion Editor records wrist acceleration and rotation so you can review and label motion on your own devices.</string>
 </dict>
 </plist>

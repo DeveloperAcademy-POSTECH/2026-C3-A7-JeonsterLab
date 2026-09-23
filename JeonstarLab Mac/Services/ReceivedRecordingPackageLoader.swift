@@ -43,11 +43,11 @@ final class ReceivedRecordingPackageLoader {
                 metadata = try RecordingMetadataJSONParser.parse(url: metadataURL)
             } catch {
                 metadata = nil
-                messages.append("metadata.json 파싱 실패")
+                messages.append("Failed to parse metadata.json")
             }
         } else {
             metadata = nil
-            messages.append("metadata.json 없음")
+            messages.append("Missing metadata.json")
         }
 
         let snapAnalysis: SnapAnalysisExport?
@@ -56,15 +56,15 @@ final class ReceivedRecordingPackageLoader {
                 snapAnalysis = try SnapAnalysisJSONParser.parse(url: snapAnalysisURL)
             } catch {
                 snapAnalysis = nil
-                messages.append("분석 데이터 파싱 실패")
+                messages.append("Failed to parse analysis data")
             }
         } else {
             snapAnalysis = nil
-            messages.append("snap_analysis.json 없음")
+            messages.append("Missing snap_analysis.json")
         }
 
         if csvURL == nil {
-            messages.append("recording.csv 없음")
+            messages.append("Missing recording.csv")
         }
 
         let labelPayload = loadLabelPayload(folderURL: folderURL)
@@ -73,7 +73,7 @@ final class ReceivedRecordingPackageLoader {
             metadata: metadata
         )
 
-        return ReceivedRecordingPackage(
+        var package = ReceivedRecordingPackage(
             id: folderURL,
             folderURL: folderURL,
             receivedAt: receivedAt(for: folderURL),
@@ -92,8 +92,16 @@ final class ReceivedRecordingPackageLoader {
             manualSnapEvents: labelPayload?.manualSnapEvents ?? [],
             editedSnapEvents: labelPayload?.editedSnapEvents ?? [:],
             deletedSnapEventIDs: labelPayload?.deletedSnapEventIDs ?? [],
-            parseMessages: messages
+            parseMessages: messages,
+            autoSegmentReview: labelPayload?.autoSegmentReview
         )
+        do {
+            let catalog = try ProjectLabelCatalog.load(root: folderURL.deletingLastPathComponent())
+            package.resolveLabels(using: catalog)
+        } catch {
+            package.parseMessages.append("Unable to read project labels: \(error.localizedDescription)")
+        }
+        return package
     }
 
     private func participantInfo(
@@ -124,7 +132,8 @@ final class ReceivedRecordingPackageLoader {
             manualSnapEvents: package.manualSnapEvents,
             editedSnapEvents: package.editedSnapEvents,
             deletedSnapEventIDs: package.deletedSnapEventIDs,
-            updatedAt: Date()
+            updatedAt: Date(),
+            autoSegmentReview: package.autoSegmentReview
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

@@ -66,7 +66,7 @@ enum MotionCSVParserError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noValidRows:
-            return "유효한 CSV 샘플이 없습니다."
+            return "No valid CSV samples found."
         }
     }
 }

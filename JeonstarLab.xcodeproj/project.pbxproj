@@ -7,7 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D37ECEDC2FBD9EB80098CE69 /* JeonstarLab Watch App Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AABB00212FBE10000098CE69 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = AABB00222FBE10000098CE69 /* ZIPFoundation */; };
+		D37ECEDC2FBD9EB80098CE69 /* WatchMotion Editor.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D37ECED22FBD9EB70098CE69 /* WatchMotion Editor.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,7 +28,7 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				D37ECEDC2FBD9EB80098CE69 /* JeonstarLab Watch App Watch App.app in Embed Watch Content */,
+				D37ECEDC2FBD9EB80098CE69 /* WatchMotion Editor.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -36,12 +37,19 @@
 
 /* Begin PBXFileReference section */
 		C0528BC72FC96F7800F84FBD /* JeonstarLab-Watch-App-Watch-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "JeonstarLab-Watch-App-Watch-App-Info.plist"; sourceTree = "<group>"; };
-		D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JeonstarLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Watch App Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JeonstarLab Mac.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D37ECEC02FBD9E350098CE69 /* WatchMotion Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D37ECED22FBD9EB70098CE69 /* WatchMotion Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D37ECF002FBE00000098CE69 /* WatchMotion Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AABB00012FBE10000098CE69 /* Exceptions for "JeonstarLab Core" folder in "JeonstarLab Mac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Views/GettingStartedGuideView.swift,
+			);
+			target = D37ECF052FBE00000098CE69 /* JeonstarLab Mac */;
+		};
 		D37ECF122FBE10000098CE69 /* Exceptions for "JeonstarLab" folder in "JeonstarLab" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -64,6 +72,7 @@
 				Models/RecordingSession.swift,
 				Models/SnapDetectionMode.swift,
 				Protocols/RecordingRepositoryProtocol.swift,
+				Views/GettingStartedGuideView.swift,
 				WatchSessionManager.swift,
 			);
 			target = D37ECEBF2FBD9E350098CE69 /* JeonstarLab */;
@@ -96,6 +105,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				D37ECF4B2FBDA5F50098CE69 /* Exceptions for "JeonstarLab Core" folder in "JeonstarLab" target */,
+				AABB00012FBE10000098CE69 /* Exceptions for "JeonstarLab Core" folder in "JeonstarLab Mac" target */,
 			);
 			path = "JeonstarLab Core";
 			sourceTree = "<group>";
@@ -121,6 +131,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AABB00212FBE10000098CE69 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -142,9 +153,9 @@
 		D37ECEC12FBD9E350098CE69 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */,
-				D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */,
-				D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */,
+				D37ECEC02FBD9E350098CE69 /* WatchMotion Editor.app */,
+				D37ECED22FBD9EB70098CE69 /* WatchMotion Editor.app */,
+				D37ECF002FBE00000098CE69 /* WatchMotion Editor.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -172,8 +183,8 @@
 			name = JeonstarLab;
 			packageProductDependencies = (
 			);
-			productName = JeonstarLab;
-			productReference = D37ECEC02FBD9E350098CE69 /* JeonstarLab.app */;
+			productName = "WatchMotion Editor";
+			productReference = D37ECEC02FBD9E350098CE69 /* WatchMotion Editor.app */;
 			productType = "com.apple.product-type.application";
 		};
 		D37ECED12FBD9EB70098CE69 /* JeonstarLab Watch App Watch App */ = {
@@ -195,8 +206,8 @@
 			name = "JeonstarLab Watch App Watch App";
 			packageProductDependencies = (
 			);
-			productName = "JeonstarLab Watch App Watch App";
-			productReference = D37ECED22FBD9EB70098CE69 /* JeonstarLab Watch App Watch App.app */;
+			productName = "WatchMotion Editor";
+			productReference = D37ECED22FBD9EB70098CE69 /* WatchMotion Editor.app */;
 			productType = "com.apple.product-type.application";
 		};
 		D37ECF052FBE00000098CE69 /* JeonstarLab Mac */ = {
@@ -216,9 +227,10 @@
 			);
 			name = "JeonstarLab Mac";
 			packageProductDependencies = (
+				AABB00222FBE10000098CE69 /* ZIPFoundation */,
 			);
-			productName = "JeonstarLab Mac";
-			productReference = D37ECF002FBE00000098CE69 /* JeonstarLab Mac.app */;
+			productName = "WatchMotion Editor";
+			productReference = D37ECF002FBE00000098CE69 /* WatchMotion Editor.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -251,6 +263,9 @@
 			);
 			mainGroup = D37ECEB72FBD9E350098CE69;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AABB00232FBE10000098CE69 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D37ECEC12FBD9E350098CE69 /* Products */;
 			projectDirPath = "";
@@ -445,10 +460,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 2QJX795Q3R;
+				DEVELOPMENT_TEAM = 36545XSWN8;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 36545XSWN8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = JeonstarLab/Info.plist;
@@ -458,17 +473,18 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Tom.JeonstarLab;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor;
+				PRODUCT_NAME = "WatchMotion Editor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Jeonster Lab iOS";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -478,10 +494,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 2QJX795Q3R;
+				DEVELOPMENT_TEAM = 36545XSWN8;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 36545XSWN8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = JeonstarLab/Info.plist;
@@ -491,17 +507,18 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Tom.JeonstarLab;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor;
+				PRODUCT_NAME = "WatchMotion Editor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Jeonster Lab iOS";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -511,26 +528,25 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=watchos*]" = 2QJX795Q3R;
+				DEVELOPMENT_TEAM = 36545XSWN8;
+				"DEVELOPMENT_TEAM[sdk=watchos*]" = 36545XSWN8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "JeonstarLab-Watch-App-Watch-App-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = JeonstarLab;
+				INFOPLIST_KEY_CFBundleDisplayName = "WatchMotion Editor";
+				INFOPLIST_KEY_CFBundleName = "WatchMotion Editor";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKBackgroundModes = "self-monitoring";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.Tom.JeonstarLab;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.Jeonster.WatchMotionEditor;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Tom.JeonstarLab.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor.watchkitapp;
+				PRODUCT_NAME = "WatchMotion Editor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=watchos*]" = "Jeonster Lab watchOS";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -550,26 +566,25 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=watchos*]" = 2QJX795Q3R;
+				DEVELOPMENT_TEAM = 36545XSWN8;
+				"DEVELOPMENT_TEAM[sdk=watchos*]" = 36545XSWN8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "JeonstarLab-Watch-App-Watch-App-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = JeonstarLab;
+				INFOPLIST_KEY_CFBundleDisplayName = "WatchMotion Editor";
+				INFOPLIST_KEY_CFBundleName = "WatchMotion Editor";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKBackgroundModes = "self-monitoring";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.Tom.JeonstarLab;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.Jeonster.WatchMotionEditor;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Tom.JeonstarLab.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor.watchkitapp;
+				PRODUCT_NAME = "WatchMotion Editor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=watchos*]" = "Jeonster Lab watchOS";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -587,10 +602,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_ENTITLEMENTS = "JeonstarLab Mac/JeonstarLab_Mac.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = D383V757FG;
+				CURRENT_PROJECT_VERSION = 20260923;
+				DEVELOPMENT_TEAM = 36545XSWN8;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -600,9 +616,9 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Tom.JeonstarLab.mac;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				MARKETING_VERSION = 1.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor.mac;
+				PRODUCT_NAME = "WatchMotion Editor";
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -617,10 +633,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_ENTITLEMENTS = "JeonstarLab Mac/JeonstarLab_Mac.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = D383V757FG;
+				CURRENT_PROJECT_VERSION = 20260923;
+				DEVELOPMENT_TEAM = 36545XSWN8;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -630,9 +647,9 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Tom.JeonstarLab.mac;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				MARKETING_VERSION = 1.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor.mac;
+				PRODUCT_NAME = "WatchMotion Editor";
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -683,6 +700,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AABB00232FBE10000098CE69 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.9.20;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AABB00222FBE10000098CE69 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AABB00232FBE10000098CE69 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D37ECEB82FBD9E350098CE69 /* Project object */;
 }

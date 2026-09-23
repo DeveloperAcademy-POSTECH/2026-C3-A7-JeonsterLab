@@ -45,11 +45,11 @@ struct SnapEventSummary: Identifiable {
     let confidence: SnapConfidence
 
     var eventTitle: String {
-        "\(eventIndex + 1)번째 뒤집기"
+        "Flip \(eventIndex + 1)"
     }
 
     var snapPeakTimeText: String {
-        String(format: "%.2f초", peakTime)
+        String(format: "%.2f s", peakTime)
     }
 
     var snapRangeText: String {
@@ -95,11 +95,11 @@ struct SnapEventSummary: Identifiable {
     var interpretation: String {
         switch confidence {
         case .high:
-            return "가속도와 회전속도가 짧은 구간 안에서 함께 강하게 나타났습니다. 실제 뒤집기 스냅일 가능성이 높은 구간입니다."
+            return "Strong acceleration and rotation occurred together in a short interval. This is likely to be a flipping snap."
         case .medium:
-            return "스냅 후보 구간이 감지되었습니다. 실제 뒤집기인지 확인하려면 그래프의 빨간 피크 지점과 동작 영상을 함께 비교하는 것이 좋습니다."
+            return "A possible snap was detected. Compare the red peak on the chart with a video of the motion to confirm a flip."
         case .low:
-            return "스냅 후보는 감지되었지만 신뢰도는 낮습니다. 천천히 기울인 동작이나 일반 흔들림이 포함되었을 수 있습니다."
+            return "A possible snap was detected with low confidence. It may be a slow tilt or ordinary movement."
         }
     }
 }
@@ -112,11 +112,11 @@ enum SnapAxis {
     var displayName: String {
         switch self {
         case .x:
-            return "X축"
+            return "X"
         case .y:
-            return "Y축"
+            return "Y"
         case .z:
-            return "Z축"
+            return "Z"
         }
     }
 }
@@ -129,11 +129,11 @@ enum SnapConfidence {
     var displayName: String {
         switch self {
         case .high:
-            return "높음"
+            return "High"
         case .medium:
-            return "보통"
+            return "Medium"
         case .low:
-            return "낮음"
+            return "Low"
         }
     }
 }

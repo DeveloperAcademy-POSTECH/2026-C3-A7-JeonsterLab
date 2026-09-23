@@ -15,8 +15,6 @@ final class RecordingDetailViewModel {
     private(set) var isLoading:    Bool = false
     private(set) var errorMessage: String?
     private(set) var memoErrorMessage: String?
-    private(set) var appliedSnapDetectionMode: SnapDetectionMode
-    var pendingSnapDetectionMode: SnapDetectionMode
     var recordingMemo: String
 
     private var session:    RecordingSession
@@ -26,9 +24,6 @@ final class RecordingDetailViewModel {
         self.session    = session
         self.repository = repository
         self.recordingMemo = session.memo
-        let mode = (try? repository.snapDetectionMode(for: session.id)) ?? .none
-        self.appliedSnapDetectionMode = mode
-        self.pendingSnapDetectionMode = mode
     }
 
     var title: String {
@@ -36,6 +31,7 @@ final class RecordingDetailViewModel {
     }
 
     var durationText: String {
+        guard session.duration.isFinite, (0...2_678_400).contains(session.duration) else { return "—" }
         let total = Int(session.duration)
         let m = total / 60
         let s = total % 60
@@ -43,7 +39,7 @@ final class RecordingDetailViewModel {
     }
 
     var sampleCountText: String {
-        "\(session.sampleCount)개 (\(session.samplingRate)Hz)"
+        "\(session.sampleCount) samples (\(session.samplingRate) Hz)"
     }
 
     var currentSession: RecordingSession {
@@ -62,40 +58,25 @@ final class RecordingDetailViewModel {
         repository
     }
 
-    var availableSnapDetectionModes: [SnapDetectionMode] {
-        SnapDetectionMode.allCases
-    }
-
-    var canApplySnapDetectionMode: Bool {
-        pendingSnapDetectionMode != appliedSnapDetectionMode
-    }
-
-    var snapAnalysisResult: SnapAnalysisResult? {
-        guard appliedSnapDetectionMode == .jeonFlip else { return nil }
-        return AnalyzeSnapUseCase.execute(samples: samples)
-    }
-
     func exportRecording() throws -> [URL] {
         try RecordingExportService(repository: repository)
             .export(session: session)
     }
 
     func loadSamples() async {
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
+        errorMessage = nil
         do {
-            samples = try repository.loadSamples(for: session.id)
+            let loaded = try await repository.loadSamplesForReview(for: session.id)
+            try Task.checkCancellation()
+            samples = loaded
+        } catch is CancellationError {
+            // Navigating away is not a failed import or a corrupt recording.
         } catch {
             errorMessage = error.localizedDescription
         }
-    }
-
-    func applyPendingSnapDetectionMode() throws {
-        try repository.updateSnapDetectionMode(
-            for: session.id,
-            mode: pendingSnapDetectionMode
-        )
-        appliedSnapDetectionMode = pendingSnapDetectionMode
     }
 
     func updateRecordingMemo(_ memo: String) {

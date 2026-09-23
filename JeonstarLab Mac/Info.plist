@@ -2,10 +2,34 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.Jeonster.WatchMotionEditor.project</string>
+            <key>UTTypeDescription</key>
+            <string>WatchMotion Editor Project</string>
+            <key>UTTypeConformsTo</key>
+            <array><string>public.zip-archive</string></array>
+            <key>UTTypeTagSpecification</key>
+            <dict><key>public.filename-extension</key><array><string>watchmotion</string></array></dict>
+        </dict>
+    </array>
+    <key>UTImportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.Jeonster.WatchMotionEditor.legacy-project</string>
+            <key>UTTypeConformsTo</key>
+            <array><string>public.zip-archive</string></array>
+            <key>UTTypeTagSpecification</key>
+            <dict><key>public.filename-extension</key><array><string>jeonstarlab</string></array></dict>
+        </dict>
+    </array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>JeonstarLab Receiver</string>
+	<string>WatchMotion Editor</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +37,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>WatchMotion Editor</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
@@ -24,9 +48,9 @@
 	<string>public.app-category.utilities</string>
 	<key>NSBonjourServices</key>
 	<array>
-		<string>_jeonstar-data._tcp</string>
+		<string>_wm-editor-v1._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>근처 iPhone 앱에서 녹화 데이터를 수신하기 위해 로컬 네트워크를 사용합니다.</string>
+	<string>Local network access is used to receive motion recordings from the nearby iPhone app.</string>
 </dict>
 </plist>

@@ -26,6 +26,10 @@ struct MacRecordingDetailView: View {
     @State private var editErrorMessage: String?
     @State private var isEditingTitle = false
     @State private var draftDisplayName = ""
+    @State private var selectedAutoSegmentID: String?
+    @State private var analysisTask: Task<Void, Never>?
+    @State private var analysisRunID: UUID?
+    @State private var analysisMessage: String?
 
     private var manualSnapDraft: ManualSnapDraft? {
         guard let chartSelection else { return nil }
@@ -56,152 +60,172 @@ struct MacRecordingDetailView: View {
     }
 
     var body: some View {
-        ScrollViewReader { scrollProxy in
+        HStack(alignment: .top, spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     titleHeader
-
-                    Text("\(package.recordingDateText) · 수신 \(package.receivedAtText)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text("결과 요약: \(package.resultSummaryText)")
+                    Text("\(package.recordingDateText) · \(package.sampleCountText) samples")
                         .font(.callout)
                         .foregroundStyle(.secondary)
-
-                    sectionCard(title: "녹화 정보") {
-                        MacRecordingInfoPanel(package: package)
+                    chartWorkspace
+                    sectionCard(title: "Motion Snaps · \(package.workingSnapEvents.count)") {
+                        snapList(package.workingSnapEvents, inspector: false)
                     }
-
-                    sectionCard(title: "사용자 정보") {
-                        participantInfoCard
-                    }
-
-                    if !package.parseMessages.isEmpty {
-                        sectionCard(title: "파일 상태") {
-                            VStack(alignment: .leading, spacing: 6) {
-                                ForEach(package.parseMessages, id: \.self) { message in
-                                    Text(message)
-                                        .foregroundStyle(.orange)
-                                }
-                            }
-                        }
-                    }
-
-                    sectionCard(title: "스냅 이벤트") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            MacSnapEventListView(
-                                events: package.workingSnapEvents,
-                                snapEventLabels: $package.snapEventLabels,
-                                folders: folders,
-                                folderForEvent: { event in
-                                    folderForEvent(package, event)
-                                },
-                                hasSegment: hasSegment(for:),
-                                onAddToFolder: { event, folder in
-                                    onAddSnapToFolder(event, package, folder)
-                                },
-                                onRemoveFromFolder: { event, folder in
-                                    onRemoveSnapFromFolder(event, package, folder)
-                                },
-                                onSelect: { event in
-                                    selectSnapEvent(event)
-                                    withAnimation {
-                                        scrollProxy.scrollTo(Self.graphSectionID, anchor: .top)
-                                    }
-                                },
-                                onDelete: requestDeleteSnapEvent(_:)
-                            )
-                            .onChange(of: package.snapEventLabels) {
-                                onSaveLabel(package)
-                            }
-                        }
-                    }
-
-                    sectionCard(title: "그래프") {
-                        if let csvErrorMessage {
-                            Text(csvErrorMessage)
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-                        } else if samples.isEmpty {
-                            ProgressView("CSV 로딩 중")
-                                .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-                        } else {
-                            VStack(alignment: .leading, spacing: 16) {
-                                HStack(spacing: 12) {
-                                    Toggle("저장된 스냅 미리보기", isOn: $showsSavedSnapPreviews)
-                                        .toggleStyle(.switch)
-
-                                    Spacer()
-
-                                    Button("전체 보기") {
-                                        resetVisibleRangeToFull()
-                                    }
-
-                                    Button("선택 구간 보기") {
-                                        focusVisibleRange(on: chartSelection)
-                                    }
-                                    .disabled(chartSelection == nil)
-
-                                    Button("축소") {
-                                        zoomVisibleRange(scale: 0.8)
-                                    }
-
-                                    Button("확대") {
-                                        zoomVisibleRange(scale: 1.25)
-                                    }
-                                }
-                                selectionPanel
-                                MacMotionChartsView(
-                                    samples: samples,
-                                    savedSnapEvents: package.workingSnapEvents,
-                                    showSavedSnapPreviews: showsSavedSnapPreviews,
-                                    hasSelectionConflict: hasSelectionConflict,
-                                    editingSnapID: editDraft?.snapID,
-                                    editingOriginalSelection: editDraft?.originalSelection,
-                                    showsCandidateSelection: editDraft == nil || hasFocusedSnapRangeChange,
-                                    fullTimeRange: fullTimeRange,
-                                    selection: $chartSelection,
-                                    visibleTimeRange: $visibleTimeRange
-                                )
-                            }
-                        }
-                    }
-                    .id(Self.graphSectionID)
                 }
-                .frame(maxWidth: 920, alignment: .leading)
-                .padding(28)
+                .padding(20)
             }
+            .frame(minWidth: 500, maxWidth: .infinity)
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    selectionPanel
+                    if let event = package.workingSnapEvents.first(where: { $0.snapID == editDraft?.snapID }) {
+                        snapList([event], inspector: true)
+                            .padding(.horizontal, 14)
+                    }
+                    Divider()
+                    DisclosureGroup("Recording Information") {
+                        MacRecordingInfoPanel(package: package)
+                            .padding(.top, 12)
+                    }
+                    DisclosureGroup("Participant Information") {
+                        participantInfoCard.padding(.top, 12)
+                    }
+                    if !package.parseMessages.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label("File Status", systemImage: "exclamationmark.triangle")
+                                .font(.headline)
+                            ForEach(package.parseMessages, id: \.self) { message in
+                                Text(message).font(.caption).foregroundStyle(.orange)
+                            }
+                        }
+                    }
+                }
+                .padding(16)
+            }
+            .frame(width: 310)
+            .background(EditorPalette.surface)
         }
+        .background(EditorPalette.background)
+        .onChange(of: package.snapEventLabels) { onSaveLabel(package) }
         .task(id: package.folderURL) {
             loadCSV()
         }
         .onChange(of: package.folderURL) {
             resetTransientStateForPackageSwitch()
         }
-        .alert("스냅 구간을 변경할까요?", isPresented: $showsEditConfirmation) {
-            Button("취소", role: .cancel) {}
-            Button("변경하기", role: .destructive) {
+        .onDisappear { cancelAnalysis() }
+        .alert("Update this snap range?", isPresented: $showsEditConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Update", role: .destructive) {
                 applySnapEdit()
             }
         } message: {
-            Text("선택한 스냅의 시작·끝 시간이 새 구간으로 변경됩니다.\n이 작업은 되돌릴 수 없습니다.")
+            Text("The selected snap's start and end times will be replaced.\nThis action cannot be undone.")
         }
         .alert(
-            "이 스냅 이벤트를 삭제할까요?",
+            "Delete this snap?",
             isPresented: $showsDeleteConfirmation,
             presenting: pendingDeleteEvent
         ) { event in
-            Button("취소", role: .cancel) {
+            Button("Cancel", role: .cancel) {
                 pendingDeleteEvent = nil
             }
-            Button("삭제", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 deleteSnapEvent(event)
                 pendingDeleteEvent = nil
             }
         } message: { _ in
-            Text("삭제하면 현재 녹화의 스냅 목록에서 사라집니다.\n이 작업은 되돌릴 수 없습니다.")
+            Text("This snap will be removed from the recording.\nThis action cannot be undone.")
         }
+    }
+
+    private var chartWorkspace: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            AutoSegmentSuggestionsView(
+                review: package.autoSegmentReview, selectedID: selectedAutoSegmentID,
+                isAnalyzing: analysisTask != nil, canAnalyze: !samples.isEmpty,
+                message: analysisMessage, onAnalyze: suggestSegments, onCancel: cancelAnalysis,
+                onSelect: selectAutoSegment, onDismiss: dismissAutoSegment
+            )
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    chartPreviewToggle
+                    Spacer()
+                    chartNavigation
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    chartPreviewToggle
+                    chartNavigation
+                }
+            }
+            if let csvErrorMessage {
+                ContentUnavailableView("Motion Data Unavailable", systemImage: "waveform",
+                                       description: Text(csvErrorMessage))
+            } else if samples.isEmpty {
+                ProgressView("Loading CSV")
+                    .frame(maxWidth: .infinity, minHeight: 180)
+            } else {
+                MacMotionChartsView(
+                    samples: samples,
+                    savedSnapEvents: package.workingSnapEvents,
+                    showSavedSnapPreviews: showsSavedSnapPreviews,
+                    hasSelectionConflict: hasSelectionConflict,
+                    editingSnapID: editDraft?.snapID,
+                    editingOriginalSelection: editDraft?.originalSelection,
+                    showsCandidateSelection: editDraft == nil || hasFocusedSnapRangeChange,
+                    fullTimeRange: fullTimeRange,
+                    selection: $chartSelection,
+                    visibleTimeRange: $visibleTimeRange,
+                    autoCandidates: package.autoSegmentReview?.pending ?? [],
+                    onSelectCandidate: selectAutoSegment
+                )
+                Text("Click a suggestion to review · Drag to select or resize · Space-drag to pan")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var chartPreviewToggle: some View {
+        Toggle("Show Saved Snaps", isOn: $showsSavedSnapPreviews)
+            .toggleStyle(.checkbox)
+            .controlSize(.small)
+    }
+
+    private var chartNavigation: some View {
+        HStack(spacing: 8) {
+            Button("Fit All") { resetVisibleRangeToFull() }
+            Button("Fit Selection") { focusVisibleRange(on: chartSelection) }
+                .disabled(chartSelection == nil)
+            Button { zoomVisibleRange(scale: 0.8) } label: {
+                Label("Zoom Out", systemImage: "minus.magnifyingglass")
+            }
+            .labelStyle(.iconOnly)
+            .help("Zoom out")
+            Button { zoomVisibleRange(scale: 1.25) } label: {
+                Label("Zoom In", systemImage: "plus.magnifyingglass")
+            }
+            .labelStyle(.iconOnly)
+            .help("Zoom in")
+        }
+        .controlSize(.small)
+    }
+
+    private func snapList(_ events: [WorkingSnapEvent], inspector: Bool) -> some View {
+        MacSnapEventListView(
+            events: events,
+            snapEventLabels: $package.snapEventLabels,
+            folders: folders,
+            folderForEvent: { folderForEvent(package, $0) },
+            hasSegment: hasSegment(for:),
+            onAddToFolder: { onAddSnapToFolder($0, package, $1) },
+            onRemoveFromFolder: { onRemoveSnapFromFolder($0, package, $1) },
+            onSelect: selectSnapEvent(_:),
+            onDelete: requestDeleteSnapEvent(_:),
+            isInspector: inspector,
+            selectedSnapID: editDraft?.snapID
+        )
     }
 
     private static let graphSectionID = "graph-section"
@@ -211,16 +235,16 @@ struct MacRecordingDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             if isEditingTitle {
                 HStack(spacing: 8) {
-                    TextField("녹화 이름", text: $draftDisplayName, prompt: Text(package.recordingDateTitle))
+                    TextField("Recording Name", text: $draftDisplayName, prompt: Text(package.recordingDateTitle))
                         .textFieldStyle(.roundedBorder)
 
-                    Button("저장") {
+                    Button("Save") {
                         package.displayName = draftDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
                         isEditingTitle = false
                         onSaveLabel(package)
                     }
 
-                    Button("취소") {
+                    Button("Cancel") {
                         draftDisplayName = package.displayName
                         isEditingTitle = false
                     }
@@ -228,7 +252,7 @@ struct MacRecordingDetailView: View {
             } else {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(package.displayTitle)
-                        .font(.largeTitle)
+                        .font(.title2)
                         .fontWeight(.semibold)
                         .lineLimit(2)
 
@@ -239,28 +263,28 @@ struct MacRecordingDetailView: View {
                         Image(systemName: "pencil")
                     }
                     .buttonStyle(.borderless)
-                    .help("녹화 이름 편집")
+                    .help("Edit Recording Name")
                 }
             }
         }
     }
 
     private var participantInfoCard: some View {
-        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
-            GridRow {
-                Text("이름(닉네임)")
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Name or Nickname")
                     .foregroundStyle(.secondary)
-                TextField("미입력", text: $package.participantInfo.nameOrNickname)
+                TextField("Not set", text: $package.participantInfo.nameOrNickname)
                     .textFieldStyle(.roundedBorder)
                     .onChange(of: package.participantInfo.nameOrNickname) {
                         onSaveLabel(package)
                     }
             }
 
-            GridRow {
-                Text("성별")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Gender")
                     .foregroundStyle(.secondary)
-                Picker("성별", selection: $package.participantInfo.gender) {
+                Picker("Gender", selection: $package.participantInfo.gender) {
                     ForEach(ParticipantGenderOption.allCases) { option in
                         Text(option.displayName).tag(option)
                     }
@@ -271,10 +295,10 @@ struct MacRecordingDetailView: View {
                 }
             }
 
-            GridRow {
-                Text("연령대")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Age Group")
                     .foregroundStyle(.secondary)
-                Picker("연령대", selection: $package.participantInfo.ageGroup) {
+                Picker("Age Group", selection: $package.participantInfo.ageGroup) {
                     ForEach(ParticipantAgeGroupOption.allCases) { option in
                         Text(option.displayName).tag(option)
                     }
@@ -285,18 +309,18 @@ struct MacRecordingDetailView: View {
                 }
             }
 
-            GridRow {
-                Text("키(cm)")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Height (cm)")
                     .foregroundStyle(.secondary)
-                TextField("예: 174", text: heightBinding)
+                TextField("e.g. 174", text: heightBinding)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 180)
             }
 
-            GridRow {
-                Text("주 사용 손")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Dominant Hand")
                     .foregroundStyle(.secondary)
-                Picker("주 사용 손", selection: $package.participantInfo.dominantHand) {
+                Picker("Dominant Hand", selection: $package.participantInfo.dominantHand) {
                     ForEach(ParticipantDominantHandOption.allCases) { option in
                         Text(option.displayName).tag(option)
                     }
@@ -307,10 +331,10 @@ struct MacRecordingDetailView: View {
                 }
             }
 
-            GridRow {
-                Text("숙련도")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Experience")
                     .foregroundStyle(.secondary)
-                Picker("숙련도", selection: $package.participantInfo.skillLevel) {
+                Picker("Experience", selection: $package.participantInfo.skillLevel) {
                     ForEach(ParticipantSkillLevelOption.allCases) { option in
                         Text(option.displayName).tag(option)
                     }
@@ -321,8 +345,8 @@ struct MacRecordingDetailView: View {
                 }
             }
 
-            GridRow(alignment: .top) {
-                Text("메모")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Notes")
                     .foregroundStyle(.secondary)
                     .padding(.top, 6)
                 TextEditor(text: $package.participantInfo.memo)
@@ -367,14 +391,17 @@ struct MacRecordingDetailView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background(EditorPalette.background, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var manualSelectionPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("선택 구간")
+            Text(selectedAutoSegmentID == nil ? "Selected Range" : "Suggested Segment")
                 .font(.headline)
+            if selectedAutoSegmentID != nil {
+                Text("Adjust the boundaries if needed, then confirm. The segment starts without a label.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
 
             if let editMessage {
                 Text(editMessage)
@@ -399,17 +426,19 @@ struct MacRecordingDetailView: View {
                 conflictWarning
 
                 HStack {
-                    Button("스냅 저장하기") {
-                        saveManualSnap()
+                    Button(selectedAutoSegmentID == nil ? "Save Snap" : "Confirm Segment") {
+                        if selectedAutoSegmentID != nil { confirmAutoSegment() }
+                        else { saveManualSnap() }
                     }
                     .disabled(draft?.canSave != true || hasSelectionConflict)
 
-                    Button("선택 지우기") {
+                    Button("Clear Selection") {
                         self.chartSelection = nil
+                        selectedAutoSegmentID = nil
                     }
                 }
             } else {
-                Text("그래프 위에서 드래그해 수동 스냅 구간을 선택하세요.")
+                Text("Drag across a chart to select a manual snap range.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -417,22 +446,21 @@ struct MacRecordingDetailView: View {
 
     private func focusedSnapPanel(_ editDraft: SnapEditDraft) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
+            VStack(alignment: .leading, spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("선택한 스냅")
+                    Text("Selected Snap")
                         .font(.headline)
-                    Text("그래프에서 구간을 움직이거나 양 끝을 조절하면 수정할 수 있습니다.")
+                    Text("Move the range or drag its handles on the chart to edit it.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
-                Button("선택 해제") {
+                Button("Clear Selection") {
                     clearFocusedSnap()
                 }
             }
 
             editStatsColumn(
-                title: "현재 구간",
+                title: "Current Range",
                 event: editDraft.originalEvent,
                 draft: originalDraft(for: editDraft)
             )
@@ -443,21 +471,20 @@ struct MacRecordingDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("스냅 구간 수정")
+                    Text("Edit Snap Range")
                         .font(.headline)
-                    Text("초록색은 기존 구간, 파란색은 새 후보 구간입니다.")
+                    Text("Green marks the original range; blue marks your proposed range.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
-                Button("수정 취소") {
+                Button("Cancel Edit") {
                     clearFocusedSnap()
                 }
             }
 
-            HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 14) {
                 editStatsColumn(
-                    title: "기존",
+                    title: "Original",
                     event: editDraft.originalEvent,
                     draft: originalDraft(for: editDraft)
                 )
@@ -465,7 +492,7 @@ struct MacRecordingDetailView: View {
                 Divider()
 
                 editStatsColumn(
-                    title: "후보",
+                    title: "Proposed",
                     event: nil,
                     draft: manualSnapDraft
                 )
@@ -485,7 +512,7 @@ struct MacRecordingDetailView: View {
                     .foregroundStyle(.green)
             }
 
-            Button("스냅 변경하기") {
+            Button("Update Snap") {
                 showsEditConfirmation = true
             }
             .buttonStyle(.borderedProminent)
@@ -502,22 +529,17 @@ struct MacRecordingDetailView: View {
         dominantAxis: String?,
         canSave: Bool
     ) -> some View {
-        Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 6) {
-            GridRow {
-                selectionMetric("시작", formattedSeconds(selection.startTime))
-                selectionMetric("끝", formattedSeconds(selection.endTime))
-                selectionMetric("길이", formattedSeconds(selection.duration))
-            }
-            GridRow {
-                selectionMetric("샘플", sampleCount.map { "\($0)개" } ?? "-")
-                selectionMetric("최대 가속도", formatted(peakAcceleration, suffix: "g"))
-                selectionMetric("최대 각속도", formatted(peakGyro, suffix: "rad/s"))
-            }
-            GridRow {
-                selectionMetric("피크", formatted(peakTime, suffix: "s"))
-                selectionMetric("주 회전축", dominantAxis ?? "-")
-                selectionMetric("저장 가능", canSave ? "가능" : "불가")
-            }
+        LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading),
+                            GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 12) {
+            selectionMetric("Start", formattedSeconds(selection.startTime))
+            selectionMetric("End", formattedSeconds(selection.endTime))
+            selectionMetric("Duration", formattedSeconds(selection.duration))
+            selectionMetric("Samples", sampleCount.map { "\($0)" } ?? "–")
+            selectionMetric("Peak Acceleration", formatted(peakAcceleration, suffix: "g"))
+            selectionMetric("Peak Rotation", formatted(peakGyro, suffix: "rad/s"))
+            selectionMetric("Peak Time", formatted(peakTime, suffix: "s"))
+            selectionMetric("Dominant Axis", dominantAxis ?? "–")
+            selectionMetric("Can Save", canSave ? "Yes" : "No")
         }
     }
 
@@ -549,7 +571,7 @@ struct MacRecordingDetailView: View {
                     canSave: draft?.canSave ?? true
                 )
             } else {
-                Text("구간 정보 없음")
+                Text("No range information")
                     .foregroundStyle(.secondary)
             }
         }
@@ -560,10 +582,10 @@ struct MacRecordingDetailView: View {
         Group {
             if hasSelectionConflict {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("스냅이 충돌되는 부분이 있습니다.")
+                    Text("This range overlaps another snap.")
                         .font(.callout)
                         .fontWeight(.semibold)
-                    Text("기존 스냅과 겹치지 않도록 범위를 조정해주세요.")
+                    Text("Adjust the range so it does not overlap an existing snap.")
                         .font(.caption)
                 }
                 .foregroundStyle(.red)
@@ -574,7 +596,7 @@ struct MacRecordingDetailView: View {
     private func loadCSV() {
         guard let csvURL = package.csvURL else {
             samples = []
-            csvErrorMessage = "recording.csv 파일이 없습니다."
+            csvErrorMessage = "Missing recording.csv."
             resetVisibleRangeToFull()
             return
         }
@@ -621,6 +643,7 @@ struct MacRecordingDetailView: View {
 
     private func selectSnapEvent(_ event: WorkingSnapEvent) {
         guard let selection = selection(for: event) else { return }
+        selectedAutoSegmentID = nil
         editDraft = SnapEditDraft(originalEvent: event)
         chartSelection = selection
         focusVisibleRange(on: selection)
@@ -629,6 +652,9 @@ struct MacRecordingDetailView: View {
     }
 
     private func resetTransientStateForPackageSwitch() {
+        cancelAnalysis()
+        selectedAutoSegmentID = nil
+        analysisMessage = nil
         chartSelection = nil
         editDraft = nil
         showsEditConfirmation = false
@@ -642,11 +668,85 @@ struct MacRecordingDetailView: View {
     }
 
     private func clearFocusedSnap() {
+        selectedAutoSegmentID = nil
         editDraft = nil
         chartSelection = nil
         resetVisibleRangeToFull()
         editMessage = nil
         editErrorMessage = nil
+    }
+
+    private func cancelAnalysis() {
+        analysisRunID = nil
+        analysisTask?.cancel()
+        analysisTask = nil
+    }
+
+    private func suggestSegments() {
+        guard analysisTask == nil, !samples.isEmpty else { return }
+        let snapshot = samples
+        let folderURL = package.folderURL
+        let runID = UUID()
+        analysisRunID = runID
+        analysisMessage = nil
+        analysisTask = Task {
+            let worker = Task.detached(priority: .userInitiated) {
+                try AutoSegmentDetector.analyze(snapshot)
+            }
+            do {
+                let result = try await withTaskCancellationHandler {
+                    try await worker.value
+                } onCancel: { worker.cancel() }
+                guard !Task.isCancelled, analysisRunID == runID, package.folderURL == folderURL else { return }
+                var updated = package
+                updated.mergeAutoSegments(result)
+                if persistAutoSegments(updated) {
+                    analysisMessage = "Existing snaps and review decisions were preserved."
+                }
+            } catch is CancellationError {
+                // Explicit cancellation leaves the current review unchanged.
+            } catch {
+                if analysisRunID == runID { analysisMessage = "Analysis failed: \(error.localizedDescription)" }
+            }
+            if analysisRunID == runID { analysisTask = nil; analysisRunID = nil }
+        }
+    }
+
+    private func selectAutoSegment(_ candidate: AutoSegmentCandidate) {
+        editDraft = nil
+        editMessage = nil
+        editErrorMessage = nil
+        selectedAutoSegmentID = candidate.id
+        chartSelection = ChartTimeSelection(startTime: candidate.startTime, endTime: candidate.endTime)
+        focusVisibleRange(on: chartSelection)
+    }
+
+    private func dismissAutoSegment(_ candidate: AutoSegmentCandidate) {
+        var updated = package
+        updated.dismissAutoSegment(id: candidate.id)
+        if persistAutoSegments(updated), selectedAutoSegmentID == candidate.id { clearFocusedSnap() }
+    }
+
+    private func confirmAutoSegment() {
+        guard let id = selectedAutoSegmentID, let draft = manualSnapDraft, !hasSelectionConflict else { return }
+        var updated = package
+        guard let event = updated.confirmAutoSegment(id: id, draft: draft) else { return }
+        if persistAutoSegments(updated) {
+            selectSnapEvent(event)
+            analysisMessage = "Segment confirmed. Set its label and folder in the inspector."
+        }
+    }
+
+    private func persistAutoSegments(_ updated: ReceivedRecordingPackage) -> Bool {
+        do {
+            try ReceivedRecordingPackageLoader().saveLabel(package: updated)
+            package = updated
+            onSaveLabel(updated)
+            return true
+        } catch {
+            analysisMessage = "Could not save segment review: \(error.localizedDescription)"
+            return false
+        }
     }
 
     private func applySnapEdit() {
@@ -674,9 +774,9 @@ struct MacRecordingDetailView: View {
             self.chartSelection = nil
             focusVisibleRange(on: selection(for: updatedEvent))
             editErrorMessage = nil
-            editMessage = "스냅 구간이 변경되었습니다."
+            editMessage = "Snap range updated."
         } catch {
-            editErrorMessage = "세그먼트 갱신 실패: \(error.localizedDescription)"
+            editErrorMessage = "Failed to update segment: \(error.localizedDescription)"
         }
     }
 
@@ -784,7 +884,7 @@ struct MacRecordingDetailView: View {
             Text(value)
                 .font(.callout)
         }
-        .frame(minWidth: 120, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func formattedSeconds(_ value: Double) -> String {
@@ -807,7 +907,6 @@ struct MacRecordingDetailView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .editorSurface()
     }
 }

@@ -19,6 +19,13 @@ final class RecordingViewModel {
     }
 
     private(set) var state: RecordingState = .idle
+    var isAppActive = true
+
+    func recordingFailed(_ message: String) {
+        stopRecording()
+        state = .error(message)
+        hapticManager.playError()
+    }
 
     private let startUseCase: StartRecordingUseCase
     private let stopUseCase: StopRecordingUseCase
@@ -38,6 +45,8 @@ final class RecordingViewModel {
     }
 
     func startRecording() {
+        // Duplicate iPhone commands must not discard an active recording buffer.
+        guard canStartRecording else { return }
         do {
             let id = try startUseCase.execute()
             state = .recording(startedAt: Date(), sessionID: id)
@@ -70,6 +79,8 @@ final class RecordingViewModel {
     /// 파일 전송 완료 후 idle로 복귀.
     /// 전송 성공/실패 여부에 따라 다른 햅틱을 줄 수 있음.
     func transferDidComplete(error: Error? = nil) {
+        // An older file callback must not replace a newer recording's UI state.
+        guard case .transferring = state else { return }
         if let error {
             state = .error(error.localizedDescription)
             hapticManager.playError()
@@ -82,13 +93,13 @@ final class RecordingViewModel {
     func resendRetainedFile(_ file: RetainedWatchRecordingFile) {
         guard canResendRetainedFile else { return }
         guard let sessionID = file.sessionID else {
-            state = .error("세션 ID를 확인할 수 없습니다.")
+            state = .error("The session ID could not be verified.")
             hapticManager.playError()
             return
         }
 
-        let duration = TimeInterval(file.sampleCount) / 50.0
-        let startedAt = (file.modifiedAt ?? Date()).addingTimeInterval(-duration)
+        let duration = file.duration ?? TimeInterval(file.sampleCount) / 50.0
+        let startedAt = file.startedAt ?? (file.modifiedAt ?? Date()).addingTimeInterval(-duration)
         let session = RecordingSession(
             id: sessionID,
             startedAt: startedAt,
@@ -103,6 +114,11 @@ final class RecordingViewModel {
     }
 
     var canResendRetainedFile: Bool {
+        canStartRecording
+    }
+
+    var canStartRecording: Bool {
+        guard isAppActive else { return false }
         switch state {
         case .idle, .error:
             return true

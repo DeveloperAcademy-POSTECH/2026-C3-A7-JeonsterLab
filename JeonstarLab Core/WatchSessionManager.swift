@@ -20,7 +20,8 @@ final class WatchSessionManager: NSObject {
 
     #if os(iOS)
     /// Watch로부터 파일을 수신하면 호출.
-    var onFileReceived: ((WCSessionFile) -> Void)?
+    var onFileReceived: ((URL, [String: Any]) -> Void)?
+    var onFileReceiveError: ((String) -> Void)?
     #endif
 
     // MARK: - watchOS 전용 콜백
@@ -39,7 +40,7 @@ final class WatchSessionManager: NSObject {
     override init() {
         super.init()
         guard WCSession.isSupported() else {
-            fatalError("Watch Connectivity가 지원되지 않는 기기입니다.")
+            return
         }
         WCSession.default.delegate = self
         WCSession.default.activate()
@@ -75,9 +76,13 @@ extension WatchSessionManager: WCSessionDelegate {
 
     #if os(iOS)
     func session(_ session: WCSession, didReceive file: WCSessionFile) {
-        let size = (try? FileManager.default.attributesOfItem(atPath: file.fileURL.path)[.size] as? Int) ?? 0
-        logger.debug("▶︎ [6] iPhone didReceive — file: \(file.fileURL.lastPathComponent), size: \(size)B, metadata: \(String(describing: file.metadata))")
-        onFileReceived?(file)
+        // WCSession deletes its temporary file as soon as this callback returns.
+        do {
+            let staged = try PendingRecordingInbox.stage(file.fileURL, metadata: file.metadata ?? [:])
+            Task { @MainActor in self.onFileReceived?(staged, file.metadata ?? [:]) }
+        } catch {
+            Task { @MainActor in self.onFileReceiveError?(error.localizedDescription) }
+        }
     }
     #endif
 
@@ -124,6 +129,10 @@ extension WatchSessionManager {
         #endif
         guard activationState == .activated else {
             logger.error("✗ sendFile 중단 — WCSession not activated (state: \(activationState.rawValue))")
+            #if os(watchOS)
+            onTransferDidFinish?(NSError(domain: "WatchMotionTransfer", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "iPhone connection is not ready. Your file is saved; retry from Saved Files."]))
+            #endif
             return
         }
         WCSession.default.transferFile(file, metadata: metadata)

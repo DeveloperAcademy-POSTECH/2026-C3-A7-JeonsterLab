@@ -10,6 +10,7 @@ struct MacRecordingDetailWindowView: View {
 
     @State private var package: ReceivedRecordingPackage?
     @State private var errorMessage: String?
+    @State private var labelCatalog = ProjectLabelCatalog.legacy
 
     private let loader = ReceivedRecordingPackageLoader()
 
@@ -24,12 +25,12 @@ struct MacRecordingDetailWindowView: View {
                     onRemoveSnapFromFolder: { _, _, _ in },
                     onSaveLabel: saveLabel(for:)
                 )
-                .navigationTitle(package?.displayTitle ?? "녹화 상세")
+                .navigationTitle(package?.displayTitle ?? "Recording Detail")
             } else {
                 VStack(spacing: 10) {
-                    Text("녹화 기록을 열 수 없습니다.")
+                    Text("Unable to open this recording.")
                         .font(.title3)
-                    Text(errorMessage ?? "선택한 녹화 패키지를 찾을 수 없습니다.")
+                    Text(errorMessage ?? "The selected recording package could not be found.")
                         .foregroundStyle(.secondary)
                 }
                 .frame(minWidth: 520, minHeight: 360)
@@ -37,6 +38,11 @@ struct MacRecordingDetailWindowView: View {
             }
         }
         .task(id: packagePath) {
+            loadPackage()
+        }
+        .environment(\.projectLabelOptions, labelCatalog.activeLabels)
+        .onReceive(NotificationCenter.default.publisher(for: .projectLabelsDidChange)) { notification in
+            guard notification.object as? String == URL(fileURLWithPath: packagePath).deletingLastPathComponent().standardizedFileURL.path else { return }
             loadPackage()
         }
         .onReceive(NotificationCenter.default.publisher(for: .recordingPackageLabelDidChange)) { notification in
@@ -58,9 +64,11 @@ struct MacRecordingDetailWindowView: View {
 
     private func loadPackage() {
         let folderURL = URL(fileURLWithPath: packagePath)
+        do { labelCatalog = try ProjectLabelCatalog.load(root: folderURL.deletingLastPathComponent()) }
+        catch { errorMessage = error.localizedDescription; return }
         guard let loadedPackage = loader.loadPackage(folderURL: folderURL) else {
             package = nil
-            errorMessage = "패키지 폴더가 삭제되었거나 필요한 파일을 찾을 수 없습니다."
+            errorMessage = "The package folder was removed or required files are missing."
             return
         }
         package = loadedPackage
@@ -73,7 +81,7 @@ struct MacRecordingDetailWindowView: View {
             package = updatedPackage
             errorMessage = nil
         } catch {
-            errorMessage = "라벨 저장 실패: \(error.localizedDescription)"
+            errorMessage = "Failed to save labels: \(error.localizedDescription)"
         }
     }
 }

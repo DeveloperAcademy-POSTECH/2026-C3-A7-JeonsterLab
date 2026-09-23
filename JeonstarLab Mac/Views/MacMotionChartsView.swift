@@ -18,6 +18,8 @@ struct MacMotionChartsView: View {
     let fullTimeRange: ClosedRange<Double>
     @Binding var selection: ChartTimeSelection?
     @Binding var visibleTimeRange: ChartVisibleTimeRange
+    var autoCandidates: [AutoSegmentCandidate] = []
+    var onSelectCandidate: ((AutoSegmentCandidate) -> Void)? = nil
 
     @State private var activeDragMode: ChartSelectionDragMode?
     @State private var isSpacePressed = false
@@ -28,7 +30,7 @@ struct MacMotionChartsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            chartCard(title: "사용자 가속도") {
+            chartCard(title: "User Acceleration (g)") {
                 axisChart(values: [
                     ("X", .blue, \.userAccX),
                     ("Y", .green, \.userAccY),
@@ -36,7 +38,7 @@ struct MacMotionChartsView: View {
                 ], yDomain: yDomain(for: [\.userAccX, \.userAccY, \.userAccZ]))
             }
 
-            chartCard(title: "자이로스코프") {
+            chartCard(title: "Gyroscope (rad/s)") {
                 axisChart(values: [
                     ("X", .blue, \.rotationRateX),
                     ("Y", .green, \.rotationRateY),
@@ -44,7 +46,7 @@ struct MacMotionChartsView: View {
                 ], yDomain: yDomain(for: [\.rotationRateX, \.rotationRateY, \.rotationRateZ]))
             }
 
-            chartCard(title: "자세") {
+            chartCard(title: "Attitude (rad)") {
                 axisChart(values: [
                     ("Roll", .blue, \.attitudeRoll),
                     ("Pitch", .green, \.attitudePitch),
@@ -62,8 +64,10 @@ struct MacMotionChartsView: View {
             Text(title)
                 .font(.headline)
             content()
-                .frame(height: 220)
+                .frame(height: 160)
         }
+        .padding(14)
+        .editorSurface()
     }
 
     private func axisChart(
@@ -71,6 +75,17 @@ struct MacMotionChartsView: View {
         yDomain: ClosedRange<Double>
     ) -> some View {
         Chart {
+            ForEach(autoCandidates) { candidate in
+                RectangleMark(xStart: .value("Suggested Start", candidate.startTime),
+                              xEnd: .value("Suggested End", candidate.endTime))
+                    .foregroundStyle(.secondary.opacity(0.08))
+                RuleMark(x: .value("Suggested Start", candidate.startTime))
+                    .foregroundStyle(.secondary.opacity(0.6))
+                    .lineStyle(.init(lineWidth: 1, dash: [4, 3]))
+                RuleMark(x: .value("Suggested End", candidate.endTime))
+                    .foregroundStyle(.secondary.opacity(0.6))
+                    .lineStyle(.init(lineWidth: 1, dash: [4, 3]))
+            }
             ForEach(values, id: \.name) { axis in
                 ForEach(samples) { sample in
                     LineMark(
@@ -88,15 +103,15 @@ struct MacMotionChartsView: View {
                         xStart: .value("Saved Snap Start", range.startTime),
                         xEnd: .value("Saved Snap End", range.endTime)
                     )
-                    .foregroundStyle(range.label.backgroundColor)
+                    .foregroundStyle(range.label.backgroundColor.opacity(0.35))
 
                     RuleMark(x: .value("Saved Snap Start", range.startTime))
-                        .foregroundStyle(.gray.opacity(0.55))
-                        .lineStyle(.init(lineWidth: 0.8, dash: [2, 3]))
+                        .foregroundStyle(range.label.backgroundColor)
+                        .lineStyle(.init(lineWidth: 1))
 
                     RuleMark(x: .value("Saved Snap End", range.endTime))
-                        .foregroundStyle(.gray.opacity(0.55))
-                        .lineStyle(.init(lineWidth: 0.8, dash: [2, 3]))
+                        .foregroundStyle(range.label.backgroundColor)
+                        .lineStyle(.init(lineWidth: 1))
                 }
             }
 
@@ -135,17 +150,11 @@ struct MacMotionChartsView: View {
                     .lineStyle(.init(lineWidth: 1.2, dash: [4, 3]))
             }
         }
-        .chartForegroundStyleScale([
-            "X": .blue,
-            "Y": .green,
-            "Z": .orange,
-            "Roll": .blue,
-            "Pitch": .green,
-            "Yaw": .orange
-        ])
+        .chartForegroundStyleScale(domain: values.map(\.name), range: values.map(\.color))
         .chartXScale(domain: visibleTimeRange.range)
         .chartYScale(domain: yDomain)
-        .chartXAxisLabel("relativeTime")
+        .chartXAxisLabel("Time (s)")
+        .chartPlotStyle { plot in plot.clipped() }
         .chartOverlay { proxy in
             GeometryReader { geometry in
                 ChartInteractionOverlay(
@@ -189,6 +198,13 @@ struct MacMotionChartsView: View {
                     },
                     onDragEnded: {
                         activeDragMode = nil
+                    },
+                    onClick: { location in
+                        guard let frame = proxy.plotFrame, geometry[frame].contains(location) else { return }
+                        let time = timeValue(for: location.x, plotRect: geometry[frame])
+                        if let candidate = autoCandidates.first(where: { $0.startTime <= time && $0.endTime >= time }) {
+                            onSelectCandidate?(candidate)
+                        }
                     }
                 )
                 .contentShape(Rectangle())

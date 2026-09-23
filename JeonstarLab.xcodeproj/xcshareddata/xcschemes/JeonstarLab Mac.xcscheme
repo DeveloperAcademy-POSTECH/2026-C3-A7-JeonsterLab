@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "D37ECF052FBE00000098CE69"
-               BuildableName = "JeonstarLab Mac.app"
+               BuildableName = "WatchMotion Editor.app"
                BlueprintName = "JeonstarLab Mac"
                ReferencedContainer = "container:JeonstarLab.xcodeproj">
             </BuildableReference>
@@ -46,7 +46,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D37ECF052FBE00000098CE69"
-            BuildableName = "JeonstarLab Mac.app"
+            BuildableName = "WatchMotion Editor.app"
             BlueprintName = "JeonstarLab Mac"
             ReferencedContainer = "container:JeonstarLab.xcodeproj">
          </BuildableReference>
@@ -63,7 +63,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D37ECF052FBE00000098CE69"
-            BuildableName = "JeonstarLab Mac.app"
+            BuildableName = "WatchMotion Editor.app"
             BlueprintName = "JeonstarLab Mac"
             ReferencedContainer = "container:JeonstarLab.xcodeproj">
          </BuildableReference>

@@ -26,6 +26,7 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     var editedSnapEvents: [String: WorkingSnapEvent]
     var deletedSnapEventIDs: Set<String>
     var parseMessages: [String]
+    var autoSegmentReview: AutoSegmentReview? = nil
 
     var displayTitle: String {
         if !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -36,13 +37,13 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
 
     var recordingDateTitle: String {
         guard let startedAt = metadata?.startedAt else {
-            return "녹화 시각 확인 불가"
+            return "Recording date unavailable"
         }
-        return "\(startedAt.formatted(date: .numeric, time: .shortened)) 녹화"
+        return "Recording · \(startedAt.formatted(date: .numeric, time: .shortened))"
     }
 
     var recordingDateText: String {
-        metadata?.startedAt?.formatted(date: .abbreviated, time: .shortened) ?? "메타데이터 없음"
+        metadata?.startedAt?.formatted(date: .abbreviated, time: .shortened) ?? "No metadata"
     }
 
     var receivedAtText: String {
@@ -51,7 +52,7 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
 
     var completenessText: String {
         let count = [csvURL, metadataURL, snapAnalysisURL].compactMap(\.self).count
-        return count == 3 ? "파일 3/3" : "파일 \(count)/3"
+        return count == 3 ? "3/3 files" : "\(count)/3 files"
     }
 
     var snapDetectionMode: MacSnapDetectionMode {
@@ -79,15 +80,15 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     var resultSummaryText: String {
         let events = workingSnapEvents
         guard !events.isEmpty else {
-            return "스냅 이벤트 없음"
+            return "No snap events"
         }
 
         let counts = snapLabelCounts
         if counts.isEmpty || (counts.count == 1 && counts[.unlabeled] != nil) {
-            return "스냅 라벨 미분류"
+            return "Unlabeled snaps"
         }
 
-        return RecordingPackageLabel.allCases
+        return counts.keys.sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
             .compactMap { label in
                 guard let count = counts[label], count > 0 else { return nil }
                 return "\(label.displayName) \(count)"
@@ -100,6 +101,14 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
             let label = snapEventLabels[event.snapID]?.label ?? event.label
             counts[label, default: 0] += 1
         }
+    }
+
+    mutating func resolveLabels(using catalog: ProjectLabelCatalog) {
+        label = catalog.resolve(label)
+        snapLabels = snapLabels.mapValues { var p = $0; p.label = catalog.resolve(p.label); return p }
+        snapEventLabels = snapEventLabels.mapValues { var p = $0; p.label = catalog.resolve(p.label); return p }
+        manualSnapEvents = manualSnapEvents.map { var e = $0; e.label = catalog.resolve(e.label); return e }
+        editedSnapEvents = editedSnapEvents.mapValues { var e = $0; e.label = catalog.resolve(e.label); return e }
     }
 
     var workingSnapEvents: [WorkingSnapEvent] {
@@ -166,6 +175,43 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
             notes: event.notes,
             updatedAt: event.updatedAt
         )
+    }
+
+    mutating func mergeAutoSegments(_ result: AutoSegmentReview) {
+        var filtered = result
+        let saved = workingSnapEvents
+        filtered.candidates.removeAll { candidate in
+            saved.contains { event in
+                guard let start = event.startTime, let end = event.endTime else { return false }
+                return candidate.overlaps(start: start, end: end)
+            }
+        }
+        var review = autoSegmentReview ?? AutoSegmentReview()
+        review.merge(filtered)
+        autoSegmentReview = review
+    }
+
+    /// Save the reviewed range and its decision together in label.json. Raw files are untouched.
+    mutating func confirmAutoSegment(id: String, draft: ManualSnapDraft) -> WorkingSnapEvent? {
+        guard draft.canSave,
+              let index = autoSegmentReview?.candidates.firstIndex(where: { $0.id == id && $0.status == .pending }),
+              !workingSnapEvents.contains(where: { event in
+                  guard let start = event.startTime, let end = event.endTime else { return false }
+                  return draft.selection.normalized.startTime < end && draft.selection.normalized.endTime > start
+              }) else { return nil }
+        var event = WorkingSnapEvent.manual(recordingID: metadata?.recordingID ?? snapAnalysis?.recordingID,
+                                           draft: draft, packageFolderName: folderURL.lastPathComponent)
+        event.sourceType = .autoSegment
+        manualSnapEvents.append(event)
+        snapEventLabels[event.snapID] = .empty
+        autoSegmentReview?.candidates[index].status = .confirmed
+        autoSegmentReview?.candidates[index].confirmedSnapID = event.snapID
+        return event
+    }
+
+    mutating func dismissAutoSegment(id: String) {
+        guard let index = autoSegmentReview?.candidates.firstIndex(where: { $0.id == id && $0.status == .pending }) else { return }
+        autoSegmentReview?.candidates[index].status = .dismissed
     }
 
     mutating func deleteSnapEvent(id snapID: String) {
@@ -293,99 +339,6 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     }
 }
 
-enum RecordingPackageLabel: String, CaseIterable, Codable, Identifiable {
-    case unlabeled
-    case success
-    case failure
-    case flipped
-    case partialFlipped
-    case unflipped
-    case loosen
-    case idle
-    case other
-
-    var id: String { rawValue }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let rawValue = try container.decode(String.self)
-        switch rawValue {
-        case "partialSuccess", "partial":
-            self = .partialFlipped
-        default:
-            self = RecordingPackageLabel(rawValue: rawValue) ?? .unlabeled
-        }
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
-    }
-
-    var displayName: String {
-        switch self {
-        case .unlabeled:
-            return "미분류"
-        case .success:
-            return "성공 모션"
-        case .failure:
-            return "실패 모션"
-        case .flipped:
-            return "뒤집기 성공"
-        case .partialFlipped:
-            return "부분 뒤집기 성공"
-        case .unflipped:
-            return "뒤집기 실패"
-        case .loosen:
-            return "분리"
-        case .idle:
-            return "대기"
-        case .other:
-            return "기타"
-        }
-    }
-
-    var backgroundColor: Color {
-        switch self {
-        case .unlabeled:      return .gray.opacity(0.5)
-        case .success:        return .green.opacity(0.5)
-        case .failure:        return .red.opacity(0.5)
-        case .flipped:        return .blue.opacity(0.5)
-        case .partialFlipped: return .cyan.opacity(0.5)
-        case .unflipped:      return .orange.opacity(0.5)
-        case .loosen:         return .purple.opacity(0.5)
-        case .idle:           return .mint.opacity(0.5)
-        case .other:          return .gray.opacity(0.5)
-        }
-    }
-
-    var chipBackgroundColor: Color {
-        switch self {
-        case .unlabeled:
-            return .gray.opacity(0.12)
-        default:
-            return backgroundColor.opacity(0.45)
-        }
-    }
-
-    var chipBorderColor: Color {
-        switch self {
-        case .unlabeled:
-            return .gray.opacity(0.35)
-        default:
-            return backgroundColor.opacity(0.95)
-        }
-    }
-
-    var chipForegroundColor: Color {
-        switch self {
-        case .unlabeled:
-            return .secondary
-        default:
-            return .primary
-        }
-    }
-}
 
 struct RecordingPackageLabelPayload: Codable {
     let displayName: String?
@@ -400,6 +353,7 @@ struct RecordingPackageLabelPayload: Codable {
     let editedSnapEvents: [String: WorkingSnapEvent]
     let deletedSnapEventIDs: Set<String>
     let updatedAt: Date
+    let autoSegmentReview: AutoSegmentReview?
 
     init(
         displayName: String?,
@@ -413,7 +367,8 @@ struct RecordingPackageLabelPayload: Codable {
         manualSnapEvents: [WorkingSnapEvent] = [],
         editedSnapEvents: [String: WorkingSnapEvent] = [:],
         deletedSnapEventIDs: Set<String> = [],
-        updatedAt: Date
+        updatedAt: Date,
+        autoSegmentReview: AutoSegmentReview? = nil
     ) {
         self.displayName = displayName
         self.isPinned = isPinned
@@ -427,6 +382,7 @@ struct RecordingPackageLabelPayload: Codable {
         self.editedSnapEvents = editedSnapEvents
         self.deletedSnapEventIDs = deletedSnapEventIDs
         self.updatedAt = updatedAt
+        self.autoSegmentReview = autoSegmentReview
     }
 
     enum CodingKeys: String, CodingKey {
@@ -442,6 +398,7 @@ struct RecordingPackageLabelPayload: Codable {
         case editedSnapEvents
         case deletedSnapEventIDs
         case updatedAt
+        case autoSegmentReview
     }
 
     init(from decoder: Decoder) throws {
@@ -475,6 +432,7 @@ struct RecordingPackageLabelPayload: Codable {
         ) ?? [:]
         deletedSnapEventIDs = try container.decodeIfPresent(Set<String>.self, forKey: .deletedSnapEventIDs) ?? []
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
+        autoSegmentReview = try container.decodeIfPresent(AutoSegmentReview.self, forKey: .autoSegmentReview)
     }
 }
 
