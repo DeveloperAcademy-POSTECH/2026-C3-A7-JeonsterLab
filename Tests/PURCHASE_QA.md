@@ -1,41 +1,39 @@
-# Mac Full Unlock
+# Mac 유료 다운로드 출시 검증
 
-## App Store Connect setup (required before selling)
+## 배포 모델
 
-- Mac app: `com.Jeonster.WatchMotionEditor.mac`. Keep the app download free.
-- Create a **Non-Consumable** named **WatchMotion Editor Full Unlock**.
-- Product ID: `com.Jeonster.WatchMotionEditor.mac.full-unlock`.
-- Set US price **$19.99**, and a separate South Korea price **₩29,000**. Do not rely on automatic currency conversion to produce the Korean price.
-- Complete paid-app agreements, tax/banking details, product localization and review screenshot. Submit the first IAP with the Mac app version.
-- iPhone and Watch remain free. No subscription or introductory discount is configured.
+1.0.1 (20260923)부터 Mac 앱은 App Store에서 최초 다운로드 시 결제합니다.
+앱 내부의 StoreKit 상품 조회·구매·복원과 무료 체험 제한은 제거합니다.
+iPhone 및 Apple Watch companion 앱은 별도 무료 앱으로 유지합니다.
 
-The app displays StoreKit's `Product.displayPrice`; unavailable products disable purchasing instead of showing an unverified price. This repository does not configure production store prices.
+- 프로젝트 수, 녹화 편집 수, CSV/Create ML 내보내기 횟수를 제한하지 않습니다.
+- 기존 녹화, 프로젝트, 라벨 파일은 그대로 사용합니다.
+- 이전 체험 Keychain 항목은 읽거나 삭제하지 않습니다. 잔존 여부와 무관하게 편집할 수 있습니다.
+- 상품 ID나 StoreKit 테스트 구성은 필요하지 않습니다.
+- Mac 앱 판매 가격과 판매 지역은 App Store Connect에서 관리합니다.
 
-## Trial rules
+## 검증
 
-One workspace, up to three distinct recordings admitted for editing, and one successful CSV **or** Create ML dataset export. Existing admitted recordings remain editable afterward. Receiving, previewing, and project backup remain available. Project labels count toward the same workspace; backing up preserves its identity. Canceling/failed/empty exports do not consume the export allowance. Partially successful exports with data do consume it.
+- Mac Release 빌드와 서명 아카이브에서 1.0.1 / 20260923을 확인합니다.
+- 설정과 툴바에 Full Unlock, Manage Purchase, Restore Purchases가 없는지 확인합니다.
+- 4개 이상 녹화와 여러 프로젝트의 편집·라벨 저장에 체험 제한이 없는지 확인합니다.
+- CSV/Create ML 내보내기는 반복할 수 있고, 취소·실패 뒤 다시 실행할 수 있어야 합니다.
+- 데이터셋 내보내기 중복 실행 방지와 프로젝트 파일 검증은 유지합니다.
+- `Tests/run-release-ui-smoke.sh`, `Tests/run-project-settings-smoke.sh`,
+  `Tests/run-auto-segment-smoke.sh`, `Tests/run-chart-interaction-smoke.sh`로 관련 회귀를 확인합니다.
 
-Trial history is device-local Keychain data, not an account-level/server-enforced trial. Deleting recordings does not recover slots. A different Mac can have its own trial. A verified StoreKit entitlement, never a preferences flag, grants unlimited access.
+## 심사 제출
 
-## Local checks
+앱 설명·프로모션·심사 메모의 무료 다운로드/체험/인앱결제 문구를 유료 다운로드 모델로 갱신합니다.
+2.1(b) 답변에 인앱결제 제거 사실을 설명하고 새 빌드를 선택한 뒤 최종 심사 대기 상태를 확인합니다.
+빌드 통과와 실제 App Store 결제·Apple 심사 승인은 별도 결과입니다.
 
-Verified during implementation: unsigned Mac Debug and Release builds; trial-policy smoke test; project/archive regression test; release UI smoke test. The running Debug app opened Full Unlock from Settings, displayed unavailable product pricing with the purchase button disabled, and closed with Not Now. Purchase/restore/refund transactions have **not** been exercised yet.
+## 2026-09-23 로컬 검증 결과
 
-Run `bash Tests/run-editor-trial-smoke.sh` and `bash Tests/run-project-settings-smoke.sh`.
+- Xcode 27.0 (27A266a), 기존 Swift 5 언어 모드, macOS 15 지원 유지.
+- `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project JeonstarLab.xcodeproj -scheme 'JeonstarLab Mac' -configuration Release -destination 'generic/platform=macOS' -derivedDataPath /private/tmp/jeonster-paid-20260923/DerivedData CODE_SIGNING_ALLOWED=NO build` 통과.
+- 위 4개 회귀 스크립트를 `bash`로 실행해 모두 통과.
+- 앱의 설정 뷰를 `NSHostingView`로 오프스크린 렌더해 결제 섹션 제거 확인.
+  창을 표시하거나 사용자 입력을 조작하지 않았으며, 실제 App Store 설치 검증은 아님.
 
-For StoreKit integration testing, open `Configuration/WatchMotionEditor.storekit` in Xcode and select it under a **local duplicate** of the Mac scheme → Run → Options → StoreKit Configuration. The shared release scheme intentionally has no local StoreKit override. Local test transactions do not charge money. The fixture uses US pricing; verify Korea pricing against the actual sandbox storefront after Connect setup.
-
-Before release, run these scenarios in Xcode Transaction Manager and again in sandbox/TestFlight:
-
-- Product loading: US and Korean localized price; offline/unavailable price disables purchase, retry recovers.
-- Successful purchase: unlimited editing/export; close/reopen app retains entitlement, including offline.
-- Cancel: no unlock or error presented as success. Pending/Ask to Buy: no unlock until approval arrives.
-- Restore on another Mac: verified purchase restores; no purchase and network failure show distinct messages.
-- Refund/revoke: entitlement removed on transaction update or next launch; original trial limits apply again.
-- Fourth recording and second workspace: preview remains available, editing opens Full Unlock.
-- CSV and Create ML share one free export; cancel/error leave allowance intact; successful export consumes it across relaunch.
-- Open project/detail/settings windows: purchase opens from each, and entitlement refreshes already-open views.
-
-Actual App Store purchases, sandbox approval/refund flows and regional prices require the external configuration above; a successful build/policy test does not certify them.
-
-References: [Apple StoreKit testing setup](https://developer.apple.com/documentation/xcode/setting-up-storekit-testing-in-xcode/), [Apple Product](https://developer.apple.com/documentation/storekit/product).
+![결제 영역을 제거한 설정 화면](artifacts/paid-download-settings.png)
