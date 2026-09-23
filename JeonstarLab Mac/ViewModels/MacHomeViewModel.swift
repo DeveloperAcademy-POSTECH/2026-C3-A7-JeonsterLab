@@ -27,7 +27,6 @@ final class MacHomeViewModel {
     var projectPackageMessage: String?
     var searchQuery = ""
     var labelCatalog = ProjectLabelCatalog.legacy
-    var trialWorkspaceID: String { (activeWorkspace.manifest?.packageID ?? Self.localProjectID).uuidString }
     static let localProjectID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 
     init(workspace: ReceiverWorkspace? = nil) {
@@ -291,7 +290,6 @@ final class MacHomeViewModel {
     }
 
     func addFolder() {
-        guard EditorPurchaseStore.shared.admit(workspace: trialWorkspaceID, recordings: []) else { return }
         let baseName = "New Folder"
         let existingNames = Set(snapFolders.map(\.name))
         var folderName = baseName
@@ -356,7 +354,6 @@ final class MacHomeViewModel {
     }
 
     func addSnap(_ event: WorkingSnapEvent, from package: ReceivedRecordingPackage, to folder: SnapFolder) {
-        guard EditorPurchaseStore.shared.admit(workspace: trialWorkspaceID, recordings: [package.trialRecordingID]) else { return }
         let currentLabel = package.snapEventLabels[event.snapID]?.label ?? event.label
         guard currentLabel != .unlabeled,
               folderContainingSnap(package: package, event: event) == nil,
@@ -414,7 +411,6 @@ final class MacHomeViewModel {
     }
 
     func generateSegments(for folder: SnapFolder) -> String {
-        guard EditorPurchaseStore.shared.admit(workspace: trialWorkspaceID, recordings: trialIDs(for: folder)) else { return "Full Unlock required." }
         guard let folderIndex = snapFolders.firstIndex(where: { $0.id == folder.id }) else {
             return "Segment generation failed: folder not found."
         }
@@ -476,9 +472,9 @@ final class MacHomeViewModel {
             return "No snaps to export."
         }
 
-        guard EditorPurchaseStore.shared.beginExport(workspace: trialWorkspaceID, recordings: trialIDs(for: folder)) else { return "Export not started. Check Full Unlock." }
-        var succeeded = false
-        defer { EditorPurchaseStore.shared.endExport(succeeded: succeeded) }
+        guard !isExportingDataset else { return "A dataset export is already in progress." }
+        isExportingDataset = true
+        defer { isExportingDataset = false }
 
         let savePanel = NSSavePanel()
         savePanel.title = "Export CSV Dataset"
@@ -500,7 +496,6 @@ final class MacHomeViewModel {
                 options: options
             )
 
-            succeeded = report.exportedRowCount > 0
             var message = "\(report.summaryText) · \(report.outputURL.lastPathComponent)"
             if report.skippedItemCount > 0 {
                 let reasons = report.skippedReasons.prefix(2).joined(separator: " / ")
@@ -519,9 +514,9 @@ final class MacHomeViewModel {
             return "No snaps to export."
         }
 
-        guard EditorPurchaseStore.shared.beginExport(workspace: trialWorkspaceID, recordings: trialIDs(for: folder)) else { return "Export not started. Check Full Unlock." }
-        var succeeded = false
-        defer { EditorPurchaseStore.shared.endExport(succeeded: succeeded) }
+        guard !isExportingDataset else { return "A dataset export is already in progress." }
+        isExportingDataset = true
+        defer { isExportingDataset = false }
 
         let openPanel = NSOpenPanel()
         openPanel.title = "Choose Create ML Export Location"
@@ -545,7 +540,6 @@ final class MacHomeViewModel {
                 destinationDirectoryURL: outputDirectoryURL
             )
 
-            succeeded = report.exportedFileCount > 0
             var message = "\(report.summaryText) · \(report.outputDirectoryURL.lastPathComponent)"
             if report.skippedItemCount > 0 {
                 let reasons = report.skippedReasons.prefix(2).joined(separator: " / ")
@@ -559,13 +553,8 @@ final class MacHomeViewModel {
         }
     }
 
+    private var isExportingDataset = false
     private(set) var isProcessingProject = false
-    private func trialIDs(for folder: SnapFolder) -> Set<String> {
-        Set(folder.items.map { item in
-            receivedPackages.first(where: { $0.folderURL.lastPathComponent == item.packageFolderName })?.trialRecordingID
-                ?? item.packageFolderName
-        })
-    }
     private(set) var projectOperationStatus = "Processing Project…"
     private var cancelProjectWork: (() -> Void)?
     func cancelProjectOperation() {

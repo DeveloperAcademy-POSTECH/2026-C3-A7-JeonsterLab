@@ -214,10 +214,6 @@ struct MacHomeView: View {
         .toolbar {
             ToolbarItem {
                 Menu {
-                    Button("Full Unlock…") {
-                        EditorPurchaseStore.shared.reason = String(localized: "Unlock unlimited editing and dataset exports.")
-                        openWindow(id: "full-unlock")
-                    }
                     Button("Project Labels…") {
                         openWindow(value: ProjectSettingsRequest(recordingsPath: viewModel.rootReceivedFolderURL.path,
                                                                  title: viewModel.workspaceTitle))
@@ -248,7 +244,6 @@ struct MacHomeView: View {
             }
         }
         .environment(\.projectLabelOptions, viewModel.labelCatalog.activeLabels)
-        .environment(\.trialWorkspaceID, viewModel.trialWorkspaceID)
         .task {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--show-project-labels") {

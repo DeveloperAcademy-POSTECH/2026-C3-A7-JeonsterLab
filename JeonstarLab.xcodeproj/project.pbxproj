@@ -36,7 +36,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		AABB00312FBE10000098CE69 /* WatchMotionEditor.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Configuration/WatchMotionEditor.storekit; sourceTree = "<group>"; };
 		C0528BC72FC96F7800F84FBD /* JeonstarLab-Watch-App-Watch-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "JeonstarLab-Watch-App-Watch-App-Info.plist"; sourceTree = "<group>"; };
 		D37ECEC02FBD9E350098CE69 /* WatchMotion Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D37ECED22FBD9EB70098CE69 /* WatchMotion Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchMotion Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -142,7 +141,6 @@
 		D37ECEB72FBD9E350098CE69 = {
 			isa = PBXGroup;
 			children = (
-				AABB00312FBE10000098CE69 /* WatchMotionEditor.storekit */,
 				C0528BC72FC96F7800F84FBD /* JeonstarLab-Watch-App-Watch-App-Info.plist */,
 				D37ECF4A2FBDA5E90098CE69 /* JeonstarLab Core */,
 				D37ECEC22FBD9E350098CE69 /* JeonstarLab */,
@@ -606,7 +604,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "JeonstarLab Mac/JeonstarLab_Mac.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 20260923;
 				DEVELOPMENT_TEAM = 36545XSWN8;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -618,7 +616,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor.mac;
 				PRODUCT_NAME = "WatchMotion Editor";
 				SDKROOT = macosx;
@@ -637,7 +635,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "JeonstarLab Mac/JeonstarLab_Mac.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 20260923;
 				DEVELOPMENT_TEAM = 36545XSWN8;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -649,7 +647,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.Jeonster.WatchMotionEditor.mac;
 				PRODUCT_NAME = "WatchMotion Editor";
 				SDKROOT = macosx;
