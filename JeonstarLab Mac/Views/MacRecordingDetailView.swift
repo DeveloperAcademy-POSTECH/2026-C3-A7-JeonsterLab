@@ -106,6 +106,7 @@ struct MacRecordingDetailView: View {
             .frame(width: 310)
             .background(EditorPalette.surface)
         }
+        .disabled(package.labelReadError != nil)
         .background(EditorPalette.background)
         .onChange(of: package.snapEventLabels) { onSaveLabel(package) }
         .task(id: package.folderURL) {

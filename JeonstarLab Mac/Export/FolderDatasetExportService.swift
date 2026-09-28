@@ -28,6 +28,11 @@ enum FolderDatasetExportService {
                 continue
             }
 
+            guard package.labelReadError == nil else {
+                skippedReasons.append("Unreadable label.json: \(item.packageFolderName)")
+                continue
+            }
+
             guard let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }) else {
                 skippedReasons.append("Snap missing or deleted: \(item.packageFolderName) / \(item.snapID)")
                 continue

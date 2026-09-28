@@ -37,6 +37,12 @@ struct MacRecordingDetailWindowView: View {
                 .padding()
             }
         }
+        .alert("Unable to Save", isPresented: Binding(
+            get: { package != nil && errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) { Button("OK") { errorMessage = nil } } message: {
+            Text(errorMessage ?? "")
+        }
         .task(id: packagePath) {
             loadPackage()
         }
@@ -81,6 +87,7 @@ struct MacRecordingDetailWindowView: View {
             package = updatedPackage
             errorMessage = nil
         } catch {
+            package = loader.loadPackage(folderURL: updatedPackage.folderURL)
             errorMessage = "Failed to save labels: \(error.localizedDescription)"
         }
     }

@@ -327,6 +327,7 @@ final class MacHomeViewModel {
             upsert(package)
             updateFolderItems(for: package)
         } catch {
+            if let original = packageLoader.loadPackage(folderURL: package.folderURL) { upsert(original) }
             errorMessage = "Failed to save labels: \(error.localizedDescription)"
         }
     }

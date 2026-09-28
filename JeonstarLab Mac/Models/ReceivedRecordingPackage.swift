@@ -26,6 +26,7 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
     var editedSnapEvents: [String: WorkingSnapEvent]
     var deletedSnapEventIDs: Set<String>
     var parseMessages: [String]
+    var labelReadError: String? = nil
     var autoSegmentReview: AutoSegmentReview? = nil
 
     var displayTitle: String {

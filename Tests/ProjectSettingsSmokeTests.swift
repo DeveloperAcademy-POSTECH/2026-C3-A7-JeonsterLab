@@ -81,6 +81,17 @@ struct ProjectSettingsSmokeTests {
         precondition(loaded.label.id == custom.id && loaded.label.displayName == "Turn, left")
         precondition(loaded.snapEventLabels["fixture"]?.label.displayName == "Walk")
         precondition(loaded.snapEventLabels["fixture"]?.notes == "Original notes 한글")
+        let labelURL = folder.appendingPathComponent("label.json")
+        let savedLabel = try Data(contentsOf: labelURL)
+        let corruptLabel = Data("{broken label".utf8)
+        try corruptLabel.write(to: labelURL)
+        let corruptPackage = loader.loadPackage(folderURL: folder)!
+        precondition(corruptPackage.labelReadError != nil && !corruptPackage.parseMessages.isEmpty)
+        requireThrows { try loader.saveLabel(package: corruptPackage) }
+        requireThrows { try loader.saveLabel(package: loaded) }
+        let preserved = try Data(contentsOf: labelURL)
+        precondition(preserved == corruptLabel, "Saving must preserve unreadable labels, including external changes")
+        try savedLabel.write(to: labelURL)
         let originalCSV = try Data(contentsOf: folder.appendingPathComponent("recording.csv"))
 
         for suffix in ["watchmotion", "zip"] {
