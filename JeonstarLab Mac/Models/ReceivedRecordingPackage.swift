@@ -6,7 +6,7 @@
 import Foundation
 import SwiftUI
 
-struct ReceivedRecordingPackage: Identifiable, Equatable {
+nonisolated struct ReceivedRecordingPackage: Identifiable, Equatable {
     let id: URL
     let folderURL: URL
     let receivedAt: Date
@@ -341,7 +341,7 @@ struct ReceivedRecordingPackage: Identifiable, Equatable {
 }
 
 
-struct RecordingPackageLabelPayload: Codable {
+nonisolated struct RecordingPackageLabelPayload: Codable {
     let displayName: String?
     let isPinned: Bool
     let label: RecordingPackageLabel
@@ -437,7 +437,7 @@ struct RecordingPackageLabelPayload: Codable {
     }
 }
 
-struct SnapEventLabelPayload: Codable, Equatable {
+nonisolated struct SnapEventLabelPayload: Codable, Equatable {
     var label: RecordingPackageLabel
     var notes: String
     var updatedAt: Date?
@@ -446,7 +446,7 @@ struct SnapEventLabelPayload: Codable, Equatable {
 }
 
 extension SnapEventExport {
-    var labelKey: Int {
+    nonisolated var labelKey: Int {
         eventIndex ?? Int((peakTime ?? startTime ?? 0) * 1000)
     }
 }

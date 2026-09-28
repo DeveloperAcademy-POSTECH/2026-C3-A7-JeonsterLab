@@ -411,64 +411,50 @@ final class MacHomeViewModel {
         }
     }
 
-    func generateSegments(for folder: SnapFolder) -> String {
-        guard let folderIndex = snapFolders.firstIndex(where: { $0.id == folder.id }) else {
-            return "Segment generation failed: folder not found."
-        }
-
+    func generateSegments(for folder: SnapFolder) async -> String {
+        guard !isExportingDataset else { return "A dataset export is already in progress." }
+        isExportingDataset = true
+        defer { isExportingDataset = false }
         var samplesByPackageName: [String: [MotionCSVSample]] = [:]
         var generatedCount = 0
         var skippedCount = 0
-
-        for item in snapFolders[folderIndex].items {
-            guard let package = receivedPackages.first(where: { $0.folderURL.lastPathComponent == item.packageFolderName }),
-                  let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }) else {
+        let packages = reloadPackagesForExport()
+        for item in folder.items {
+            if Task.isCancelled { return "Segment generation canceled." }
+            guard let package = packages.first(where: { $0.folderURL.lastPathComponent == item.packageFolderName }),
+                  let event = package.workingSnapEvents.first(where: { package.isSnapID(item.snapID, matching: $0) }),
+                  let csvURL = package.csvURL else {
                 skippedCount += 1
                 continue
             }
-
             do {
-                let samples: [MotionCSVSample]
-                if let cachedSamples = samplesByPackageName[item.packageFolderName] {
-                    samples = cachedSamples
-                } else if let csvURL = package.csvURL {
-                    let parsedSamples = try MotionCSVParser.parse(url: csvURL)
-                    samplesByPackageName[item.packageFolderName] = parsedSamples
-                    samples = parsedSamples
-                } else {
-                    skippedCount += 1
-                    continue
+                let cached = samplesByPackageName[item.packageFolderName]
+                let worker = Task.detached(priority: .userInitiated) {
+                    let samples = try cached ?? MotionCSVParser.parse(url: csvURL)
+                    _ = try SnapSegmentExporter.export(package: package, event: event, samples: samples)
+                    return samples
                 }
-
-                _ = try SnapSegmentExporter.export(
-                    package: package,
-                    event: event,
-                    samples: samples
-                )
-
-                if let itemIndex = snapFolders[folderIndex].items.firstIndex(where: { $0.id == item.id }) {
-                    snapFolders[folderIndex].items[itemIndex] = folderItem(
-                        from: package,
-                        event: event,
-                        preserving: item
-                    )
+                let samples = try await withTaskCancellationHandler {
+                    try await worker.value
+                } onCancel: { worker.cancel() }
+                samplesByPackageName[item.packageFolderName] = samples
+                if let folderIndex = snapFolders.firstIndex(where: { $0.id == folder.id }),
+                   let itemIndex = snapFolders[folderIndex].items.firstIndex(where: { $0.id == item.id }) {
+                    snapFolders[folderIndex].items[itemIndex] = folderItem(from: package, event: event, preserving: item)
+                    snapFolders[folderIndex].updatedAt = Date()
+                    saveFolders()
                 }
                 generatedCount += 1
+            } catch is CancellationError {
+                return "Segment generation canceled."
             } catch {
                 skippedCount += 1
             }
         }
-
-        snapFolders[folderIndex].updatedAt = Date()
-        saveFolders()
-
-        if skippedCount > 0 {
-            return "Generated \(generatedCount) segments; skipped \(skippedCount)."
-        }
-        return "Generated \(generatedCount) segments."
+        return "Generated \(generatedCount) segments; skipped \(skippedCount)."
     }
 
-    func exportDataset(for folder: SnapFolder, options: DatasetExportOptions) -> String {
+    func exportDataset(for folder: SnapFolder, options: DatasetExportOptions) async -> String {
         guard folder.items.isEmpty == false else {
             return "No snaps to export."
         }
@@ -490,12 +476,17 @@ final class MacHomeViewModel {
 
         do {
             let packagesForExport = reloadPackagesForExport()
-            let report = try FolderDatasetExportService.export(
-                folder: folder,
-                packages: packagesForExport,
-                outputURL: outputURL,
-                options: options
-            )
+            let worker = Task.detached(priority: .userInitiated) {
+                try FolderDatasetExportService.export(
+                    folder: folder,
+                    packages: packagesForExport,
+                    outputURL: outputURL,
+                    options: options
+                )
+            }
+            let report = try await withTaskCancellationHandler {
+                try await worker.value
+            } onCancel: { worker.cancel() }
 
             var message = "\(report.summaryText) · \(report.outputURL.lastPathComponent)"
             if report.skippedItemCount > 0 {
@@ -505,12 +496,14 @@ final class MacHomeViewModel {
                 }
             }
             return message
+        } catch is CancellationError {
+            return "Export canceled."
         } catch {
             return "CSV export failed: \(error.localizedDescription)"
         }
     }
 
-    func exportCreateMLActivityDataset(for folder: SnapFolder) -> String {
+    func exportCreateMLActivityDataset(for folder: SnapFolder) async -> String {
         guard folder.items.isEmpty == false else {
             return "No snaps to export."
         }
@@ -535,11 +528,16 @@ final class MacHomeViewModel {
 
         do {
             let packagesForExport = reloadPackagesForExport()
-            let report = try CreateMLActivityExporter.export(
-                folder: folder,
-                packages: packagesForExport,
-                destinationDirectoryURL: outputDirectoryURL
-            )
+            let worker = Task.detached(priority: .userInitiated) {
+                try CreateMLActivityExporter.export(
+                    folder: folder,
+                    packages: packagesForExport,
+                    destinationDirectoryURL: outputDirectoryURL
+                )
+            }
+            let report = try await withTaskCancellationHandler {
+                try await worker.value
+            } onCancel: { worker.cancel() }
 
             var message = "\(report.summaryText) · \(report.outputDirectoryURL.lastPathComponent)"
             if report.skippedItemCount > 0 {
@@ -549,6 +547,8 @@ final class MacHomeViewModel {
                 }
             }
             return message
+        } catch is CancellationError {
+            return "Export canceled."
         } catch {
             return "Create ML export failed: \(error.localizedDescription)"
         }

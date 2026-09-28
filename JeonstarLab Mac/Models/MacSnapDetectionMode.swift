@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum MacSnapDetectionMode: String, Decodable, Equatable {
+nonisolated enum MacSnapDetectionMode: String, Decodable, Equatable {
     case none
     case jeonFlip
 

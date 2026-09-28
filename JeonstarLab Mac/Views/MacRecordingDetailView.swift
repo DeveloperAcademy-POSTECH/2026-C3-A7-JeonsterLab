@@ -15,6 +15,8 @@ struct MacRecordingDetailView: View {
 
     @State private var samples: [MotionCSVSample] = []
     @State private var csvErrorMessage: String?
+    @State private var csvLoadID = UUID()
+    @State private var isLoadingCSV = false
     @State private var chartSelection: ChartTimeSelection?
     @State private var visibleTimeRange = ChartVisibleTimeRange.full(0...1)
     @State private var showsSavedSnapPreviews = true
@@ -67,6 +69,7 @@ struct MacRecordingDetailView: View {
                     Text("\(package.recordingDateText) · \(package.sampleCountText) samples")
                         .font(.callout)
                         .foregroundStyle(.secondary)
+                    if isLoadingCSV { ProgressView("Loading recording…") }
                     chartWorkspace
                     sectionCard(title: "Motion Snaps · \(package.workingSnapEvents.count)") {
                         snapList(package.workingSnapEvents, inspector: false)
@@ -110,7 +113,7 @@ struct MacRecordingDetailView: View {
         .background(EditorPalette.background)
         .onChange(of: package.snapEventLabels) { onSaveLabel(package) }
         .task(id: package.folderURL) {
-            loadCSV()
+            await loadCSV()
         }
         .onChange(of: package.folderURL) {
             resetTransientStateForPackageSwitch()
@@ -594,7 +597,12 @@ struct MacRecordingDetailView: View {
         }
     }
 
-    private func loadCSV() {
+    private func loadCSV() async {
+        let loadID = UUID()
+        csvLoadID = loadID
+        isLoadingCSV = true
+        samples = []
+        defer { if csvLoadID == loadID { isLoadingCSV = false } }
         guard let csvURL = package.csvURL else {
             samples = []
             csvErrorMessage = "Missing recording.csv."
@@ -603,10 +611,19 @@ struct MacRecordingDetailView: View {
         }
 
         do {
-            samples = try MotionCSVParser.parse(url: csvURL)
+            let worker = Task.detached(priority: .userInitiated) { try MotionCSVParser.parse(url: csvURL) }
+            let loaded = try await withTaskCancellationHandler {
+                try await worker.value
+            } onCancel: { worker.cancel() }
+            try Task.checkCancellation()
+            guard csvLoadID == loadID else { return }
+            samples = loaded
             csvErrorMessage = nil
             resetVisibleRangeToFull()
+        } catch is CancellationError {
+            return
         } catch {
+            guard csvLoadID == loadID else { return }
             samples = []
             csvErrorMessage = error.localizedDescription
             resetVisibleRangeToFull()

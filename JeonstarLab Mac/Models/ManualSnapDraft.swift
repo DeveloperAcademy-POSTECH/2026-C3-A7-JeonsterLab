@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct ManualSnapDraft: Equatable {
+nonisolated struct ManualSnapDraft: Equatable {
     let selection: ChartTimeSelection
     let sampleCount: Int
     let snapDuration: Double

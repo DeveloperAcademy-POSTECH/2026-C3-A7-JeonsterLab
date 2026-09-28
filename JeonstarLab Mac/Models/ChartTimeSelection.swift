@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct ChartTimeSelection: Equatable {
+nonisolated struct ChartTimeSelection: Equatable {
     var startTime: Double
     var endTime: Double
 

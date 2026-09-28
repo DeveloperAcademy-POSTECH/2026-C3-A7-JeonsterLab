@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum SnapSegmentExporter {
+nonisolated enum SnapSegmentExporter {
     static func export(
         package: ReceivedRecordingPackage,
         event: WorkingSnapEvent,
@@ -15,6 +15,7 @@ enum SnapSegmentExporter {
         if let message = package.labelReadError {
             throw NSError(domain: "WatchMotion.Label", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
         }
+        try Task.checkCancellation()
         guard let startTime = event.startTime,
               let endTime = event.endTime else {
             throw SnapSegmentExporterError.missingTimeRange
@@ -106,7 +107,7 @@ enum SnapSegmentExporter {
             .appendingPathComponent(filesystemSafeName(snapID), isDirectory: true)
     }
 
-    private static func csvString(for samples: [MotionCSVSample]) -> String {
+    private static func csvString(for samples: [MotionCSVSample]) throws -> String {
         let header = [
             "index",
             "timestamp",
@@ -125,8 +126,9 @@ enum SnapSegmentExporter {
             "userAccZ"
         ].joined(separator: ",")
 
-        let rows = samples.map { sample in
-            [
+        let rows = try samples.map { sample in
+            try Task.checkCancellation()
+            return [
                 "\(sample.index)",
                 formatted(sample.timestamp),
                 formatted(sample.relativeTime),
@@ -160,7 +162,7 @@ enum SnapSegmentExporter {
     }
 }
 
-enum SnapSegmentExporterError: LocalizedError {
+nonisolated enum SnapSegmentExporterError: LocalizedError {
     case missingTimeRange
     case noSamplesInRange
 

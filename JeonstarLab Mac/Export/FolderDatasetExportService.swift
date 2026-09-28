@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum FolderDatasetExportService {
+nonisolated enum FolderDatasetExportService {
     static func export(
         folder: SnapFolder,
         packages: [ReceivedRecordingPackage],
@@ -18,6 +18,7 @@ enum FolderDatasetExportService {
         var originalSamplesByPackageName: [String: [MotionCSVSample]] = [:]
 
         for item in folder.items {
+            try Task.checkCancellation()
             guard !item.snapID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 skippedReasons.append("Missing snapID: \(item.packageFolderName)")
                 continue
@@ -69,6 +70,8 @@ enum FolderDatasetExportService {
                         samples: segmentSamples
                     )
                 )
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
                 skippedReasons.append("\(item.packageFolderName) / \(item.snapID): \(error.localizedDescription)")
             }
@@ -78,11 +81,12 @@ enum FolderDatasetExportService {
             throw FolderDatasetExportError.noExportableSnaps(skippedReasons)
         }
 
-        let csv = FolderDatasetCSVExporter.csvString(for: entries, options: options)
+        let csv = try FolderDatasetCSVExporter.csvString(for: entries, options: options)
         try fileManager.createDirectory(
             at: outputURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
+        try Task.checkCancellation()
         try csv.write(to: outputURL, atomically: true, encoding: .utf8)
 
         return FolderDatasetExportReport(
@@ -189,7 +193,7 @@ enum FolderDatasetExportService {
     }
 }
 
-enum FolderDatasetExportError: LocalizedError {
+nonisolated enum FolderDatasetExportError: LocalizedError {
     case missingSourceCSV
     case noExportableSnaps([String])
 

@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct SnapAnalysisExport: Decodable, Equatable {
+nonisolated struct SnapAnalysisExport: Decodable, Equatable {
     let recordingID: UUID?
     let generatedAt: Date?
     let eventCount: Int?
@@ -27,7 +27,7 @@ struct SnapAnalysisExport: Decodable, Equatable {
     }
 }
 
-struct SnapEventExport: Decodable, Equatable, Identifiable {
+nonisolated struct SnapEventExport: Decodable, Equatable, Identifiable {
     var id: Int { eventIndex ?? Int(startTime ?? 0) }
 
     let eventIndex: Int?

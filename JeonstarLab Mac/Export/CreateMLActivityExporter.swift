@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum CreateMLActivityExporter {
+nonisolated enum CreateMLActivityExporter {
     static let csvHeader = [
         "relativeTime",
         "attitudeRoll",
