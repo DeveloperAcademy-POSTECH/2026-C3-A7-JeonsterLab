@@ -33,8 +33,12 @@ enum CreateMLActivityExporter {
         }
 
         let classFolderName = sanitizedFileName(folder.name)
-        let classDirectoryURL = destinationDirectoryURL.appendingPathComponent(classFolderName, isDirectory: true)
+        let exportName = "CreateML-\(UUID().uuidString)"
+        let stagingURL = destinationDirectoryURL.appendingPathComponent(".\(exportName)", isDirectory: true)
+        let outputURL = destinationDirectoryURL.appendingPathComponent(exportName, isDirectory: true)
+        let classDirectoryURL = stagingURL.appendingPathComponent(classFolderName, isDirectory: true)
         try fileManager.createDirectory(at: classDirectoryURL, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: stagingURL) }
 
         var skippedReasons: [String] = []
         var originalSamplesByPackageName: [String: [MotionCSVSample]] = [:]
@@ -42,6 +46,7 @@ enum CreateMLActivityExporter {
         var usedFileNames = Set<String>()
 
         for item in folder.items {
+            try Task.checkCancellation()
             guard !item.snapID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 skippedReasons.append("Missing snapID: \(item.packageFolderName)")
                 continue
@@ -84,6 +89,8 @@ enum CreateMLActivityExporter {
                 let csvURL = classDirectoryURL.appendingPathComponent(fileName)
                 try csvString(for: segmentSamples).write(to: csvURL, atomically: true, encoding: .utf8)
                 exportedCount += 1
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
                 skippedReasons.append("\(item.packageFolderName) / \(item.snapID): \(error.localizedDescription)")
             }
@@ -93,11 +100,13 @@ enum CreateMLActivityExporter {
             throw CreateMLActivityExportError.noExportableSnaps(skippedReasons)
         }
 
+        try Task.checkCancellation()
+        try fileManager.moveItem(at: stagingURL, to: outputURL)
         return CreateMLActivityExportReport(
             exportedFileCount: exportedCount,
             skippedItemCount: skippedReasons.count,
             skippedReasons: skippedReasons,
-            outputDirectoryURL: classDirectoryURL,
+            outputDirectoryURL: outputURL,
             generatedAt: Date()
         )
     }
@@ -141,13 +150,14 @@ enum CreateMLActivityExporter {
         return segmentCSVURL
     }
 
-    private static func csvString(for samples: [MotionCSVSample]) -> String {
+    private static func csvString(for samples: [MotionCSVSample]) throws -> String {
         guard let firstRelativeTime = samples.first?.relativeTime else {
             return csvHeader + "\n"
         }
 
-        let rows = samples.map { sample in
-            [
+        let rows = try samples.map { sample in
+            try Task.checkCancellation()
+            return [
                 formatted(sample.relativeTime - firstRelativeTime),
                 formatted(sample.attitudeRoll),
                 formatted(sample.attitudePitch),
@@ -195,7 +205,7 @@ enum CreateMLActivityExporter {
             result.append(character)
         }
         .trimmingCharacters(in: .whitespacesAndNewlines)
-        return sanitized.isEmpty ? "class" : sanitized
+        return sanitized.isEmpty || sanitized == "." || sanitized == ".." ? "class" : sanitized
     }
 
     private static func formatted(_ value: Double) -> String {

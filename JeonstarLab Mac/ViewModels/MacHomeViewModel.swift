@@ -522,7 +522,7 @@ final class MacHomeViewModel {
         let openPanel = NSOpenPanel()
         openPanel.title = "Choose Create ML Export Location"
         openPanel.prompt = "Export"
-        openPanel.message = "Creates a \(folder.name) class folder with one CSV file per snap in the selected location."
+        openPanel.message = "Creates a new dataset directory containing the \(folder.name) class folder. Previous exports are preserved."
         openPanel.canChooseFiles = false
         openPanel.canChooseDirectories = true
         openPanel.canCreateDirectories = true
