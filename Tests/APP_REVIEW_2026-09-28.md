@@ -1,5 +1,9 @@
 # 2026-09-28 심사 대응 및 재제출 검증
 
+## 작업 범위
+
+이번 작업은 macOS 앱만 대상으로 한다. 2026-09-28 사용자 확인에 따라 iPhone/Watch 앱은 다른 분 명의로 이미 배포된 companion을 사용하며, 해당 앱의 코드나 배포는 수정하지 않는다. 심사 영상에서는 그 앱과 Mac의 실제 연결 흐름을 보여 준다.
+
 ## 확인한 제출 상태
 
 - App Store Connect 앱: `6812215487`, Mac bundle ID: `com.codling.WatchMotionEditor.mac`.
@@ -17,13 +21,13 @@
 |---|---|
 | #55 실기기 영상 | 실제 Mac/iPhone/Watch 영상, 제출 빌드 일치, 로그인 없이 재생 가능한 URL, 심사 노트 저장 확인 |
 | #56 공개 정책 정정 | 사이트 원본 수정·배포 후 `/privacy`의 오래된 IAP/체험 문구 제거 확인 |
-| #57 iPhone 개인정보처리방침 | Connection Settings의 Privacy Policy 및 Contact Support 링크 |
+| #57 iPhone 개인정보처리방침 | Mac 전용 범위에 따라 제외(not planned), iPhone 변경 없음 |
 | #58 companion 설치 안내 | 심사자가 접근 가능한 설치 URL과 설치·페어링 절차를 실제 기기로 검증 |
 | #59 수신 상태 | 중지 후 늦은 연결/리소스 콜백이 idle 상태를 덮어쓰지 않는 회귀 테스트 |
 | #60 Create ML 내보내기 | 2개→1개 스냅 재내보내기 시 새 결과 1개, 이전 결과 2개 보존 |
 | #61 라벨 손상 | 오류 표시, 쓰기/내보내기 차단, 원본 바이트 보존 및 저장 직전 재검증 |
 | #62 CSV 무결성 | 잘못된 헤더·행·비유한 숫자 거부, BOM/CRLF 정상 입력 지원 |
-| #63 UI 응답 | CSV/데이터셋/원본 내보내기 worker, 취소 전파, UI heartbeat 및 취소 회귀 테스트 |
+| #63 UI 응답 | Mac CSV/세그먼트/데이터셋 worker, 취소 전파 및 관련 회귀 테스트 |
 
 ## 실기기 촬영 순서 (#55)
 
@@ -53,7 +57,7 @@ Needs confirmation:
 - 샘플 프로젝트는 편집기 확인을 보조할 뿐, 실제 센서/전송 증거나 Apple이 요청한 실기기 영상을 대체하지 않는다.
 
 Needs confirmation:
-- companion 설치 URL과 배포 상태. 저장소나 홍보 페이지의 설명만으로 실제 설치 가능성을 입증할 수 없다.
+- 이미 배포된 companion의 정확한 설치 URL과 Mac 연동에 사용할 버전. 배포 사실은 사용자에게 확인했으며 재배포는 이번 범위가 아니다.
 
 ## 공개 정책 정정안 (#56)
 
@@ -65,7 +69,7 @@ Needs confirmation:
 >
 > WatchMotion Editor for Mac is a paid download from the Mac App Store. The purchase includes the app's editing and export features. The Mac app does not offer in-app purchases, subscriptions, a trial counter, or an in-app Restore Purchases flow. The iPhone and Apple Watch companion apps are free. App Store purchases are handled by Apple under Apple's applicable terms and privacy policy.
 
-배포 후 홈페이지·지원·가이드·정책의 구매 설명을 함께 대조하고, iPhone/Mac의 정책 링크가 같은 최신 페이지를 여는지 확인한다.
+배포 후 홈페이지·지원·가이드·정책의 구매 설명을 함께 대조하고, Mac의 정책 링크가 같은 최신 페이지를 여는지 확인한다.
 
 Needs confirmation:
 - 공개 사이트의 소스 저장소 또는 로컬 경로와 배포 대상. 앱 저장소에는 사이트 소스가 없으며, 이 정정안은 아직 공개 사이트에 반영되지 않았다.
@@ -79,7 +83,6 @@ bash Tests/run-receiver-lifecycle-smoke.sh
 bash Tests/run-release-ui-smoke.sh
 bash Tests/run-dataset-export-smoke.sh
 bash Tests/run-project-settings-smoke.sh
-bash Tests/run-phone-ui-smoke.sh
 ```
 
 재제출 전 실제 기기에서는 정책 링크, 권한 거부/재허용, 수신 중지/재시작, 앱 전환으로 Watch 녹화 종료, 큰 파일 내보내기 취소, 손상된 CSV/라벨 오류를 확인한다. #55/#56/#58은 외부 증거가 채워지기 전에는 닫지 않는다.
