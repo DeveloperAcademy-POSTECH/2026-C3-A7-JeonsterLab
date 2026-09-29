@@ -86,3 +86,25 @@ bash Tests/run-project-settings-smoke.sh
 ```
 
 재제출 전 실제 기기에서는 정책 링크, 권한 거부/재허용, 수신 중지/재시작, 앱 전환으로 Watch 녹화 종료, 큰 파일 내보내기 취소, 손상된 CSV/라벨 오류를 확인한다. #55/#56/#58은 외부 증거가 채워지기 전에는 닫지 않는다.
+
+
+## 2026-09-29 1.0.2 업로드
+
+- 사용자 요청에 따라 Mac만 1.0.2 / 20260929로 변경했다. iPhone/Watch 및 공유 코드 변경은 없다.
+- 수정 브랜치 `fix/#59-review-readiness`, 버전 설정 커밋 `99f1aa9`를 사용했다. PR #64는 병합하지 않았다.
+- 배포 식별자는 기존 App Store Connect 앱과 같은 `com.codling.WatchMotionEditor.mac`, 팀은 `7KL6NFBYCF`를 사용했다. 저장소에 있는 타 팀 설정은 아카이브 명령의 타깃 설정으로 대체했다.
+- Release 서명 아카이브와 codesign 검증, 실제 Info.plist 버전/빌드/번들 ID, sandbox 및 network.server entitlement 검증을 통과했다.
+- `manageAppVersionAndBuildNumber=false`로 지정하여 요청된 빌드 번호를 보존했다.
+- 2026-09-29 KST 14:09:39 업로드 로그의 `Upload succeeded`와 `EXPORT SUCCEEDED`를 확인했다.
+- 현재 단계는 업로드 완료다. 웹 로그인 세션 만료로 빌드 처리 완료·버전 연결·최종 재심사 제출은 아직 확인하지 못했다.
+
+실행 명령:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project JeonstarLab.xcodeproj -scheme 'JeonstarLab Mac' -configuration Release -destination 'generic/platform=macOS' -derivedDataPath /private/tmp/jeonster-release-20260929/DerivedData -archivePath /private/tmp/jeonster-release-20260929/WatchMotionEditor.xcarchive DEVELOPMENT_TEAM=7KL6NFBYCF PRODUCT_BUNDLE_IDENTIFIER=com.codling.WatchMotionEditor.mac -allowProvisioningUpdates archive
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -exportArchive -archivePath /private/tmp/jeonster-release-20260929/WatchMotionEditor.xcarchive -exportOptionsPlist /private/tmp/jeonster-release-20260929/ExportOptions.plist -exportPath /private/tmp/jeonster-release-20260929/export -allowProvisioningUpdates
+```
+
+로컬 증거: `/private/tmp/jeonster-release-20260929/archive.log`, `upload.log`, `WatchMotionEditor.xcarchive`.
+
+Needs confirmation: App Store Connect 웹 로그인·2단계 인증 완료 후 1.0.2(20260929)를 연결하고 재심사 제출 상태를 확인해야 한다. #55의 실제 영상 증거는 버전 변경이나 업로드 성공으로 해결된 것으로 취급하지 않는다.
