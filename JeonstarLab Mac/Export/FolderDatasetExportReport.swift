@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct FolderDatasetExportReport: Equatable {
+nonisolated struct FolderDatasetExportReport: Equatable {
     let exportedSnapCount: Int
     let exportedRowCount: Int
     let skippedItemCount: Int

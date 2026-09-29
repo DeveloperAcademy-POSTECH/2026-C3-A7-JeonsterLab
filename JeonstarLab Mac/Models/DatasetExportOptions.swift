@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct DatasetExportOptions: Equatable {
+nonisolated struct DatasetExportOptions: Equatable {
     var userInfoColumns: Set<DatasetUserInfoColumn> = Set(DatasetUserInfoColumn.defaultSelected)
     var motionColumns: Set<DatasetMotionColumn> = Set(DatasetMotionColumn.defaultSelected)
 
@@ -38,7 +38,7 @@ struct DatasetExportOptions: Equatable {
     }
 }
 
-enum DatasetRequiredColumn: String, CaseIterable, Identifiable {
+nonisolated enum DatasetRequiredColumn: String, CaseIterable, Identifiable {
     case snapID
     case sampleIndex
     case label
@@ -47,7 +47,7 @@ enum DatasetRequiredColumn: String, CaseIterable, Identifiable {
     var header: String { rawValue }
 }
 
-enum DatasetUserInfoColumn: String, CaseIterable, Identifiable {
+nonisolated enum DatasetUserInfoColumn: String, CaseIterable, Identifiable {
     case userNickname
     case userGender
     case userAgeGroup
@@ -82,7 +82,7 @@ enum DatasetUserInfoColumn: String, CaseIterable, Identifiable {
     ]
 }
 
-enum DatasetMotionColumn: String, CaseIterable, Identifiable {
+nonisolated enum DatasetMotionColumn: String, CaseIterable, Identifiable {
     case relativeTime
     case timestamp
     case attitudeRoll

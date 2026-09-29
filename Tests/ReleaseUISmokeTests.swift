@@ -21,6 +21,17 @@ struct ReleaseUISmokeTests {
         precondition(samples[1].userAccX == 3 && samples[1].userAccY == 4 && samples[1].rotationRateZ == 6)
         precondition(samples[2].attitudeRoll == 2 && samples[2].attitudePitch == 4 && samples[2].attitudeYaw == 6)
 
+        let original = try String(contentsOf: csv, encoding: .utf8)
+        for invalid in [original + "\n1,broken", original.replacingOccurrences(of: "1,101,1,", with: "1,nan,1,"),
+                        original.replacingOccurrences(of: "index,timestamp", with: "timestamp,index")] {
+            try invalid.write(to: csv, atomically: true, encoding: .utf8)
+            do { _ = try MotionCSVParser.parse(url: csv); fatalError("Malformed input was silently accepted") }
+            catch is MotionCSVParserError {}
+        }
+        try ("\u{FEFF}" + original.replacingOccurrences(of: "\n", with: "\r\n")).write(to: csv, atomically: true, encoding: .utf8)
+        let windowsSamples = try MotionCSVParser.parse(url: csv)
+        precondition(windowsSamples.count == 3, "BOM and CRLF must remain supported")
+
         let draft = SnapSelectionAnalyzer.analyze(
             selection: ChartTimeSelection(startTime: 2, endTime: 0), samples: samples
         )!

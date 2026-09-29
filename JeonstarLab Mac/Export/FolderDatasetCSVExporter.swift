@@ -5,13 +5,13 @@
 
 import Foundation
 
-enum FolderDatasetCSVExporter {
+nonisolated enum FolderDatasetCSVExporter {
     static func csvString(
         for entries: [FolderDatasetSnapEntry],
         options: DatasetExportOptions = .default
-    ) -> String {
-        let csvRows = entries.flatMap { entry in
-            rows(for: entry, options: options)
+    ) throws -> String {
+        let csvRows = try entries.flatMap { entry in
+            try rows(for: entry, options: options)
         }
         return ([header(options: options)] + csvRows).joined(separator: "\n") + "\n"
     }
@@ -37,12 +37,13 @@ enum FolderDatasetCSVExporter {
     private static func rows(
         for entry: FolderDatasetSnapEntry,
         options: DatasetExportOptions
-    ) -> [String] {
+    ) throws -> [String] {
         guard let firstTimestamp = entry.samples.first?.timestamp else {
             return []
         }
 
-        return entry.samples.enumerated().map { sampleIndex, sample in
+        return try entry.samples.enumerated().map { sampleIndex, sample in
+            try Task.checkCancellation()
             let requiredValues = [
                 escaped(entry.snapID),
                 "\(sampleIndex)"
@@ -132,7 +133,7 @@ enum FolderDatasetCSVExporter {
     }
 }
 
-struct FolderDatasetSnapEntry {
+nonisolated struct FolderDatasetSnapEntry {
     let snapID: String
     let label: String
     let participantInfo: RecordingParticipantInfo

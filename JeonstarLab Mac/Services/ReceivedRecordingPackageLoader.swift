@@ -67,7 +67,16 @@ final class ReceivedRecordingPackageLoader {
             messages.append("Missing recording.csv")
         }
 
-        let labelPayload = loadLabelPayload(folderURL: folderURL)
+        let labelPayload: RecordingPackageLabelPayload?
+        var labelReadError: String?
+        do {
+            labelPayload = try loadLabelPayload(folderURL: folderURL)
+        } catch {
+            labelPayload = nil
+            let message = "Unable to read label.json. Editing and export are disabled to preserve the original file: \(error.localizedDescription)"
+            labelReadError = message
+            messages.append(message)
+        }
         let participantInfo = participantInfo(
             from: labelPayload,
             metadata: metadata
@@ -93,6 +102,7 @@ final class ReceivedRecordingPackageLoader {
             editedSnapEvents: labelPayload?.editedSnapEvents ?? [:],
             deletedSnapEventIDs: labelPayload?.deletedSnapEventIDs ?? [],
             parseMessages: messages,
+            labelReadError: labelReadError,
             autoSegmentReview: labelPayload?.autoSegmentReview
         )
         do {
@@ -118,6 +128,11 @@ final class ReceivedRecordingPackageLoader {
     }
 
     func saveLabel(package: ReceivedRecordingPackage) throws {
+        if let message = package.labelReadError {
+            throw LabelReadError(message: message)
+        }
+        // Revalidate at the write boundary in case the file changed after loading.
+        _ = try loadLabelPayload(folderURL: package.folderURL)
         let payload = RecordingPackageLabelPayload(
             displayName: package.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? nil
@@ -154,12 +169,13 @@ final class ReceivedRecordingPackageLoader {
         return fileManager.fileExists(atPath: url.path) ? url : nil
     }
 
-    private func loadLabelPayload(folderURL: URL) -> RecordingPackageLabelPayload? {
+    private func loadLabelPayload(folderURL: URL) throws -> RecordingPackageLabelPayload? {
         let url = folderURL.appendingPathComponent("label.json")
-        guard let data = try? Data(contentsOf: url) else { return nil }
+        guard fileManager.fileExists(atPath: url.path) else { return nil }
+        let data = try Data(contentsOf: url)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try? decoder.decode(RecordingPackageLabelPayload.self, from: data)
+        return try decoder.decode(RecordingPackageLabelPayload.self, from: data)
     }
 
     private func receivedAt(for folderURL: URL) -> Date {
@@ -170,4 +186,9 @@ final class ReceivedRecordingPackageLoader {
 
 extension Notification.Name {
     static let recordingPackageLabelDidChange = Notification.Name("recordingPackageLabelDidChange")
+}
+
+private struct LabelReadError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
 }

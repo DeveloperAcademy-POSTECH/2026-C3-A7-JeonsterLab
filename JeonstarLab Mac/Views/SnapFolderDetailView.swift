@@ -11,11 +11,11 @@ struct SnapFolderDetailView: View {
     let onDeleteItem: (SnapFolderItem) -> Void
     let onOpenSource: (SnapFolderItem) -> Void
     let hasSourcePackage: (SnapFolderItem) -> Bool
-    let onGenerateSegments: (SnapFolder) -> String
-    let onExportDataset: (SnapFolder, DatasetExportOptions) -> String
-    let onExportCreateML: (SnapFolder) -> String
+    let onGenerateSegments: (SnapFolder) async -> String
+    let onExportDataset: (SnapFolder, DatasetExportOptions) async -> String
+    let onExportCreateML: (SnapFolder) async -> String
 
-    @State private var segmentMessage: String?
+    @State private var exportTask: Task<Void, Never>?
     @State private var exportMessage: String?
     @State private var sourceNavigationMessage: String?
     @State private var sortOption: SnapFolderSortOption = .dateDescending
@@ -50,12 +50,12 @@ struct SnapFolderDetailView: View {
                         exportActions
                     }
                 }
-                if let segmentMessage {
-                    Text(segmentMessage)
-                        .font(.caption)
-                        .foregroundStyle(segmentMessage.localizedCaseInsensitiveContains("failed") ? .red : .secondary)
+                if exportTask != nil {
+                    HStack {
+                        ProgressView("Processing dataset…")
+                        Button("Cancel") { exportTask?.cancel() }
+                    }
                 }
-
                 if let exportMessage {
                     Text(exportMessage)
                         .font(.caption)
@@ -78,6 +78,8 @@ struct SnapFolderDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
         }
+        .onDisappear { exportTask?.cancel() }
+        .onChange(of: folder.id) { exportTask?.cancel(); exportMessage = nil }
         .alert(
             "Source recording unavailable.",
             isPresented: Binding(
@@ -100,10 +102,22 @@ struct SnapFolderDetailView: View {
                 },
                 onExport: {
                     exportOptions.saveAsLastUsed()
-                    exportMessage = onExportDataset(folder, exportOptions)
+                    let snapshot = folder
+                    let options = exportOptions
+                    startExport { await onExportDataset(snapshot, options) }
                     isShowingExportOptions = false
                 }
             )
+        }
+    }
+
+    private func startExport(_ operation: @escaping @MainActor () async -> String) {
+        guard exportTask == nil else { return }
+        let folderID = folder.id
+        exportTask = Task { @MainActor in
+            let message = await operation()
+            if folder.id == folderID { exportMessage = message }
+            exportTask = nil
         }
     }
 
@@ -119,8 +133,14 @@ struct SnapFolderDetailView: View {
 
     private var exportActions: some View {
         HStack(spacing: 10) {
-            Button("Generate Segments") { segmentMessage = onGenerateSegments(folder) }
-            Button("Export Create ML") { exportMessage = onExportCreateML(folder) }
+            Button("Generate Segments") {
+                let snapshot = folder
+                startExport { await onGenerateSegments(snapshot) }
+            }
+            Button("Export Create ML") {
+                let snapshot = folder
+                startExport { await onExportCreateML(snapshot) }
+            }
             Button {
                 exportOptions = .lastSaved()
                 isShowingExportOptions = true
@@ -129,7 +149,7 @@ struct SnapFolderDetailView: View {
             }
             .buttonStyle(.borderedProminent)
         }
-        .disabled(folder.items.isEmpty)
+        .disabled(folder.items.isEmpty || exportTask != nil)
     }
 
     private var sortedItems: [SnapFolderItem] {

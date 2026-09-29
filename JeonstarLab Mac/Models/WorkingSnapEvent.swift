@@ -22,7 +22,7 @@ nonisolated enum SnapEventSourceType: String, Codable, Equatable {
     }
 }
 
-struct WorkingSnapEvent: Identifiable, Codable, Equatable {
+nonisolated struct WorkingSnapEvent: Identifiable, Codable, Equatable {
     var id: String { snapID }
 
     var snapID: String

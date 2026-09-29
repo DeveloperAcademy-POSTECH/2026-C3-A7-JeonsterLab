@@ -86,7 +86,11 @@ extension MacPeerReceiver: MCNearbyServiceAdvertiserDelegate {
         _ advertiser: MCNearbyServiceAdvertiser,
         didNotStartAdvertisingPeer error: Error
     ) {
-        handleError(error)
+        Task { @MainActor in
+            guard isAdvertising else { return }
+            isAdvertising = false
+            handleError(error)
+        }
     }
 }
 
@@ -97,6 +101,11 @@ extension MacPeerReceiver: MCSessionDelegate {
         didChange state: MCSessionState
     ) {
         Task { @MainActor in
+            guard isAdvertising else {
+                onConnectedPeerChanged?(nil)
+                onStatusChanged?(.idle)
+                return
+            }
             switch state {
             case .connected:
                 onConnectedPeerChanged?(peerID.displayName)
@@ -133,6 +142,7 @@ extension MacPeerReceiver: MCSessionDelegate {
         with progress: Progress
     ) {
         Task { @MainActor in
+            guard isAdvertising else { return }
             onStatusChanged?(.receiving)
         }
     }
@@ -156,7 +166,7 @@ extension MacPeerReceiver: MCSessionDelegate {
                 try session.send(ack, toPeers: [peerID], with: .reliable)
                 Task { @MainActor in
                     self.onReceivedFiles?(files)
-                    self.onStatusChanged?(.completed)
+                    self.onStatusChanged?(self.isAdvertising ? .completed : .idle)
                 }
             }
         } catch {
@@ -166,7 +176,10 @@ extension MacPeerReceiver: MCSessionDelegate {
                 ]) {
                 try? session.send(ack, toPeers: [peerID], with: .reliable)
             }
-            Task { @MainActor in self.handleError(error) }
+            Task { @MainActor in
+                guard self.isAdvertising else { return }
+                self.handleError(error)
+            }
         }
     }
 

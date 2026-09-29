@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct RecordingExportMetadata: Decodable, Equatable {
+nonisolated struct RecordingExportMetadata: Decodable, Equatable {
     let recordingID: UUID?
     let startedAt: Date?
     let duration: TimeInterval?

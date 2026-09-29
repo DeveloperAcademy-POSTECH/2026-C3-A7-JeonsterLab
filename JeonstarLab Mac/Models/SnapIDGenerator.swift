@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum SnapIDGenerator {
+nonisolated enum SnapIDGenerator {
     static func automatic(
         recordingID: UUID?,
         packageFolderName: String,

@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct SnapSegmentMetadata: Codable, Equatable {
+nonisolated struct SnapSegmentMetadata: Codable, Equatable {
     let snapID: String
     let recordingID: UUID?
     let packageFolderName: String

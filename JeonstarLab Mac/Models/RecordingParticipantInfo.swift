@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct RecordingParticipantInfo: Codable, Equatable {
+nonisolated struct RecordingParticipantInfo: Codable, Equatable {
     var nameOrNickname: String
     var gender: ParticipantGenderOption
     var ageGroup: ParticipantAgeGroupOption
@@ -76,7 +76,7 @@ struct RecordingParticipantInfo: Codable, Equatable {
     }
 }
 
-enum ParticipantGenderOption: String, Codable, CaseIterable, Identifiable {
+nonisolated enum ParticipantGenderOption: String, Codable, CaseIterable, Identifiable {
     case unspecified
     case male
     case female
@@ -92,7 +92,7 @@ enum ParticipantGenderOption: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum ParticipantAgeGroupOption: String, Codable, CaseIterable, Identifiable {
+nonisolated enum ParticipantAgeGroupOption: String, Codable, CaseIterable, Identifiable {
     case unspecified
     case under10
     case teens
@@ -118,7 +118,7 @@ enum ParticipantAgeGroupOption: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum ParticipantDominantHandOption: String, Codable, CaseIterable, Identifiable {
+nonisolated enum ParticipantDominantHandOption: String, Codable, CaseIterable, Identifiable {
     case unspecified
     case left
     case right
@@ -134,7 +134,7 @@ enum ParticipantDominantHandOption: String, Codable, CaseIterable, Identifiable 
     }
 }
 
-enum ParticipantSkillLevelOption: String, Codable, CaseIterable, Identifiable {
+nonisolated enum ParticipantSkillLevelOption: String, Codable, CaseIterable, Identifiable {
     case unspecified
     case beginner
     case intermediate

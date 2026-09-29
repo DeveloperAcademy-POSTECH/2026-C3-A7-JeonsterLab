@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct CreateMLActivityExportReport {
+nonisolated struct CreateMLActivityExportReport {
     let exportedFileCount: Int
     let skippedItemCount: Int
     let skippedReasons: [String]
@@ -20,7 +20,7 @@ struct CreateMLActivityExportReport {
     }
 }
 
-enum CreateMLActivityExportError: LocalizedError {
+nonisolated enum CreateMLActivityExportError: LocalizedError {
     case emptyFolder
     case noExportableSnaps([String])
     case missingSourceCSV
